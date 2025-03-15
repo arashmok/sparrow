@@ -23,7 +23,7 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 
 1. Clone this repository:
    ```
-   git clone https://github.com/arashmok/sparrow.git
+   git clone https://github.com/yourusername/sparrow.git
    cd sparrow
    ```
 
@@ -31,6 +31,12 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
    ```
    npm install
    ```
+
+3. Set up your configuration:
+   ```
+   cp config.template.js config.js
+   ```
+   Then edit `config.js` with your OpenAI API key and preferred settings. This file is excluded from git to keep your API key private.
 
 3. Load the extension in Chrome:
    - Open Chrome and navigate to `chrome://extensions/`

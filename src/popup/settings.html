@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sparrow Settings</title>
+  <link rel="stylesheet" href="../../assets/css/popup.css">
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sparrow Settings</h1>
+    <p>Configure your extension preferences</p>
+  </header>
+  
+  <main>
+    <form id="settings-form">
+      <div class="form-group">
+        <label for="api-key">OpenAI API Key</label>
+        <input type="password" id="api-key" placeholder="Enter your OpenAI API key" />
+        <small>Your API key is stored locally and is never sent to our servers.</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="default-format">Default Summary Format</label>
+        <select id="default-format">
+          <option value="short">Short Summary</option>
+          <option value="detailed">Detailed Summary</option>
+          <option value="key-points">Key Takeaways</option>
+        </select>
+      </div>
+      
+      <div class="actions">
+        <button type="button" id="cancel-btn">Cancel</button>
+        <button type="submit" id="save-btn" class="primary-btn">Save Settings</button>
+      </div>
+    </form>
+    
+    <div id="message" class="message hidden"></div>
+  </main>
+  
+  <script src="settings.js"></script>
+</body>
+</html>
