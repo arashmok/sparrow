@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sparrow</title>
+  <link rel="stylesheet" href="../../assets/css/popup.css">
+</head>
+<body>
+  <header>
+    <h1>Sparrow</h1>
+    <p>AI-powered webpage summarizer</p>
+  </header>
+  
+  <main>
+    <div class="controls">
+      <button id="summarize-btn" class="primary-btn">Summarize</button>
+      <select id="summary-format">
+        <option value="short">Short Summary</option>
+        <option value="detailed">Detailed Summary</option>
+        <option value="key-points">Key Takeaways</option>
+      </select>
+    </div>
+    
+    <div class="summary-container">
+      <div id="loading" class="hidden">Generating summary...</div>
+      <div id="summary-result" class="hidden">
+        <div id="summary-text"></div>
+        <div class="summary-actions">
+          <button id="copy-btn">Copy</button>
+          <button id="save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <footer>
+    <p>Powered by OpenAI</p>
+  </footer>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
