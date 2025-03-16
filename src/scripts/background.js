@@ -21,21 +21,32 @@ if (typeof CONFIG === 'undefined') {
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("Background script received message:", request.action);
+  
   if (request.action === "summarize") {
+    console.log("Processing summarize request");
+    
     // Get the API key from storage, or use the one from config
     chrome.storage.local.get(['apiKey'], async (result) => {
+      console.log("Checking for API key");
+      
       // Priority: 1. User-provided key in storage, 2. Config file key, 3. Empty (will show error)
-      const apiKey = result.apiKey || CONFIG.OPENAI_API_KEY || '';
+      const apiKey = result.apiKey || (CONFIG ? CONFIG.OPENAI_API_KEY : '') || '';
       
       if (!apiKey) {
+        console.log("No API key found");
         sendResponse({ 
           error: 'No API key found. Please add your OpenAI API key in the extension settings.'
         });
         return;
       }
       
+      console.log("API key found, proceeding with summarization");
+      
       try {
-        const summary = await generateSummary(request.text, request.format, apiKey);
+        // Always use the mock for now to test flow
+        const summary = await mockSummaryForTesting(request.text, request.format);
+        console.log("Summary generated successfully");
         sendResponse({ summary });
       } catch (error) {
         console.error('Error generating summary:', error);
@@ -147,22 +158,39 @@ function truncateText(text, maxChars) {
  * Provides a mock summary for testing without API key
  * @param {string} text - The original text
  * @param {string} format - The requested format
- * @returns {string} A mock summary
+ * @returns {Promise<string>} A mock summary
  */
-function mockSummaryForTesting(text, format) {
-  const title = text.split('\n')[0].replace('Title: ', '');
+async function mockSummaryForTesting(text, format) {
+  console.log("Using mock summary function");
   
+  // Extract title from the text if possible
+  let title = "webpage";
+  const titleMatch = text.match(/Title: (.*?)(\n|$)/);
+  if (titleMatch && titleMatch[1]) {
+    title = titleMatch[1].trim();
+  }
+  
+  // Create different summaries based on format
+  let summary;
   switch (format) {
     case 'short':
-      return `This webpage discusses ${title}. It covers the main concepts and provides information about the topic.`;
+      summary = `This webpage discusses ${title}. It covers the main concepts and provides information about the topic.`;
+      break;
     
     case 'detailed':
-      return `This webpage titled "${title}" provides a comprehensive overview of the subject matter. The content explores various aspects of the topic, including key concepts, practical applications, and related information. The page appears to be informative and aimed at readers seeking to understand more about this subject.`;
+      summary = `This webpage titled "${title}" provides a comprehensive overview of the subject matter. The content explores various aspects of the topic, including key concepts, practical applications, and related information. The page appears to be informative and aimed at readers seeking to understand more about this subject.`;
+      break;
     
     case 'key-points':
-      return `• The webpage is titled "${title}"\n• It contains information about the main subject matter\n• It likely covers definitions and explanations of key concepts\n• It may include examples or applications related to the topic\n• The content is structured to provide readers with a clear understanding of the subject`;
+      summary = `• The webpage is titled "${title}"\n• It contains information about the main subject matter\n• It likely covers definitions and explanations of key concepts\n• It may include examples or applications related to the topic\n• The content is structured to provide readers with a clear understanding of the subject`;
+      break;
     
     default:
-      return `Summary of "${title}": This webpage provides information about the topic, covering key aspects and details that would be relevant to someone interested in the subject.`;
+      summary = `Summary of "${title}": This webpage provides information about the topic, covering key aspects and details that would be relevant to someone interested in the subject.`;
   }
+  
+  console.log("Mock summary generated:", summary.substring(0, 50) + "...");
+  
+  // Return the summary
+  return summary;
 }

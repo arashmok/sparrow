@@ -94,6 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
+    console.log("Sending text to background script for summarization");
+    
     // Send extracted text to background script for API call
     const format = summaryFormat.value;
     chrome.runtime.sendMessage(
@@ -103,14 +105,30 @@ document.addEventListener('DOMContentLoaded', () => {
         format: format 
       }, 
       (result) => {
-        if (chrome.runtime.lastError || !result) {
-          showError("Failed to generate summary. Please try again.");
+        // Check for runtime errors first
+        if (chrome.runtime.lastError) {
+          showError("Background script error: " + chrome.runtime.lastError.message);
           console.error("Background script error:", chrome.runtime.lastError);
           return;
         }
         
+        // Check if we got a response at all
+        if (!result) {
+          showError("No response received from background script.");
+          return;
+        }
+        
+        console.log("Received response from background:", result);
+        
+        // Check for error in the response
         if (result.error) {
           showError(result.error);
+          return;
+        }
+        
+        // Check if summary exists
+        if (!result.summary) {
+          showError("No summary was generated. Please try again.");
           return;
         }
         

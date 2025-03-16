@@ -28,13 +28,18 @@
     "http://*/*"
   ],
   "background": {
-    "service_worker": "src/scripts/background.js",
-    "type": "module"
+    "service_worker": "src/scripts/background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["src/scripts/content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["config.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
