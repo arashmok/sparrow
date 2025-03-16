@@ -1,23 +1,28 @@
 // Background.js - Handles API calls and background processes
 
-// Import configuration
-// This will attempt to load config.js which should be created from config.template.js
-// We use a script tag in the manifest.json to load this before the background script
-
 // OpenAI API endpoint
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Check if config is loaded
-if (typeof CONFIG === 'undefined') {
-  console.error('Configuration not loaded. Please make sure config.js exists.');
-  // Create a default config to prevent errors
-  window.CONFIG = {
-    OPENAI_API_KEY: '',
-    OPENAI_MODEL: 'gpt-3.5-turbo',
-    MAX_TOKENS: 500,
-    TEMPERATURE: 0.5
-  };
-}
+// DEVELOPMENT MODE FLAG
+// Set this to false when you want to use the real OpenAI API
+// Make sure you've set up config.js with your API key first
+const DEVELOPMENT_MODE = true;
+
+// Default configuration if config.js is not found
+const DEFAULT_CONFIG = {
+  OPENAI_API_KEY: '',
+  OPENAI_MODEL: 'gpt-3.5-turbo',
+  MAX_TOKENS: 500,
+  TEMPERATURE: 0.5,
+  ENABLE_HISTORY: true,
+  ENABLE_DARK_MODE: false,
+  DEFAULT_SUMMARY_FORMAT: 'short'
+};
+
+// Use CONFIG if it exists, otherwise use default config
+const config = typeof CONFIG !== 'undefined' ? CONFIG : DEFAULT_CONFIG;
+console.log("Config loaded:", config.OPENAI_API_KEY ? "API key found" : "No API key found");
+console.log("Development mode:", DEVELOPMENT_MODE ? "ON (using mock data)" : "OFF (using real API)");
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -44,7 +49,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log("API key found, proceeding with summarization");
       
       try {
-        // Always use the mock for now to test flow
+        // Always use the mock for testing during development
         const summary = await mockSummaryForTesting(request.text, request.format);
         console.log("Summary generated successfully");
         sendResponse({ summary });
