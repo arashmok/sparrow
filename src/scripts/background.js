@@ -19,8 +19,9 @@ const DEFAULT_CONFIG = {
 const config = typeof CONFIG !== 'undefined' ? CONFIG : DEFAULT_CONFIG;
 
 // Check if in development mode (from config)
-const isDevelopmentMode = config.DEVELOPMENT_MODE !== undefined ? config.DEVELOPMENT_MODE : true;
+const isDevelopmentMode = config.DEVELOPMENT_MODE !== undefined ? Boolean(config.DEVELOPMENT_MODE) : true;
 
+// Log configuration state
 console.log("Config loaded:", config.OPENAI_API_KEY ? "API key found" : "No API key found");
 console.log("Development mode:", isDevelopmentMode ? "ON (using mock data)" : "OFF (using real API)");
 
@@ -39,30 +40,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const apiKey = result.apiKey || (CONFIG ? CONFIG.OPENAI_API_KEY : '') || '';
       
       if (!apiKey && !isDevelopmentMode) {
-        console.log("No API key found and not in development mode - aborting");
+        console.log("No API key found and production mode is active - aborting");
         sendResponse({ 
           error: 'No API key found. Please add your OpenAI API key in the extension settings.'
         });
         return;
       }
       
-      if (!apiKey) {
-        console.log("No API key found, but continuing with mock data (development mode)");
-      } else {
-        console.log("API key found, but still using mock data due to development mode setting");
-      }
-      
-      console.log("Proceeding with summarization in", 
-                  isDevelopmentMode ? "development mode (mock data)" : "production mode (real API)");
-      
       try {
         let summary;
         if (isDevelopmentMode) {
-          // Use mock data in development mode
+          console.log("Using mock summary function (development mode)");
           summary = await mockSummaryForTesting(request.text, request.format);
           console.log("Mock summary generated successfully");
         } else {
-          // Use real API in production mode
+          console.log("Using real OpenAI API (production mode)");
           summary = await generateSummary(request.text, request.format, apiKey);
           console.log("Real API summary generated successfully");
         }
