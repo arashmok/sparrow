@@ -3,13 +3,9 @@
 // OpenAI API endpoint
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// DEVELOPMENT MODE FLAG
-// Set this to false when you want to use the real OpenAI API
-// Make sure you've set up config.js with your API key first
-const DEVELOPMENT_MODE = true;
-
 // Default configuration if config.js is not found
 const DEFAULT_CONFIG = {
+  DEVELOPMENT_MODE: true,  // Default to development mode if no config
   OPENAI_API_KEY: '',
   OPENAI_MODEL: 'gpt-3.5-turbo',
   MAX_TOKENS: 500,
@@ -21,8 +17,12 @@ const DEFAULT_CONFIG = {
 
 // Use CONFIG if it exists, otherwise use default config
 const config = typeof CONFIG !== 'undefined' ? CONFIG : DEFAULT_CONFIG;
+
+// Check if in development mode (from config)
+const isDevelopmentMode = config.DEVELOPMENT_MODE !== undefined ? config.DEVELOPMENT_MODE : true;
+
 console.log("Config loaded:", config.OPENAI_API_KEY ? "API key found" : "No API key found");
-console.log("Development mode:", DEVELOPMENT_MODE ? "ON (using mock data)" : "OFF (using real API)");
+console.log("Development mode:", isDevelopmentMode ? "ON (using mock data)" : "OFF (using real API)");
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -38,7 +38,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Priority: 1. User-provided key in storage, 2. Config file key, 3. Empty (will show error)
       const apiKey = result.apiKey || (CONFIG ? CONFIG.OPENAI_API_KEY : '') || '';
       
-      if (!apiKey && !DEVELOPMENT_MODE) {
+      if (!apiKey && !isDevelopmentMode) {
         console.log("No API key found and not in development mode");
         sendResponse({ 
           error: 'No API key found. Please add your OpenAI API key in the extension settings.'
@@ -47,11 +47,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
       
       console.log("API key check passed, proceeding with summarization in", 
-                  DEVELOPMENT_MODE ? "development mode (mock data)" : "production mode (real API)");
+                  isDevelopmentMode ? "development mode (mock data)" : "production mode (real API)");
       
       try {
         let summary;
-        if (DEVELOPMENT_MODE) {
+        if (isDevelopmentMode) {
           // Use mock data in development mode
           summary = await mockSummaryForTesting(request.text, request.format);
           console.log("Mock summary generated successfully");

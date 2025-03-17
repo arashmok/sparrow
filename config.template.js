@@ -4,13 +4,16 @@
 // 2. Add your OpenAI API key to config.js
 // 3. config.js will be ignored by git to keep your keys private
 
-// NOTE: During development, you don't need an API key as the extension uses mock data by default.
+// NOTE: During development, you don't need an API key as long as DEVELOPMENT_MODE is true
 // When you're ready to test with the real OpenAI API:
 // 1. Set up your API key in config.js
-// 2. Change DEVELOPMENT_MODE to false in src/scripts/background.js
+// 2. Change DEVELOPMENT_MODE to false in this file
 
 const CONFIG = {
-  // Your OpenAI API key
+  // Development mode - set to false to use the real OpenAI API
+  DEVELOPMENT_MODE: true,
+  
+  // Your OpenAI API key (only needed when DEVELOPMENT_MODE is false)
   OPENAI_API_KEY: "your_openai_api_key_here",
   
   // API settings

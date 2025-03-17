@@ -36,9 +36,13 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
    ```
    cp config.template.js config.js
    ```
-   Then edit `config.js` with your OpenAI API key and preferred settings. This file is excluded from git to keep your API key private.
+   Then edit `config.js` as needed:
+   - During development: Keep `DEVELOPMENT_MODE: true` to use mock data
+   - For real API testing: Set `DEVELOPMENT_MODE: false` and add your OpenAI API key
+   
+   This file is excluded from git to keep your API key private.
 
-3. Load the extension in Chrome:
+4. Load the extension in Chrome:
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable "Developer mode" by clicking the toggle in the top-right corner
    - Click "Load unpacked" and select the project directory
@@ -63,6 +67,8 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 ```
 sparrow/
 ├── manifest.json             # Extension configuration
+├── config.template.js        # Template for configuration (to be copied to config.js)
+├── config.js                 # Actual configuration with API keys (git-ignored)
 ├── assets/                   # Static assets
 ├── src/                      # Source code
 │   ├── popup/                # Popup UI
