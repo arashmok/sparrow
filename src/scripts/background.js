@@ -4,7 +4,7 @@
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Default configuration if config.js is not found
-const DEFAULT_CONFIG = {
+let CONFIG = {
   DEVELOPMENT_MODE: true,  // Default to development mode if no config
   OPENAI_API_KEY: '',
   OPENAI_MODEL: 'gpt-3.5-turbo',
@@ -15,15 +15,21 @@ const DEFAULT_CONFIG = {
   DEFAULT_SUMMARY_FORMAT: 'short'
 };
 
-// Use CONFIG if it exists, otherwise use default config
-const config = typeof CONFIG !== 'undefined' ? CONFIG : DEFAULT_CONFIG;
-
-// Check if in development mode (from config)
-const isDevelopmentMode = config.DEVELOPMENT_MODE !== undefined ? Boolean(config.DEVELOPMENT_MODE) : true;
-
-// Log configuration state
-console.log("Config loaded:", config.OPENAI_API_KEY ? "API key found" : "No API key found");
-console.log("Development mode:", isDevelopmentMode ? "ON (using mock data)" : "OFF (using real API)");
+// Check for stored configuration data
+chrome.storage.local.get(['apiKey', 'developmentMode'], (result) => {
+  if (result.apiKey) {
+    CONFIG.OPENAI_API_KEY = result.apiKey;
+  }
+  
+  // If developmentMode is explicitly defined in storage, use that value
+  if (result.developmentMode !== undefined) {
+    CONFIG.DEVELOPMENT_MODE = result.developmentMode;
+  }
+  
+  // Log configuration state
+  console.log("Config loaded:", CONFIG.OPENAI_API_KEY ? "API key found" : "No API key found");
+  console.log("Development mode:", CONFIG.DEVELOPMENT_MODE ? "ON (using mock data)" : "OFF (using real API)");
+});
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -33,11 +39,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Processing summarize request for text of length:", request.text.length);
     
     // Get the API key from storage, or use the one from config
-    chrome.storage.local.get(['apiKey'], async (result) => {
+    chrome.storage.local.get(['apiKey', 'developmentMode'], async (result) => {
       console.log("Checking for API key");
       
       // Priority: 1. User-provided key in storage, 2. Config file key, 3. Empty (will show error)
-      const apiKey = result.apiKey || (CONFIG ? CONFIG.OPENAI_API_KEY : '') || '';
+      const apiKey = result.apiKey || CONFIG.OPENAI_API_KEY || '';
+      
+      // If developmentMode is explicitly set in storage, use that
+      let isDevelopmentMode = result.developmentMode !== undefined ? result.developmentMode : CONFIG.DEVELOPMENT_MODE;
+      
+      // If we have an API key, let's use production mode automatically
+      if (apiKey && apiKey.trim() !== '') {
+        isDevelopmentMode = false;
+      }
+      
+      console.log("Using development mode:", isDevelopmentMode);
       
       if (!apiKey && !isDevelopmentMode) {
         console.log("No API key found and production mode is active - aborting");
@@ -100,8 +116,7 @@ async function generateSummary(text, format, apiKey) {
   }
   
   try {
-    // For a real implementation, uncomment this API call:
-    /*
+    // Make the actual API call
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
@@ -126,11 +141,6 @@ async function generateSummary(text, format, apiKey) {
     
     const data = await response.json();
     return data.choices[0].message.content.trim();
-    */
-    
-    // For testing purposes (without API key), return a mock summary:
-    return mockSummaryForTesting(text, format);
-    
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
     throw new Error('Failed to generate summary. Please check your API key and try again.');

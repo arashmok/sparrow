@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loading = document.getElementById('loading');
   const summaryResult = document.getElementById('summary-result');
   const summaryText = document.getElementById('summary-text');
+  const summaryActions = document.getElementById('summary-actions');
   const copyBtn = document.getElementById('copy-btn');
   const saveBtn = document.getElementById('save-btn');
 
@@ -14,6 +15,26 @@ document.addEventListener('DOMContentLoaded', () => {
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
   copyBtn.addEventListener('click', copyToClipboard);
   saveBtn.addEventListener('click', saveSummary);
+  
+  // Check if we have a saved summary from this session
+  checkForExistingSummary();
+
+  // Function to check for an existing summary
+  function checkForExistingSummary() {
+    chrome.storage.local.get(['latestSummary', 'latestUrl'], (result) => {
+      if (result.latestSummary) {
+        // Get the current URL to compare
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          const currentUrl = tabs[0].url;
+          
+          // Only restore if we're still on the same page
+          if (result.latestUrl === currentUrl) {
+            displaySummary(result.latestSummary);
+          }
+        });
+      }
+    });
+  }
 
   // Function to summarize the current page
   async function summarizeCurrentPage() {
@@ -31,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // First try: See if content script is already loaded
       try {
         const response = await sendMessageToContentScript(tab.id, { action: "extract_text" });
-        processSummarization(response);
+        processSummarization(response, tab.url);
       } catch (error) {
         console.log("Content script not ready, injecting it now:", error);
         
@@ -42,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(async () => {
           try {
             const response = await sendMessageToContentScript(tab.id, { action: "extract_text" });
-            processSummarization(response);
+            processSummarization(response, tab.url);
           } catch (error) {
             showError("Could not extract text from the page. Please refresh the page and try again.");
             console.error("Error after injection:", error);
@@ -91,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Function to process the summarization after text extraction
-  function processSummarization(response) {
+  function processSummarization(response, url) {
     if (!response || !response.text) {
       showError("No content found to summarize.");
       return;
@@ -136,19 +157,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Display the summary
-        displaySummary(result.summary);
+        displaySummary(result.summary, url);
       }
     );
   }
   
   // Function to display the summary
-  function displaySummary(summary) {
+  function displaySummary(summary, url = null) {
     loading.classList.add('hidden'); // Hide the loading message
     summaryResult.classList.remove('hidden');
     summaryText.textContent = summary;
+    summaryActions.classList.remove('hidden');
     
     // Store the latest summary in local storage
-    chrome.storage.local.set({ latestSummary: summary });
+    const storageData = {
+      latestSummary: summary
+    };
+    
+    // If URL was provided, store it too
+    if (url) {
+      storageData.latestUrl = url;
+    }
+    
+    chrome.storage.local.set(storageData);
   }
   
   // Function to copy the summary to clipboard
@@ -172,26 +203,31 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(['savedSummaries'], (result) => {
       const savedSummaries = result.savedSummaries || [];
       
-      // Create a new summary object
-      const newSummary = {
-        id: Date.now(),
-        content: summaryText.textContent,
-        date: new Date().toISOString(),
-        url: document.referrer,
-        title: document.title || 'Untitled Page'
-      };
-      
-      // Add to the beginning of the array
-      savedSummaries.unshift(newSummary);
-      
-      // Save back to storage
-      chrome.storage.local.set({ savedSummaries }, () => {
-        // Show a brief "Saved!" notification
-        const originalText = saveBtn.textContent;
-        saveBtn.textContent = "Saved!";
-        setTimeout(() => {
-          saveBtn.textContent = originalText;
-        }, 1500);
+      // Get the current tab's info
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const currentTab = tabs[0];
+        
+        // Create a new summary object
+        const newSummary = {
+          id: Date.now(),
+          content: summaryText.textContent,
+          date: new Date().toISOString(),
+          url: currentTab.url,
+          title: currentTab.title || 'Untitled Page'
+        };
+        
+        // Add to the beginning of the array
+        savedSummaries.unshift(newSummary);
+        
+        // Save back to storage
+        chrome.storage.local.set({ savedSummaries }, () => {
+          // Show a brief "Saved!" notification
+          const originalText = saveBtn.textContent;
+          saveBtn.textContent = "Saved!";
+          setTimeout(() => {
+            saveBtn.textContent = originalText;
+          }, 1500);
+        });
       });
     });
   }
@@ -201,5 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loading.classList.add('hidden'); // Make sure to hide the loading indicator
     summaryResult.classList.remove('hidden');
     summaryText.innerHTML = `<p class="error">${message}</p>`;
+    summaryActions.classList.add('hidden'); // Hide the actions since there's nothing to copy/save
   }
 });
