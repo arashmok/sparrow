@@ -39,14 +39,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const apiKey = result.apiKey || (CONFIG ? CONFIG.OPENAI_API_KEY : '') || '';
       
       if (!apiKey && !isDevelopmentMode) {
-        console.log("No API key found and not in development mode");
+        console.log("No API key found and not in development mode - aborting");
         sendResponse({ 
           error: 'No API key found. Please add your OpenAI API key in the extension settings.'
         });
         return;
       }
       
-      console.log("API key check passed, proceeding with summarization in", 
+      if (!apiKey) {
+        console.log("No API key found, but continuing with mock data (development mode)");
+      } else {
+        console.log("API key found, but still using mock data due to development mode setting");
+      }
+      
+      console.log("Proceeding with summarization in", 
                   isDevelopmentMode ? "development mode (mock data)" : "production mode (real API)");
       
       try {
