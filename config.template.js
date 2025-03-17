@@ -4,26 +4,17 @@
 // 2. Add your OpenAI API key to config.js
 // 3. config.js will be ignored by git to keep your keys private
 
-// NOTE: During development, you don't need an API key as long as DEVELOPMENT_MODE is true
-// When you're ready to test with the real OpenAI API:
-// 1. Set up your API key in config.js
-// 2. Change DEVELOPMENT_MODE to false in this file
+// NOTE: Development mode is now controlled through the extension settings UI
+// You don't need to modify this file to toggle between development and production modes
 
 const CONFIG = {
-  // Development mode - set to false to use the real OpenAI API
-  DEVELOPMENT_MODE: true,
-  
-  // Your OpenAI API key (only needed when DEVELOPMENT_MODE is false)
+  // Your OpenAI API key (you can also set this through the extension settings UI)
   OPENAI_API_KEY: "your_openai_api_key_here",
   
   // API settings
   OPENAI_MODEL: "gpt-3.5-turbo",
   MAX_TOKENS: 500,
   TEMPERATURE: 0.5,
-  
-  // Feature flags
-  ENABLE_HISTORY: true,
-  ENABLE_DARK_MODE: false,
   
   // Default summary format
   DEFAULT_SUMMARY_FORMAT: "short" // Options: short, detailed, key-points
