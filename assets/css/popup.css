@@ -83,6 +83,14 @@ select {
   color: #666;
 }
 
+#summary-result.hidden {
+  display: none;
+}
+
+#loading.hidden {
+  display: none;
+}
+
 #summary-text {
   margin-bottom: 10px;
   line-height: 1.5;

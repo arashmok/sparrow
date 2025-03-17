@@ -29,7 +29,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Background script received message:", request.action);
   
   if (request.action === "summarize") {
-    console.log("Processing summarize request");
+    console.log("Processing summarize request for text of length:", request.text.length);
     
     // Get the API key from storage, or use the one from config
     chrome.storage.local.get(['apiKey'], async (result) => {
@@ -38,20 +38,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Priority: 1. User-provided key in storage, 2. Config file key, 3. Empty (will show error)
       const apiKey = result.apiKey || (CONFIG ? CONFIG.OPENAI_API_KEY : '') || '';
       
-      if (!apiKey) {
-        console.log("No API key found");
+      if (!apiKey && !DEVELOPMENT_MODE) {
+        console.log("No API key found and not in development mode");
         sendResponse({ 
           error: 'No API key found. Please add your OpenAI API key in the extension settings.'
         });
         return;
       }
       
-      console.log("API key found, proceeding with summarization");
+      console.log("API key check passed, proceeding with summarization in", 
+                  DEVELOPMENT_MODE ? "development mode (mock data)" : "production mode (real API)");
       
       try {
-        // Always use the mock for testing during development
-        const summary = await mockSummaryForTesting(request.text, request.format);
-        console.log("Summary generated successfully");
+        let summary;
+        if (DEVELOPMENT_MODE) {
+          // Use mock data in development mode
+          summary = await mockSummaryForTesting(request.text, request.format);
+          console.log("Mock summary generated successfully");
+        } else {
+          // Use real API in production mode
+          summary = await generateSummary(request.text, request.format, apiKey);
+          console.log("Real API summary generated successfully");
+        }
+        
         sendResponse({ summary });
       } catch (error) {
         console.error('Error generating summary:', error);

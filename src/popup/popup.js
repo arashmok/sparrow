@@ -17,7 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to summarize the current page
   async function summarizeCurrentPage() {
-    // Show loading state
+    // Clear any previous summary
+    summaryText.textContent = '';
+    
+    // Show loading state, hide result state
     loading.classList.remove('hidden');
     summaryResult.classList.add('hidden');
     
@@ -140,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Function to display the summary
   function displaySummary(summary) {
-    loading.classList.add('hidden');
+    loading.classList.add('hidden'); // Hide the loading message
     summaryResult.classList.remove('hidden');
     summaryText.textContent = summary;
     
@@ -195,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Function to display error message
   function showError(message) {
-    loading.classList.add('hidden');
+    loading.classList.add('hidden'); // Make sure to hide the loading indicator
     summaryResult.classList.remove('hidden');
     summaryText.innerHTML = `<p class="error">${message}</p>`;
   }
