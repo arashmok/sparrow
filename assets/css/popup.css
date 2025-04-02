@@ -171,7 +171,9 @@ footer {
   padding: 10px;
   min-height: 150px;
   max-height: 350px;
-  overflow-y: auto;
+  overflow-y: auto;  /* This container should have the scrollbar */
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* Summary text styling */
@@ -179,6 +181,8 @@ footer {
   margin-bottom: 10px;
   line-height: 1.6;
   font-size: 14px;
+  overflow: visible;  /* Remove any overflow that might cause a second scrollbar */
+  max-height: none;   /* Remove any max-height that might trigger a scrollbar */
 }
 
 /* Style for the summary title */
@@ -189,6 +193,23 @@ footer {
   color: #4285f4;
   padding-bottom: 5px;
   border-bottom: 1px solid #e0e0e0;
+}
+
+/* Make sure all content elements don't have their own scrollbars */
+.summary-title, 
+.summary-paragraph, 
+.key-point {
+  overflow: visible;
+}
+
+/* Fix the actions area to stay at the bottom without a scrollbar */
+.summary-actions {
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  padding-top: 8px;
+  margin-top: 10px;
+  border-top: 1px solid #f1f1f1;
 }
 
 /* Style for paragraphs in the summary */
