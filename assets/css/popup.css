@@ -160,3 +160,77 @@ footer {
   color: #4285f4;
   font-weight: 500;
 }
+
+/* Add these styles to assets/css/popup.css */
+
+/* Summary container enhancements */
+.summary-container {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 10px;
+  min-height: 150px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+/* Summary text styling */
+#summary-text {
+  margin-bottom: 10px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* Style for the summary title */
+.summary-title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #4285f4;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Style for paragraphs in the summary */
+.summary-paragraph {
+  margin-bottom: 12px;
+}
+
+/* Style for key points */
+.key-point {
+  margin-bottom: 8px;
+  padding-left: 18px;
+  position: relative;
+}
+
+.key-point:before {
+  content: "•";
+  position: absolute;
+  left: 5px;
+  color: #4285f4;
+  font-weight: bold;
+}
+
+/* Style for the translation indicator */
+.translation-badge {
+  display: inline-block;
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Error message styling with improved appearance */
+.error {
+  color: #d32f2f;
+  background-color: #ffebee;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border-left: 4px solid #d32f2f;
+  font-size: 14px;
+}

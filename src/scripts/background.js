@@ -92,31 +92,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * @param {string} text - The text to summarize
  * @param {string} format - The format of the summary (short, detailed, key-points)
  * @param {string} apiKey - The OpenAI API key
+ * @param {boolean} translateToEnglish - Whether to translate the text to English
  * @returns {Promise<string>} The generated summary
  */
 async function generateSummary(text, format, apiKey, translateToEnglish = false) {
-  // Limit the text length to avoid token limit issues
-  const truncatedText = truncateText(text, 4000);
-  
-  // Create the prompt based on the selected format
-  let prompt;
-  
-  // Add translation instruction if needed
-  const translationPrefix = translateToEnglish ? "Translate the following content to English and then " : "";
-  
-  switch (format) {
-    case 'short':
-      prompt = `${translationPrefix}Please provide a concise summary (2-3 sentences) of the following text:\n\n${truncatedText}`;
-      break;
-    case 'detailed':
-      prompt = `${translationPrefix}Please provide a detailed summary (1-2 paragraphs) of the following text, covering the main points and key information:\n\n${truncatedText}`;
-      break;
-    case 'key-points':
-      prompt = `${translationPrefix}Please extract the 3-5 most important key points from the following text as a bullet list:\n\n${truncatedText}`;
-      break;
-    default:
-      prompt = `${translationPrefix}Please summarize the following text:\n\n${truncatedText}`;
-  }
+  // Create the optimized prompt
+  const prompt = createPrompt(text, format, translateToEnglish);
   
   try {
     // Make the actual API call
@@ -129,7 +110,7 @@ async function generateSummary(text, format, apiKey, translateToEnglish = false)
       body: JSON.stringify({
         model: CONFIG.OPENAI_MODEL || 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that summarizes web content.' },
+          { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
           { role: 'user', content: prompt }
         ],
         max_tokens: CONFIG.MAX_TOKENS || 500,
@@ -143,11 +124,54 @@ async function generateSummary(text, format, apiKey, translateToEnglish = false)
     }
     
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    let summary = data.choices[0].message.content.trim();
+    
+    // Add translation prefix if needed
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
     throw new Error('Failed to generate summary. Please check your API key and try again.');
   }
+}
+
+/**
+ * Creates an optimized prompt for the summary based on format and translation preference
+ * @param {string} text - The text to summarize
+ * @param {string} format - The summary format
+ * @param {boolean} translateToEnglish - Whether to translate to English
+ * @returns {string} The formatted prompt
+ */
+function createPrompt(text, format, translateToEnglish = false) {
+  // Limit the text length to avoid token limit issues
+  const truncatedText = truncateText(text, 4000);
+  
+  // Add translation instruction if needed
+  const translationPrefix = translateToEnglish ? "Translate the following content to English and then " : "";
+  
+  // Base instructions for better formatting
+  const formattingInstructions = "Ensure your response has a clear structure with proper paragraph breaks. ";
+  
+  let prompt;
+  
+  switch (format) {
+    case 'short':
+      prompt = `${translationPrefix}${formattingInstructions}Please provide a concise summary (2-3 sentences) of the following text. Use a clear title followed by a brief summary paragraph:\n\n${truncatedText}`;
+      break;
+    case 'detailed':
+      prompt = `${translationPrefix}${formattingInstructions}Please provide a detailed summary (1-2 paragraphs) of the following text, covering the main points and key information. Structure your response with a clear title and well-organized paragraphs with proper line breaks between them:\n\n${truncatedText}`;
+      break;
+    case 'key-points':
+      prompt = `${translationPrefix}${formattingInstructions}Please extract the 3-5 most important key points from the following text as a bullet list. Start with a brief title or description, then list each key point on a new line with a bullet point (•):\n\n${truncatedText}`;
+      break;
+    default:
+      prompt = `${translationPrefix}${formattingInstructions}Please summarize the following text with a clear structure, using paragraph breaks to separate main ideas:\n\n${truncatedText}`;
+  }
+  
+  return prompt;
 }
 
 /**
