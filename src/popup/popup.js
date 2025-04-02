@@ -4,12 +4,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const summarizeBtn = document.getElementById('summarize-btn');
   const summaryFormat = document.getElementById('summary-format');
+  const translateEnglish = document.getElementById('translate-english');
   const loading = document.getElementById('loading');
   const summaryResult = document.getElementById('summary-result');
   const summaryText = document.getElementById('summary-text');
   const summaryActions = document.getElementById('summary-actions');
   const copyBtn = document.getElementById('copy-btn');
   const saveBtn = document.getElementById('save-btn');
+  
+  // Load saved preference for translation
+  chrome.storage.local.get(['translateToEnglish'], (result) => {
+    if (result.translateToEnglish !== undefined) {
+      translateEnglish.checked = result.translateToEnglish;
+    }
+  });
+  
+  // Save translation preference when changed
+  translateEnglish.addEventListener('change', () => {
+    chrome.storage.local.set({ translateToEnglish: translateEnglish.checked });
+  });
 
   // Event Listeners
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
@@ -122,11 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Send extracted text to background script for API call
     const format = summaryFormat.value;
+    const translateToEnglish = translateEnglish.checked;
+    
+    console.log("Translation to English:", translateToEnglish ? "Enabled" : "Disabled");
+    
     chrome.runtime.sendMessage(
       { 
         action: "summarize", 
         text: response.text,
-        format: format 
+        format: format,
+        translateToEnglish: translateToEnglish
       }, 
       (result) => {
         // Check for runtime errors first

@@ -139,3 +139,24 @@ footer {
   margin-bottom: 10px;
   border-left: 4px solid #d32f2f;
 }
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.checkbox-option input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.checkbox-option label {
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.checkbox-option input[type="checkbox"]:checked + label {
+  color: #4285f4;
+  font-weight: 500;
+}

@@ -67,11 +67,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         let summary;
         if (isDevelopmentMode) {
           console.log("Using mock summary function (development mode)");
-          summary = await mockSummaryForTesting(request.text, request.format);
+          summary = await mockSummaryForTesting(request.text, request.format, request.translateToEnglish);
           console.log("Mock summary generated successfully");
         } else {
           console.log("Using real OpenAI API (production mode)");
-          summary = await generateSummary(request.text, request.format, apiKey);
+          summary = await generateSummary(request.text, request.format, apiKey, request.translateToEnglish);
           console.log("Real API summary generated successfully");
         }
         
@@ -94,25 +94,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * @param {string} apiKey - The OpenAI API key
  * @returns {Promise<string>} The generated summary
  */
-async function generateSummary(text, format, apiKey) {
+async function generateSummary(text, format, apiKey, translateToEnglish = false) {
   // Limit the text length to avoid token limit issues
   const truncatedText = truncateText(text, 4000);
   
   // Create the prompt based on the selected format
   let prompt;
   
+  // Add translation instruction if needed
+  const translationPrefix = translateToEnglish ? "Translate the following content to English and then " : "";
+  
   switch (format) {
     case 'short':
-      prompt = `Please provide a concise summary (2-3 sentences) of the following text:\n\n${truncatedText}`;
+      prompt = `${translationPrefix}Please provide a concise summary (2-3 sentences) of the following text:\n\n${truncatedText}`;
       break;
     case 'detailed':
-      prompt = `Please provide a detailed summary (1-2 paragraphs) of the following text, covering the main points and key information:\n\n${truncatedText}`;
+      prompt = `${translationPrefix}Please provide a detailed summary (1-2 paragraphs) of the following text, covering the main points and key information:\n\n${truncatedText}`;
       break;
     case 'key-points':
-      prompt = `Please extract the 3-5 most important key points from the following text as a bullet list:\n\n${truncatedText}`;
+      prompt = `${translationPrefix}Please extract the 3-5 most important key points from the following text as a bullet list:\n\n${truncatedText}`;
       break;
     default:
-      prompt = `Please summarize the following text:\n\n${truncatedText}`;
+      prompt = `${translationPrefix}Please summarize the following text:\n\n${truncatedText}`;
   }
   
   try {
@@ -182,8 +185,9 @@ function truncateText(text, maxChars) {
  * @param {string} format - The requested format
  * @returns {Promise<string>} A mock summary
  */
-async function mockSummaryForTesting(text, format) {
+async function mockSummaryForTesting(text, format, translateToEnglish = false) {
   console.log("Using mock summary function");
+  console.log("Translation to English:", translateToEnglish ? "Enabled" : "Disabled");
   
   // Extract title from the text if possible
   let title = "webpage";
@@ -192,23 +196,26 @@ async function mockSummaryForTesting(text, format) {
     title = titleMatch[1].trim();
   }
   
+  // If translation is requested, add a note about it
+  const translationPrefix = translateToEnglish ? "[Translated to English] " : "";
+  
   // Create different summaries based on format
   let summary;
   switch (format) {
     case 'short':
-      summary = `This webpage discusses ${title}. It covers the main concepts and provides information about the topic.`;
+      summary = `${translationPrefix}This webpage discusses ${title}. It covers the main concepts and provides information about the topic.`;
       break;
     
     case 'detailed':
-      summary = `This webpage titled "${title}" provides a comprehensive overview of the subject matter. The content explores various aspects of the topic, including key concepts, practical applications, and related information. The page appears to be informative and aimed at readers seeking to understand more about this subject.`;
+      summary = `${translationPrefix}This webpage titled "${title}" provides a comprehensive overview of the subject matter. The content explores various aspects of the topic, including key concepts, practical applications, and related information. The page appears to be informative and aimed at readers seeking to understand more about this subject.`;
       break;
     
     case 'key-points':
-      summary = `• The webpage is titled "${title}"\n• It contains information about the main subject matter\n• It likely covers definitions and explanations of key concepts\n• It may include examples or applications related to the topic\n• The content is structured to provide readers with a clear understanding of the subject`;
+      summary = `${translationPrefix}• The webpage is titled "${title}"\n• It contains information about the main subject matter\n• It likely covers definitions and explanations of key concepts\n• It may include examples or applications related to the topic\n• The content is structured to provide readers with a clear understanding of the subject`;
       break;
     
     default:
-      summary = `Summary of "${title}": This webpage provides information about the topic, covering key aspects and details that would be relevant to someone interested in the subject.`;
+      summary = `${translationPrefix}Summary of "${title}": This webpage provides information about the topic, covering key aspects and details that would be relevant to someone interested in the subject.`;
   }
   
   console.log("Mock summary generated:", summary.substring(0, 50) + "...");
