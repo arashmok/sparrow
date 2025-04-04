@@ -67,79 +67,7 @@ select {
   cursor: pointer;
 }
 
-.summary-container {
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 10px;
-  min-height: 150px;
-}
-
-#loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100px;
-  color: #666;
-}
-
-#summary-result.hidden {
-  display: none;
-}
-
-#loading.hidden {
-  display: none;
-}
-
-#summary-text {
-  margin-bottom: 10px;
-  line-height: 1.5;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.summary-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 10px;
-}
-
-.summary-actions button {
-  background-color: #f1f1f1;
-  border: 1px solid #ccc;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.summary-actions button:hover {
-  background-color: #e5e5e5;
-}
-
-/* Footer styles */
-footer {
-  margin-top: 15px;
-  text-align: center;
-  font-size: 12px;
-  color: #999;
-}
-
-/* Utility classes */
-.hidden {
-  display: none;
-}
-
-/* Error message styling */
-.error {
-  color: #d32f2f;
-  background-color: #ffebee;
-  padding: 8px;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  border-left: 4px solid #d32f2f;
-}
-
+/* Checkbox styling */
 .checkbox-option {
   display: flex;
   align-items: center;
@@ -161,8 +89,6 @@ footer {
   font-weight: 500;
 }
 
-/* Add these styles to assets/css/popup.css */
-
 /* Summary container enhancements */
 .summary-container {
   background-color: white;
@@ -176,13 +102,30 @@ footer {
   position: relative;
 }
 
+/* Loading indicator */
+#loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  color: #666;
+}
+
+#loading.hidden {
+  display: none;
+}
+
+#summary-result.hidden {
+  display: none;
+}
+
 /* Summary text styling */
 #summary-text {
-  margin-bottom: 10px;
+  margin-bottom: 0;
   line-height: 1.6;
   font-size: 14px;
-  overflow: visible;  /* Remove any overflow that might cause a second scrollbar */
-  max-height: none;   /* Remove any max-height that might trigger a scrollbar */
+  overflow: visible;
+  max-height: none;
 }
 
 /* Style for the summary title */
@@ -193,23 +136,6 @@ footer {
   color: #4285f4;
   padding-bottom: 5px;
   border-bottom: 1px solid #e0e0e0;
-}
-
-/* Make sure all content elements don't have their own scrollbars */
-.summary-title, 
-.summary-paragraph, 
-.key-point {
-  overflow: visible;
-}
-
-/* Fix the actions area to stay at the bottom without a scrollbar */
-.summary-actions {
-  position: sticky;
-  bottom: 0;
-  background-color: white;
-  padding-top: 8px;
-  margin-top: 10px;
-  border-top: 1px solid #f1f1f1;
 }
 
 /* Style for paragraphs in the summary */
@@ -254,4 +180,17 @@ footer {
   margin-bottom: 10px;
   border-left: 4px solid #d32f2f;
   font-size: 14px;
+}
+
+/* Footer styles */
+footer {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+}
+
+/* Utility classes */
+.hidden {
+  display: none;
 }
