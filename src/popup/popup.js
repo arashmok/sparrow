@@ -8,19 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loading = document.getElementById('loading');
   const summaryResult = document.getElementById('summary-result');
   const summaryText = document.getElementById('summary-text');
-  const settingsLink = document.getElementById('settings-link');
-
-  // Get the API provider text element
-  const apiProviderText = document.getElementById('api-provider-text');
-  
-  // Add a status indicator for API mode
-  let apiModeSpan = document.createElement('span');
-  apiModeSpan.id = 'api-mode-indicator';
-  apiModeSpan.style.marginLeft = '5px';
-  apiModeSpan.style.fontSize = '11px';
-  apiModeSpan.style.padding = '2px 5px';
-  apiModeSpan.style.borderRadius = '3px';
-  apiModeSpan.style.backgroundColor = '#e0e0e0';
+  const footerText = document.getElementById('footer-text');
 
   // Event Listeners
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
@@ -45,26 +33,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to update the API mode indicator
   function updateApiModeIndicator(apiMode, devMode) {
-    const span = document.getElementById('api-mode-indicator');
-    if (!span) return;
+    // Create the footer content
+    let providerText = '';
+    let statusText = '';
+    let statusColor = '';
+    let textColor = '';
     
-    // Update the API provider text based on the selected mode
     if (devMode) {
       // Demo mode
-      apiProviderText.textContent = 'Demo Mode';
-      span.textContent = '';
-      span.style.display = 'none';
+      providerText = 'Demo Mode';
+      statusText = 'DEMO';
+      statusColor = '#FFF3CD'; // Light yellow
+      textColor = '#856404';   // Dark yellow/gold
     } else if (apiMode === 'lmstudio') {
       // LM Studio mode
-      apiProviderText.textContent = 'Powered by LM Studio';
-      span.textContent = '';
-      span.style.display = 'none';
+      providerText = 'Powered by LM Studio';
+      statusText = 'LOCAL';
+      statusColor = '#D1ECF1'; // Light blue
+      textColor = '#0C5460';   // Dark blue
     } else {
       // OpenAI mode
-      apiProviderText.textContent = 'Powered by OpenAI';
-      span.textContent = '';
-      span.style.display = 'none';
+      providerText = 'Powered by OpenAI';
+      statusText = 'OPENAI';
+      statusColor = '#D4EDDA'; // Light green
+      textColor = '#155724';   // Dark green
     }
+    
+    // Create indicator span
+    const indicatorSpan = document.createElement('span');
+    indicatorSpan.textContent = statusText;
+    indicatorSpan.style.marginLeft = '5px';
+    indicatorSpan.style.fontSize = '10px';
+    indicatorSpan.style.padding = '2px 6px';
+    indicatorSpan.style.borderRadius = '3px';
+    indicatorSpan.style.backgroundColor = statusColor;
+    indicatorSpan.style.color = textColor;
+    indicatorSpan.style.fontWeight = 'bold';
+    
+    // Create the settings link
+    const settingsLink = document.createElement('a');
+    settingsLink.href = 'settings.html';
+    settingsLink.id = 'settings-link';
+    settingsLink.textContent = 'Settings';
+    settingsLink.style.marginLeft = '5px';
+    
+    // Add all elements to the footer
+    footerText.innerHTML = '';
+    footerText.appendChild(document.createTextNode(providerText));
+    footerText.appendChild(indicatorSpan);
+    footerText.appendChild(document.createTextNode(' | '));
+    footerText.appendChild(settingsLink);
   }
 
   // Function to check for an existing summary
