@@ -1,18 +1,26 @@
 // config.template.js
 // INSTRUCTIONS:
 // 1. Copy this file to config.js: cp config.template.js config.js
-// 2. Add your OpenAI API key to config.js
+// 2. Add your OpenAI API key or LM Studio settings to config.js
 // 3. config.js will be ignored by git to keep your keys private
 
 // NOTE: Development mode is now controlled through the extension settings UI
 // You don't need to modify this file to toggle between development and production modes
 
 const CONFIG = {
-  // Your OpenAI API key (you can also set this through the extension settings UI)
-  OPENAI_API_KEY: "your_openai_api_key_here",
+  // API mode: "openai" or "lmstudio"
+  API_MODE: "openai",
   
-  // API settings
+  // OpenAI API settings
+  OPENAI_API_KEY: "your_openai_api_key_here",
   OPENAI_MODEL: "gpt-3.5-turbo",
+  
+  // LM Studio API settings (for running models locally)
+  LMSTUDIO_API_URL: "http://localhost:1234/v1",  // Default LM Studio server address
+  LMSTUDIO_API_KEY: "",  // Usually not required for local LM Studio
+  LMSTUDIO_MODEL: "",    // Will be automatically selected by LM Studio
+  
+  // Shared API settings
   MAX_TOKENS: 500,
   TEMPERATURE: 0.5,
   

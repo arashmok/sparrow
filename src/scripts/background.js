@@ -5,20 +5,47 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Default configuration if config.js is not found
 let CONFIG = {
-  DEVELOPMENT_MODE: true,  // Default to development mode if no config
+  API_MODE: 'openai',  // Default API mode
   OPENAI_API_KEY: '',
   OPENAI_MODEL: 'gpt-3.5-turbo',
+  LMSTUDIO_API_URL: 'http://localhost:1234/v1',
+  LMSTUDIO_API_KEY: '',
   MAX_TOKENS: 500,
   TEMPERATURE: 0.5,
-  ENABLE_HISTORY: true,
-  ENABLE_DARK_MODE: false,
+  DEVELOPMENT_MODE: true,  // Default to development mode if no config
   DEFAULT_SUMMARY_FORMAT: 'short'
 };
 
 // Check for stored configuration data
-chrome.storage.local.get(['apiKey', 'developmentMode'], (result) => {
+chrome.storage.local.get([
+  'apiMode',
+  'apiKey',
+  'openaiModel',
+  'lmstudioApiUrl',
+  'lmstudioApiKey',
+  'developmentMode'
+], (result) => {
+  // Set API mode
+  if (result.apiMode) {
+    CONFIG.API_MODE = result.apiMode;
+  }
+  
+  // OpenAI settings
   if (result.apiKey) {
     CONFIG.OPENAI_API_KEY = result.apiKey;
+  }
+  
+  if (result.openaiModel) {
+    CONFIG.OPENAI_MODEL = result.openaiModel;
+  }
+  
+  // LM Studio settings
+  if (result.lmstudioApiUrl) {
+    CONFIG.LMSTUDIO_API_URL = result.lmstudioApiUrl;
+  }
+  
+  if (result.lmstudioApiKey) {
+    CONFIG.LMSTUDIO_API_KEY = result.lmstudioApiKey;
   }
   
   // If developmentMode is explicitly defined in storage, use that value
@@ -27,7 +54,10 @@ chrome.storage.local.get(['apiKey', 'developmentMode'], (result) => {
   }
   
   // Log configuration state
-  console.log("Config loaded:", CONFIG.OPENAI_API_KEY ? "API key found" : "No API key found");
+  console.log("Config loaded:");
+  console.log("API Mode:", CONFIG.API_MODE);
+  console.log("OpenAI API Key:", CONFIG.OPENAI_API_KEY ? "Found" : "Not found");
+  console.log("LM Studio URL:", CONFIG.LMSTUDIO_API_URL);
   console.log("Development mode:", CONFIG.DEVELOPMENT_MODE ? "ON (using mock data)" : "OFF (using real API)");
 });
 
@@ -38,43 +68,83 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "summarize") {
     console.log("Processing summarize request for text of length:", request.text.length);
     
-    // Get the API key from storage, or use the one from config
-    chrome.storage.local.get(['apiKey', 'developmentMode'], async (result) => {
-      console.log("Checking for API key");
+    // Get the settings from storage
+    chrome.storage.local.get([
+      'apiMode',
+      'apiKey',
+      'openaiModel',
+      'lmstudioApiUrl',
+      'lmstudioApiKey',
+      'developmentMode'
+    ], async (result) => {
+      // Determine which API to use
+      const apiMode = result.apiMode || CONFIG.API_MODE;
+      console.log("Using API mode:", apiMode);
       
-      // Priority: 1. User-provided key in storage, 2. Config file key, 3. Empty (will show error)
-      const apiKey = result.apiKey || CONFIG.OPENAI_API_KEY || '';
-      
-      // If developmentMode is explicitly set in storage, use that
-      let isDevelopmentMode = result.developmentMode !== undefined ? result.developmentMode : CONFIG.DEVELOPMENT_MODE;
-      
-      // If we have an API key, let's use production mode automatically
-      if (apiKey && apiKey.trim() !== '') {
-        isDevelopmentMode = false;
-      }
+      // Determine if we're in development mode
+      const isDevelopmentMode = result.developmentMode !== undefined ? 
+        result.developmentMode : CONFIG.DEVELOPMENT_MODE;
       
       console.log("Using development mode:", isDevelopmentMode);
       
-      if (!apiKey && !isDevelopmentMode) {
-        console.log("No API key found and production mode is active - aborting");
-        sendResponse({ 
-          error: 'No API key found. Please add your OpenAI API key in the extension settings.'
-        });
+      if (isDevelopmentMode) {
+        // Use mock data for testing
+        console.log("Using mock summary function (development mode)");
+        const summary = await mockSummaryForTesting(request.text, request.format, request.translateToEnglish);
+        console.log("Mock summary generated successfully");
+        sendResponse({ summary });
         return;
       }
       
+      // Real API mode
       try {
         let summary;
-        if (isDevelopmentMode) {
-          console.log("Using mock summary function (development mode)");
-          summary = await mockSummaryForTesting(request.text, request.format, request.translateToEnglish);
-          console.log("Mock summary generated successfully");
+        
+        if (apiMode === 'openai') {
+          // Get the OpenAI API key
+          const apiKey = result.apiKey || CONFIG.OPENAI_API_KEY || '';
+          const model = result.openaiModel || CONFIG.OPENAI_MODEL;
+          
+          if (!apiKey) {
+            sendResponse({ 
+              error: 'No OpenAI API key found. Please add your API key in the extension settings.'
+            });
+            return;
+          }
+          
+          console.log("Using OpenAI API with model:", model);
+          summary = await generateOpenAISummary(
+            request.text, 
+            request.format, 
+            apiKey, 
+            model,
+            request.translateToEnglish
+          );
+        } else if (apiMode === 'lmstudio') {
+          // Get LM Studio settings
+          const lmStudioUrl = result.lmstudioApiUrl || CONFIG.LMSTUDIO_API_URL;
+          const lmStudioKey = result.lmstudioApiKey || CONFIG.LMSTUDIO_API_KEY || '';
+          
+          if (!lmStudioUrl) {
+            sendResponse({ 
+              error: 'No LM Studio server URL found. Please check your settings.'
+            });
+            return;
+          }
+          
+          console.log("Using LM Studio API at:", lmStudioUrl);
+          summary = await generateLMStudioSummary(
+            request.text, 
+            request.format, 
+            lmStudioUrl,
+            lmStudioKey,
+            request.translateToEnglish
+          );
         } else {
-          console.log("Using real OpenAI API (production mode)");
-          summary = await generateSummary(request.text, request.format, apiKey, request.translateToEnglish);
-          console.log("Real API summary generated successfully");
+          throw new Error(`Unknown API mode: ${apiMode}`);
         }
         
+        console.log("Summary generated successfully");
         sendResponse({ summary });
       } catch (error) {
         console.error('Error generating summary:', error);
@@ -88,19 +158,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 /**
- * Generates a summary of the provided text using OpenAI's API
+ * Generates a summary using OpenAI's API
  * @param {string} text - The text to summarize
  * @param {string} format - The format of the summary (short, detailed, key-points)
  * @param {string} apiKey - The OpenAI API key
+ * @param {string} model - The OpenAI model to use
  * @param {boolean} translateToEnglish - Whether to translate the text to English
  * @returns {Promise<string>} The generated summary
  */
-async function generateSummary(text, format, apiKey, translateToEnglish = false) {
+async function generateOpenAISummary(text, format, apiKey, model, translateToEnglish = false) {
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
   
   try {
-    // Make the actual API call
+    // Make the API call
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
@@ -108,19 +179,19 @@ async function generateSummary(text, format, apiKey, translateToEnglish = false)
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: CONFIG.OPENAI_MODEL || 'gpt-3.5-turbo',
+        model: model || CONFIG.OPENAI_MODEL,
         messages: [
           { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: CONFIG.MAX_TOKENS || 500,
-        temperature: CONFIG.TEMPERATURE || 0.5
+        max_tokens: CONFIG.MAX_TOKENS,
+        temperature: CONFIG.TEMPERATURE
       })
     });
     
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Failed to generate summary');
+      throw new Error(errorData.error?.message || `Failed to generate summary (Status: ${response.status})`);
     }
     
     const data = await response.json();
@@ -134,7 +205,77 @@ async function generateSummary(text, format, apiKey, translateToEnglish = false)
     return summary;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
-    throw new Error('Failed to generate summary. Please check your API key and try again.');
+    throw new Error('Failed to generate summary with OpenAI. Please check your API key and try again.');
+  }
+}
+
+/**
+ * Generates a summary using the LM Studio API
+ * @param {string} text - The text to summarize
+ * @param {string} format - The format of the summary (short, detailed, key-points)
+ * @param {string} apiUrl - The LM Studio API URL
+ * @param {string} apiKey - The LM Studio API key (optional)
+ * @param {boolean} translateToEnglish - Whether to translate the text to English
+ * @returns {Promise<string>} The generated summary
+ */
+async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', translateToEnglish = false) {
+  // Create the optimized prompt
+  const prompt = createPrompt(text, format, translateToEnglish);
+  
+  // Ensure apiUrl has the correct endpoint
+  const chatEndpoint = apiUrl.endsWith('/chat/completions') ? 
+    apiUrl : 
+    `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
+  
+  try {
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Add API key if provided
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+    
+    // Make the API call to LM Studio
+    const response = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: CONFIG.MAX_TOKENS,
+        temperature: CONFIG.TEMPERATURE,
+        stream: false
+      })
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `Status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (e) {
+        // If we can't parse the JSON, just use the status code
+      }
+      throw new Error(`Failed to generate summary: ${errorMessage}`);
+    }
+    
+    const data = await response.json();
+    let summary = data.choices[0].message.content.trim();
+    
+    // Add translation prefix if needed
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
+  } catch (error) {
+    console.error('Error calling LM Studio API:', error);
+    throw new Error(`Failed to connect to LM Studio server at ${apiUrl}. Please check that LM Studio is running and your settings are correct.`);
   }
 }
 

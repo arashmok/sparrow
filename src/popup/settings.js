@@ -3,7 +3,19 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const settingsForm = document.getElementById('settings-form');
-  const apiKeyInput = document.getElementById('api-key');
+  const apiModeRadios = document.querySelectorAll('input[name="api-mode"]');
+  const openaiSection = document.getElementById('openai-section');
+  const lmstudioSection = document.getElementById('lmstudio-section');
+  
+  // OpenAI elements
+  const openaiApiKeyInput = document.getElementById('openai-api-key');
+  const openaiModelSelect = document.getElementById('openai-model');
+  
+  // LM Studio elements
+  const lmstudioApiUrlInput = document.getElementById('lmstudio-api-url');
+  const lmstudioApiKeyInput = document.getElementById('lmstudio-api-key');
+  
+  // Shared elements
   const defaultFormatSelect = document.getElementById('default-format');
   const devModeCheckbox = document.getElementById('dev-mode');
   const cancelBtn = document.getElementById('cancel-btn');
@@ -18,15 +30,64 @@ document.addEventListener('DOMContentLoaded', () => {
     window.close();
   });
   
+  // Toggle between API sections when radio buttons are clicked
+  apiModeRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      updateApiSectionVisibility();
+    });
+  });
+  
+  // Function to update API section visibility based on selected mode
+  function updateApiSectionVisibility() {
+    const selectedApiMode = document.querySelector('input[name="api-mode"]:checked').value;
+    
+    if (selectedApiMode === 'openai') {
+      openaiSection.classList.remove('inactive-section');
+      lmstudioSection.classList.add('inactive-section');
+    } else if (selectedApiMode === 'lmstudio') {
+      openaiSection.classList.add('inactive-section');
+      lmstudioSection.classList.remove('inactive-section');
+    }
+  }
+  
   // Function to load settings from storage
   function loadSettings() {
-    chrome.storage.local.get(['apiKey', 'defaultFormat', 'developmentMode'], (result) => {
+    chrome.storage.local.get([
+      'apiMode',
+      'apiKey',
+      'openaiModel',
+      'lmstudioApiUrl',
+      'lmstudioApiKey',
+      'defaultFormat',
+      'developmentMode'
+    ], (result) => {
+      // Set API mode
+      const apiMode = result.apiMode || 'openai';
+      document.querySelector(`input[name="api-mode"][value="${apiMode}"]`).checked = true;
+      updateApiSectionVisibility();
+      
+      // OpenAI settings
       if (result.apiKey) {
         // Show dots instead of the actual key for security
-        apiKeyInput.value = '••••••••••••••••••••••••••';
-        apiKeyInput.dataset.hasKey = 'true';
+        openaiApiKeyInput.value = '••••••••••••••••••••••••••';
+        openaiApiKeyInput.dataset.hasKey = 'true';
       }
       
+      if (result.openaiModel) {
+        openaiModelSelect.value = result.openaiModel;
+      }
+      
+      // LM Studio settings
+      if (result.lmstudioApiUrl) {
+        lmstudioApiUrlInput.value = result.lmstudioApiUrl;
+      }
+      
+      if (result.lmstudioApiKey) {
+        lmstudioApiKeyInput.value = '••••••••••••••••••••••••••';
+        lmstudioApiKeyInput.dataset.hasKey = 'true';
+      }
+      
+      // Format settings
       if (result.defaultFormat) {
         defaultFormatSelect.value = result.defaultFormat;
       } else if (typeof CONFIG !== 'undefined' && CONFIG.DEFAULT_SUMMARY_FORMAT) {
@@ -47,38 +108,52 @@ document.addEventListener('DOMContentLoaded', () => {
   function saveSettings(e) {
     e.preventDefault();
     
+    const apiMode = document.querySelector('input[name="api-mode"]:checked').value;
+    
     const settings = {
+      apiMode: apiMode,
       defaultFormat: defaultFormatSelect.value,
-      developmentMode: devModeCheckbox.checked
+      developmentMode: devModeCheckbox.checked,
+      openaiModel: openaiModelSelect.value
     };
     
-    // Only update the API key if it was changed (not just dots)
-    if (apiKeyInput.value && apiKeyInput.value !== '••••••••••••••••••••••••••') {
-      settings.apiKey = apiKeyInput.value;
-      
-      // When a valid API key is added, suggest turning off development mode
-      if (apiKeyInput.value.trim().length > 20 && devModeCheckbox.checked) {
-        if (confirm("You've added an API key. Would you like to turn off development mode to use the real API?")) {
-          settings.developmentMode = false;
-          devModeCheckbox.checked = false;
-        }
-      }
+    // Only update the OpenAI API key if it was changed (not just dots)
+    if (openaiApiKeyInput.value && openaiApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      settings.apiKey = openaiApiKeyInput.value;
     }
     
-    // If they've turned off development mode but have no API key, warn them
-    if (!settings.developmentMode && (!apiKeyInput.dataset.hasKey && !apiKeyInput.value)) {
-      if (!confirm("You are trying to use the real API without an API key. This won't work. Continue anyway?")) {
-        return; // Don't save if they cancel
+    // Save LM Studio settings
+    settings.lmstudioApiUrl = lmstudioApiUrlInput.value;
+    
+    // Only update the LM Studio API key if it was changed
+    if (lmstudioApiKeyInput.value && lmstudioApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      settings.lmstudioApiKey = lmstudioApiKeyInput.value;
+    }
+    
+    // Validation based on selected API mode
+    if (!settings.developmentMode) {
+      if (apiMode === 'openai' && !openaiApiKeyInput.dataset.hasKey && !openaiApiKeyInput.value) {
+        if (!confirm("You are trying to use the OpenAI API without an API key. This won't work. Continue anyway?")) {
+          return; // Don't save if they cancel
+        }
+      } else if (apiMode === 'lmstudio' && !lmstudioApiUrlInput.value) {
+        showMessage('Please provide a valid LM Studio server URL.', 'error');
+        return;
       }
     }
     
     chrome.storage.local.set(settings, () => {
       showMessage('Settings saved successfully!', 'success');
       
-      // If the API key was provided, update the status
+      // Update the status of API keys
       if (settings.apiKey) {
-        apiKeyInput.value = '••••••••••••••••••••••••••';
-        apiKeyInput.dataset.hasKey = 'true';
+        openaiApiKeyInput.value = '••••••••••••••••••••••••••';
+        openaiApiKeyInput.dataset.hasKey = 'true';
+      }
+      
+      if (settings.lmstudioApiKey) {
+        lmstudioApiKeyInput.value = '••••••••••••••••••••••••••';
+        lmstudioApiKeyInput.dataset.hasKey = 'true';
       }
     });
   }

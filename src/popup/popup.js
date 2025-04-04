@@ -8,15 +8,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const loading = document.getElementById('loading');
   const summaryResult = document.getElementById('summary-result');
   const summaryText = document.getElementById('summary-text');
+  const settingsLink = document.getElementById('settings-link');
+
+  // Add a status indicator for API mode
+  const footerElement = document.querySelector('footer p');
+  let apiModeSpan = document.createElement('span');
+  apiModeSpan.id = 'api-mode-indicator';
+  apiModeSpan.style.marginLeft = '5px';
+  apiModeSpan.style.fontSize = '11px';
+  apiModeSpan.style.padding = '2px 5px';
+  apiModeSpan.style.borderRadius = '3px';
+  apiModeSpan.style.backgroundColor = '#e0e0e0';
+  footerElement.appendChild(apiModeSpan);
 
   // Event Listeners
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
   
   // Load saved preference for translation
-  chrome.storage.local.get(['translateToEnglish'], (result) => {
+  chrome.storage.local.get(['translateToEnglish', 'apiMode', 'developmentMode'], (result) => {
     if (result.translateToEnglish !== undefined) {
       translateEnglish.checked = result.translateToEnglish;
     }
+    
+    // Update API mode indicator
+    updateApiModeIndicator(result.apiMode, result.developmentMode);
   });
   
   // Save translation preference when changed
@@ -26,6 +41,26 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Check if we have a saved summary from this session
   checkForExistingSummary();
+
+  // Function to update the API mode indicator
+  function updateApiModeIndicator(apiMode, devMode) {
+    const span = document.getElementById('api-mode-indicator');
+    if (!span) return;
+    
+    if (devMode) {
+      span.textContent = '(Demo Mode)';
+      span.style.backgroundColor = '#FFF3CD';
+      span.style.color = '#856404';
+    } else if (apiMode === 'lmstudio') {
+      span.textContent = '(LM Studio)';
+      span.style.backgroundColor = '#D1ECF1';
+      span.style.color = '#0C5460';
+    } else {
+      span.textContent = '(OpenAI)';
+      span.style.backgroundColor = '#D4EDDA';
+      span.style.color = '#155724';
+    }
+  }
 
   // Function to check for an existing summary
   function checkForExistingSummary() {
