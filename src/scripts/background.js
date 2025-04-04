@@ -3,63 +3,17 @@
 // OpenAI API endpoint
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Default configuration if config.js is not found
+// Default configuration
 let CONFIG = {
   API_MODE: 'openai',  // Default API mode
-  OPENAI_API_KEY: '',
-  OPENAI_MODEL: 'gpt-3.5-turbo',
-  LMSTUDIO_API_URL: 'http://localhost:1234/v1',
-  LMSTUDIO_API_KEY: '',
   MAX_TOKENS: 500,
   TEMPERATURE: 0.5,
-  DEVELOPMENT_MODE: true,  // Default to development mode if no config
-  DEFAULT_SUMMARY_FORMAT: 'short'
+  DEVELOPMENT_MODE: false
 };
 
-// Check for stored configuration data
-chrome.storage.local.get([
-  'apiMode',
-  'apiKey',
-  'openaiModel',
-  'lmstudioApiUrl',
-  'lmstudioApiKey',
-  'developmentMode'
-], (result) => {
-  // Set API mode
-  if (result.apiMode) {
-    CONFIG.API_MODE = result.apiMode;
-  }
-  
-  // OpenAI settings
-  if (result.apiKey) {
-    CONFIG.OPENAI_API_KEY = result.apiKey;
-  }
-  
-  if (result.openaiModel) {
-    CONFIG.OPENAI_MODEL = result.openaiModel;
-  }
-  
-  // LM Studio settings
-  if (result.lmstudioApiUrl) {
-    CONFIG.LMSTUDIO_API_URL = result.lmstudioApiUrl;
-  }
-  
-  if (result.lmstudioApiKey) {
-    CONFIG.LMSTUDIO_API_KEY = result.lmstudioApiKey;
-  }
-  
-  // If developmentMode is explicitly defined in storage, use that value
-  if (result.developmentMode !== undefined) {
-    CONFIG.DEVELOPMENT_MODE = result.developmentMode;
-  }
-  
-  // Log configuration state
-  console.log("Config loaded:");
-  console.log("API Mode:", CONFIG.API_MODE);
-  console.log("OpenAI API Key:", CONFIG.OPENAI_API_KEY ? "Found" : "Not found");
-  console.log("LM Studio URL:", CONFIG.LMSTUDIO_API_URL);
-  console.log("Development mode:", CONFIG.DEVELOPMENT_MODE ? "ON (using mock data)" : "OFF (using real API)");
-});
+// Load configuration from storage when needed
+// We'll rely on directly accessing the storage for each operation rather than
+// keeping a global config object that might get out of sync
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -102,8 +56,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         if (apiMode === 'openai') {
           // Get the OpenAI API key
-          const apiKey = result.apiKey || CONFIG.OPENAI_API_KEY || '';
-          const model = result.openaiModel || CONFIG.OPENAI_MODEL;
+          const apiKey = result.apiKey || '';
+          const model = result.openaiModel || 'gpt-3.5-turbo';
           
           if (!apiKey) {
             sendResponse({ 
@@ -122,8 +76,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           );
         } else if (apiMode === 'lmstudio') {
           // Get LM Studio settings
-          const lmStudioUrl = result.lmstudioApiUrl || CONFIG.LMSTUDIO_API_URL;
-          const lmStudioKey = result.lmstudioApiKey || CONFIG.LMSTUDIO_API_KEY || '';
+          const lmStudioUrl = result.lmstudioApiUrl || 'http://localhost:1234/v1';
+          const lmStudioKey = result.lmstudioApiKey || '';
           
           if (!lmStudioUrl) {
             sendResponse({ 
@@ -179,13 +133,13 @@ async function generateOpenAISummary(text, format, apiKey, model, translateToEng
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: model || CONFIG.OPENAI_MODEL,
+        model: model,
         messages: [
           { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: CONFIG.MAX_TOKENS,
-        temperature: CONFIG.TEMPERATURE
+        max_tokens: 500,
+        temperature: 0.5
       })
     });
     
@@ -247,8 +201,8 @@ async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', transl
           { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: CONFIG.MAX_TOKENS,
-        temperature: CONFIG.TEMPERATURE,
+        max_tokens: 500,
+        temperature: 0.5,
         stream: false
       })
     });

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Sparrow",
-  "version": "0.1.0",
-  "description": "AI-powered webpage summarizer using OpenAI's ChatGPT API",
+  "version": "0.2.0",
+  "description": "AI-powered webpage summarizer using OpenAI or LM Studio",
   "icons": {
     "16": "assets/icons/icon16.png",
     "48": "assets/icons/icon48.png",
@@ -34,12 +34,6 @@
     {
       "matches": ["<all_urls>"],
       "js": ["src/scripts/content.js"]
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["config.js"],
-      "matches": ["<all_urls>"]
     }
   ]
 }
