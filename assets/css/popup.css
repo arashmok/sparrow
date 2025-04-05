@@ -13,7 +13,7 @@ html, body {
   margin: 0;
   padding: 0;
   min-width: 350px;
-  min-height: 400px;
+  min-height: 450px;
 }
 
 body {
@@ -29,6 +29,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 /* Make the popup container resizable */
@@ -124,14 +125,13 @@ select {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   padding: 10px;
-  min-height: 150px;
-  max-height: 350px;
-  overflow-y: auto;  /* This container should have the scrollbar */
-  overflow-x: hidden;
-  position: relative;
+  min-height: 200px;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow-y: auto;  /* This container should have the scrollbar */
+  overflow-x: hidden;
 }
 
 /* Loading indicator */
@@ -151,13 +151,17 @@ select {
   display: none;
 }
 
+#summary-result {
+  width: 100%;
+}
+
 /* Summary text styling */
 #summary-text {
   margin-bottom: 0;
   line-height: 1.6;
   font-size: 14px;
   overflow: visible;
-  max-height: none;
+  width: 100%;
 }
 
 /* Style for the summary title */
