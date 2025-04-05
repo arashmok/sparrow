@@ -8,7 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const loading = document.getElementById('loading');
   const summaryResult = document.getElementById('summary-result');
   const summaryText = document.getElementById('summary-text');
-  const footerText = document.getElementById('footer-text');
+  const apiProviderText = document.getElementById('api-provider-text');
+  const apiIndicator = document.getElementById('api-indicator');
+  const resizeHandle = document.getElementById('resize-handle');
+  const resizeButtons = document.querySelectorAll('.resize-btn');
+  
+  // Initialize resizing functionality
+  initResizeHandling();
 
   // Event Listeners
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
@@ -33,56 +39,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to update the API mode indicator
   function updateApiModeIndicator(apiMode, devMode) {
-    // Create the footer content
+    // Determine the API provider info based on mode
     let providerText = '';
     let statusText = '';
-    let statusColor = '';
-    let textColor = '';
+    let statusClass = '';
     
     if (devMode) {
       // Demo mode
       providerText = 'Demo Mode';
       statusText = 'DEMO';
-      statusColor = '#FFF3CD'; // Light yellow
-      textColor = '#856404';   // Dark yellow/gold
+      statusClass = 'indicator-demo';
     } else if (apiMode === 'lmstudio') {
       // LM Studio mode
       providerText = 'Powered by LM Studio';
       statusText = 'LOCAL';
-      statusColor = '#D1ECF1'; // Light blue
-      textColor = '#0C5460';   // Dark blue
+      statusClass = 'indicator-lmstudio';
+    } else if (apiMode === 'ollama') {
+      // Ollama mode
+      providerText = 'Powered by Ollama';
+      statusText = 'LOCAL';
+      statusClass = 'indicator-ollama';
     } else {
       // OpenAI mode
       providerText = 'Powered by OpenAI';
       statusText = 'OPENAI';
-      statusColor = '#D4EDDA'; // Light green
-      textColor = '#155724';   // Dark green
+      statusClass = 'indicator-openai';
     }
     
-    // Create indicator span
-    const indicatorSpan = document.createElement('span');
-    indicatorSpan.textContent = statusText;
-    indicatorSpan.style.marginLeft = '5px';
-    indicatorSpan.style.fontSize = '10px';
-    indicatorSpan.style.padding = '2px 6px';
-    indicatorSpan.style.borderRadius = '3px';
-    indicatorSpan.style.backgroundColor = statusColor;
-    indicatorSpan.style.color = textColor;
-    indicatorSpan.style.fontWeight = 'bold';
+    // Update the UI elements
+    apiProviderText.textContent = providerText;
+    apiIndicator.textContent = statusText;
     
-    // Create the settings link
-    const settingsLink = document.createElement('a');
-    settingsLink.href = 'settings.html';
-    settingsLink.id = 'settings-link';
-    settingsLink.textContent = 'Settings';
-    settingsLink.style.marginLeft = '5px';
-    
-    // Add all elements to the footer
-    footerText.innerHTML = '';
-    footerText.appendChild(document.createTextNode(providerText));
-    footerText.appendChild(indicatorSpan);
-    footerText.appendChild(document.createTextNode(' | '));
-    footerText.appendChild(settingsLink);
+    // Remove any existing indicator classes
+    apiIndicator.className = 'api-indicator';
+    // Add the appropriate class
+    apiIndicator.classList.add(statusClass);
   }
 
   // Function to check for an existing summary
@@ -358,5 +349,129 @@ document.addEventListener('DOMContentLoaded', () => {
         Try refreshing the page or checking your settings.
       </div>
     `;
+  }
+  
+  // Initialize the window resize functionality
+  function initResizeHandling() {
+    // Get saved dimensions from storage
+    chrome.storage.local.get(['popupWidth', 'popupHeight', 'popupSize'], (result) => {
+      // Set default size if not saved before
+      const defaultWidth = 350;
+      const defaultHeight = 450;
+      const defaultSize = 'medium';
+      
+      // If we have stored dimensions, apply them
+      if (result.popupWidth && result.popupHeight) {
+        document.body.style.width = result.popupWidth + 'px';
+        document.body.style.height = result.popupHeight + 'px';
+      } else {
+        // Otherwise set default
+        document.body.style.width = defaultWidth + 'px';
+        document.body.style.height = defaultHeight + 'px';
+      }
+      
+      // Mark the active size button
+      const activeSize = result.popupSize || defaultSize;
+      document.querySelectorAll('.resize-btn').forEach(btn => {
+        if (btn.dataset.size === activeSize) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    });
+    
+    // Handle manual resize with the resize handle
+    let isResizing = false;
+    let lastX, lastY;
+    
+    resizeHandle.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      
+      const deltaX = e.clientX - lastX;
+      const deltaY = e.clientY - lastY;
+      
+      const currentWidth = parseInt(document.body.style.width) || 350;
+      const currentHeight = parseInt(document.body.style.height) || 450;
+      
+      const newWidth = Math.max(250, currentWidth + deltaX);
+      const newHeight = Math.max(300, currentHeight + deltaY);
+      
+      document.body.style.width = newWidth + 'px';
+      document.body.style.height = newHeight + 'px';
+      
+      lastX = e.clientX;
+      lastY = e.clientY;
+      
+      // Remove active class from preset buttons when custom sizing
+      document.querySelectorAll('.resize-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Save the custom size to storage
+      chrome.storage.local.set({
+        popupWidth: newWidth,
+        popupHeight: newHeight,
+        popupSize: 'custom'
+      });
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isResizing = false;
+    });
+    
+    // Handle preset size buttons
+    document.querySelectorAll('.resize-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Remove active class from all buttons
+        document.querySelectorAll('.resize-btn').forEach(b => {
+          b.classList.remove('active');
+        });
+        
+        // Add active class to the clicked button
+        btn.classList.add('active');
+        
+        // Get the size from the button's data attribute
+        const size = btn.dataset.size;
+        let newWidth, newHeight;
+        
+        // Set dimensions based on size
+        switch (size) {
+          case 'small':
+            newWidth = 300;
+            newHeight = 400;
+            break;
+          case 'medium':
+            newWidth = 350;
+            newHeight = 450;
+            break;
+          case 'large':
+            newWidth = 450;
+            newHeight = 550;
+            break;
+          default:
+            newWidth = 350;
+            newHeight = 450;
+        }
+        
+        // Apply the new dimensions
+        document.body.style.width = newWidth + 'px';
+        document.body.style.height = newHeight + 'px';
+        
+        // Save the new size to storage
+        chrome.storage.local.set({
+          popupWidth: newWidth,
+          popupHeight: newHeight,
+          popupSize: size
+        });
+      });
+    });
   }
 });

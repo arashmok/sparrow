@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiModeRadios = document.querySelectorAll('input[name="api-mode"]');
   const openaiSection = document.getElementById('openai-section');
   const lmstudioSection = document.getElementById('lmstudio-section');
+  const ollamaSection = document.getElementById('ollama-section');
   
   // OpenAI elements
   const openaiApiKeyInput = document.getElementById('openai-api-key');
@@ -14,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // LM Studio elements
   const lmstudioApiUrlInput = document.getElementById('lmstudio-api-url');
   const lmstudioApiKeyInput = document.getElementById('lmstudio-api-key');
+  
+  // Ollama elements
+  const ollamaApiUrlInput = document.getElementById('ollama-api-url');
+  const ollamaModelInput = document.getElementById('ollama-model');
   
   // Shared elements
   const defaultFormatSelect = document.getElementById('default-format');
@@ -41,12 +46,18 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateApiSectionVisibility() {
     const selectedApiMode = document.querySelector('input[name="api-mode"]:checked').value;
     
+    // Hide all sections first
+    openaiSection.classList.add('inactive-section');
+    lmstudioSection.classList.add('inactive-section');
+    ollamaSection.classList.add('inactive-section');
+    
+    // Show the selected section
     if (selectedApiMode === 'openai') {
       openaiSection.classList.remove('inactive-section');
-      lmstudioSection.classList.add('inactive-section');
     } else if (selectedApiMode === 'lmstudio') {
-      openaiSection.classList.add('inactive-section');
       lmstudioSection.classList.remove('inactive-section');
+    } else if (selectedApiMode === 'ollama') {
+      ollamaSection.classList.remove('inactive-section');
     }
   }
   
@@ -58,6 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'openaiModel',
       'lmstudioApiUrl',
       'lmstudioApiKey',
+      'ollamaApiUrl',
+      'ollamaModel',
       'defaultFormat',
       'developmentMode'
     ], (result) => {
@@ -85,6 +98,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.lmstudioApiKey) {
         lmstudioApiKeyInput.value = '••••••••••••••••••••••••••';
         lmstudioApiKeyInput.dataset.hasKey = 'true';
+      }
+      
+      // Ollama settings
+      if (result.ollamaApiUrl) {
+        ollamaApiUrlInput.value = result.ollamaApiUrl;
+      }
+      
+      if (result.ollamaModel) {
+        ollamaModelInput.value = result.ollamaModel;
       }
       
       // Format settings
@@ -130,6 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
       settings.lmstudioApiKey = lmstudioApiKeyInput.value;
     }
     
+    // Save Ollama settings
+    settings.ollamaApiUrl = ollamaApiUrlInput.value;
+    settings.ollamaModel = ollamaModelInput.value;
+    
     // Validation based on selected API mode
     if (!settings.developmentMode) {
       if (apiMode === 'openai' && !openaiApiKeyInput.dataset.hasKey && !openaiApiKeyInput.value) {
@@ -138,6 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (apiMode === 'lmstudio' && !lmstudioApiUrlInput.value) {
         showMessage('Please provide a valid LM Studio server URL.', 'error');
+        return;
+      } else if (apiMode === 'ollama' && !ollamaApiUrlInput.value) {
+        showMessage('Please provide a valid Ollama server URL.', 'error');
+        return;
+      } else if (apiMode === 'ollama' && !ollamaModelInput.value) {
+        showMessage('Please provide an Ollama model name.', 'error');
         return;
       }
     }

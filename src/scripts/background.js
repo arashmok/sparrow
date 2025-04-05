@@ -29,6 +29,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       'openaiModel',
       'lmstudioApiUrl',
       'lmstudioApiKey',
+      'ollamaApiUrl',
+      'ollamaModel',
       'developmentMode'
     ], async (result) => {
       // Determine which API to use
@@ -92,6 +94,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             request.format, 
             lmStudioUrl,
             lmStudioKey,
+            request.translateToEnglish
+          );
+        } else if (apiMode === 'ollama') {
+          // Get Ollama settings
+          const ollamaApiUrl = result.ollamaApiUrl || 'http://localhost:11434/api';
+          const ollamaModel = result.ollamaModel || 'llama2';
+          
+          if (!ollamaApiUrl) {
+            sendResponse({ 
+              error: 'No Ollama server URL found. Please check your settings.'
+            });
+            return;
+          }
+          
+          if (!ollamaModel) {
+            sendResponse({ 
+              error: 'No Ollama model specified. Please check your settings.'
+            });
+            return;
+          }
+          
+          console.log("Using Ollama API at:", ollamaApiUrl, "with model:", ollamaModel);
+          summary = await generateOllamaSummary(
+            request.text, 
+            request.format, 
+            ollamaApiUrl,
+            ollamaModel,
             request.translateToEnglish
           );
         } else {
@@ -230,6 +259,151 @@ async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', transl
   } catch (error) {
     console.error('Error calling LM Studio API:', error);
     throw new Error(`Failed to connect to LM Studio server at ${apiUrl}. Please check that LM Studio is running and your settings are correct.`);
+  }
+}
+
+/**
+ * Generates a summary using the Ollama API
+ * @param {string} text - The text to summarize
+ * @param {string} format - The format of the summary (short, detailed, key-points)
+ * @param {string} apiUrl - The Ollama API URL (base URL)
+ * @param {string} model - The Ollama model to use
+ * @param {boolean} translateToEnglish - Whether to translate the text to English
+ * @returns {Promise<string>} The generated summary
+ */
+async function generateOllamaSummary(text, format, apiUrl, model, translateToEnglish = false) {
+  // Create the optimized prompt
+  const prompt = createPrompt(text, format, translateToEnglish);
+  
+  try {
+    // Ensure apiUrl has the correct format (remove trailing slash if present)
+    const baseUrl = apiUrl.replace(/\/+$/, '');
+    
+    // Ollama uses a different endpoint structure than OpenAI
+    // For chat completions we need to use /api/chat
+    const chatEndpoint = `${baseUrl}/chat`;
+    
+    console.log("Ollama API request to:", chatEndpoint);
+    
+    // Make the API call to Ollama
+    const response = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
+          { role: 'user', content: prompt }
+        ],
+        options: {
+          temperature: 0.5
+        },
+        stream: false
+      })
+    });
+    
+    if (!response.ok) {
+      // Try a fallback to the older Ollama API format if the chat endpoint fails
+      return await generateOllamaFallbackSummary(text, format, apiUrl, model, translateToEnglish);
+    }
+    
+    const data = await response.json();
+    
+    // Ollama might have a slightly different response format than OpenAI
+    let summary = '';
+    if (data.message && data.message.content) {
+      summary = data.message.content.trim();
+    } else if (data.response) {
+      // Fallback for older Ollama versions
+      summary = data.response.trim();
+    } else {
+      throw new Error('Unexpected response format from Ollama API');
+    }
+    
+    // Add translation prefix if needed
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
+  } catch (error) {
+    console.error('Error calling Ollama API:', error);
+    throw new Error(`Failed to connect to Ollama server at ${apiUrl}. Please ensure Ollama is running, the model is loaded, and CORS is properly configured.`);
+  }
+}
+
+/**
+ * Fallback for older Ollama API versions that use the /api/generate endpoint
+ * @param {string} text - The text to summarize
+ * @param {string} format - The format of the summary (short, detailed, key-points)
+ * @param {string} apiUrl - The Ollama API URL (base URL)
+ * @param {string} model - The Ollama model to use
+ * @param {boolean} translateToEnglish - Whether to translate the text to English
+ * @returns {Promise<string>} The generated summary
+ */
+async function generateOllamaFallbackSummary(text, format, apiUrl, model, translateToEnglish = false) {
+  // Create the optimized prompt with system message included
+  const systemMessage = 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.';
+  const userPrompt = createPrompt(text, format, translateToEnglish);
+  const fullPrompt = `${systemMessage}\n\n${userPrompt}`;
+  
+  try {
+    // Ensure apiUrl has the correct format (remove trailing slash if present)
+    const baseUrl = apiUrl.replace(/\/+$/, '');
+    
+    // Old Ollama endpoint for completions
+    const generateEndpoint = `${baseUrl}/generate`;
+    
+    console.log("Ollama API fallback request to:", generateEndpoint);
+    
+    // Make the API call to Ollama's generate endpoint
+    const response = await fetch(generateEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        prompt: fullPrompt,
+        options: {
+          temperature: 0.5
+        },
+        stream: false
+      })
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `Status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        // If we can't parse the JSON, just use the status code
+      }
+      throw new Error(`Failed to generate summary: ${errorMessage}`);
+    }
+    
+    const data = await response.json();
+    
+    // Extract the response from Ollama
+    let summary = '';
+    if (data.response) {
+      summary = data.response.trim();
+    } else {
+      throw new Error('Unexpected response format from Ollama API');
+    }
+    
+    // Add translation prefix if needed
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
+  } catch (error) {
+    console.error('Error calling Ollama generate API:', error);
+    throw new Error(`Failed to connect to Ollama server at ${apiUrl}. Please ensure Ollama is running and the model is loaded.`);
   }
 }
 

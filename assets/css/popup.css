@@ -5,12 +5,40 @@
   padding: 0;
 }
 
+/* Make body and html expandable */
+html, body {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  min-width: 350px;
+  min-height: 400px;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  width: 350px;
   padding: 15px;
   background-color: #f9f9f9;
   color: #333;
+  box-sizing: border-box;
+}
+
+/* Create a flex container for the whole popup */
+#app-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Make the popup container resizable */
+#popup-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 250px;
+  min-height: 300px;
+  overflow: hidden;
 }
 
 /* Header styles */
@@ -33,6 +61,7 @@ header p {
 
 /* Main content styles */
 main {
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -100,6 +129,9 @@ select {
   overflow-y: auto;  /* This container should have the scrollbar */
   overflow-x: hidden;
   position: relative;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Loading indicator */
@@ -182,6 +214,38 @@ select {
   font-size: 14px;
 }
 
+/* Footer styles */
+footer {
+  margin-top: 15px;
+  font-size: 12px;
+  color: #666;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.api-info {
+  display: flex;
+  align-items: center;
+}
+
+.separator {
+  margin: 0 5px;
+}
+
+#settings-link {
+  color: #4285f4;
+  text-decoration: none;
+}
+
+#settings-link:hover {
+  text-decoration: underline;
+}
+
 /* API indicator styles */
 .api-indicator {
   display: inline-block;
@@ -203,30 +267,57 @@ select {
   color: #0C5460;
 }
 
+.indicator-ollama {
+  background-color: #E2E3FF;
+  color: #3A3494;
+}
+
 .indicator-demo {
   background-color: #FFF3CD;
   color: #856404;
 }
 
-/* Footer styles enhancement */
-footer {
+/* Resize controls */
+.resize-controls {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 15px;
-  text-align: center;
-  font-size: 12px;
+  gap: 2px;
+}
+
+.resize-btn {
+  padding: 1px 5px;
+  font-size: 10px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  cursor: pointer;
   color: #666;
 }
 
-footer a {
-  color: #4285f4;
-  text-decoration: none;
-  margin-left: 5px;
+.resize-btn:hover {
+  background-color: #e5e5e5;
 }
 
-footer a:hover {
-  text-decoration: underline;
+.resize-btn.active {
+  background-color: #4285f4;
+  color: white;
+  border-color: #4285f4;
+}
+
+/* Basic styles for the resize handle */
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, #ccc 50%, #ccc 60%, transparent 60%);
+  border-radius: 0 0 4px 0;
+  z-index: 100;
+}
+
+.resize-handle:hover {
+  background: linear-gradient(135deg, transparent 50%, #4285f4 50%, #4285f4 60%, transparent 60%);
 }
 
 /* Utility classes */
