@@ -7,37 +7,55 @@
   <link rel="stylesheet" href="../../assets/css/popup.css">
 </head>
 <body>
-  <header>
-    <h1>Sparrow</h1>
-    <p>AI-powered webpage summarizer</p>
-  </header>
-  
-  <main>
-    <div class="controls">
-      <button id="summarize-btn" class="primary-btn">Summarize</button>
-      <select id="summary-format">
-        <option value="short">Short Summary</option>
-        <option value="detailed">Detailed Summary</option>
-        <option value="key-points">Key Takeaways</option>
-      </select>
+  <div id="app-wrapper">
+    <div id="popup-container">
+      <header>
+        <h1>Sparrow</h1>
+        <p>AI-powered webpage summarizer</p>
+      </header>
+      
+      <main>
+        <div class="controls">
+          <button id="summarize-btn" class="primary-btn">Summarize</button>
+          <select id="summary-format">
+            <option value="short">Short Summary</option>
+            <option value="detailed">Detailed Summary</option>
+            <option value="key-points">Key Takeaways</option>
+          </select>
+        </div>
+        
+        <div class="checkbox-option">
+          <input type="checkbox" id="translate-english" />
+          <label for="translate-english">Translate to English</label>
+        </div>
+        
+        <div class="summary-container">
+          <div id="loading" class="hidden">Generating summary...</div>
+          <div id="summary-result">
+            <div id="summary-text">Click the Summarize button to generate a summary of the current page.</div>
+          </div>
+        </div>
+      </main>
+      
+      <footer>
+        <div class="footer-content">
+          <div class="api-info">
+            <span id="api-provider-text">Powered by OpenAI</span>
+            <span id="api-indicator" class="api-indicator"></span>
+            <span class="separator">|</span>
+            <a href="settings.html" id="settings-link">Settings</a>
+          </div>
+          <div class="resize-controls">
+            <button class="resize-btn" data-size="small">S</button>
+            <button class="resize-btn active" data-size="medium">M</button>
+            <button class="resize-btn" data-size="large">L</button>
+          </div>
+        </div>
+      </footer>
+      
+      <div class="resize-handle" id="resize-handle"></div>
     </div>
-    
-    <div class="checkbox-option">
-      <input type="checkbox" id="translate-english" />
-      <label for="translate-english">Translate to English</label>
-    </div>
-    
-    <div class="summary-container">
-      <div id="loading" class="hidden">Generating summary...</div>
-      <div id="summary-result">
-        <div id="summary-text">Click the Summarize button to generate a summary of the current page.</div>
-      </div>
-    </div>
-  </main>
-  
-  <footer>
-    <p id="footer-text"></p>
-  </footer>
+  </div>
   
   <script src="popup.js"></script>
 </body>

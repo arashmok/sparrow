@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const summaryText = document.getElementById('summary-text');
   const apiProviderText = document.getElementById('api-provider-text');
   const apiIndicator = document.getElementById('api-indicator');
+  const settingsLink = document.getElementById('settings-link');
   const resizeHandle = document.getElementById('resize-handle');
   const resizeButtons = document.querySelectorAll('.resize-btn');
   
