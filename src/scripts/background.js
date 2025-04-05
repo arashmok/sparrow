@@ -164,7 +164,10 @@ async function generateOpenAISummary(text, format, apiKey, model, translateToEng
       body: JSON.stringify({
         model: model,
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
+          { 
+            role: 'system', 
+            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+          },
           { role: 'user', content: prompt }
         ],
         max_tokens: 500,
@@ -227,7 +230,10 @@ async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', transl
       headers: headers,
       body: JSON.stringify({
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
+          { 
+            role: 'system', 
+            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+          },
           { role: 'user', content: prompt }
         ],
         max_tokens: 500,
@@ -294,7 +300,10 @@ async function generateOllamaSummary(text, format, apiUrl, model, translateToEng
       body: JSON.stringify({
         model: model,
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.' },
+          { 
+            role: 'system', 
+            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+          },
           { role: 'user', content: prompt }
         ],
         options: {
@@ -345,7 +354,7 @@ async function generateOllamaSummary(text, format, apiUrl, model, translateToEng
  */
 async function generateOllamaFallbackSummary(text, format, apiUrl, model, translateToEnglish = false) {
   // Create the optimized prompt with system message included
-  const systemMessage = 'You are a helpful assistant that summarizes web content with clear, well-structured formatting.';
+  const systemMessage = 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.';
   const userPrompt = createPrompt(text, format, translateToEnglish);
   const fullPrompt = `${systemMessage}\n\n${userPrompt}`;
   
@@ -421,23 +430,40 @@ function createPrompt(text, format, translateToEnglish = false) {
   // Add translation instruction if needed
   const translationPrefix = translateToEnglish ? "Translate the following content to English and then " : "";
   
-  // Base instructions for better formatting
-  const formattingInstructions = "Ensure your response has a clear structure with proper paragraph breaks. ";
-  
   let prompt;
   
   switch (format) {
     case 'short':
-      prompt = `${translationPrefix}${formattingInstructions}Please provide a concise summary (2-3 sentences) of the following text. Use a clear title followed by a brief summary paragraph:\n\n${truncatedText}`;
+      prompt = `${translationPrefix}You must create an EXTREMELY concise summary (maximum 2-3 sentences, no more) of the following text. 
+Focus only on the most essential information. Your response must be very brief.
+Do not include any explanations or additional details beyond the core message.
+First provide a very short title (3-5 words only), then a tiny summary paragraph:\n\n${truncatedText}`;
       break;
+      
     case 'detailed':
-      prompt = `${translationPrefix}${formattingInstructions}Please provide a detailed summary (1-2 paragraphs) of the following text, covering the main points and key information. Structure your response with a clear title and well-organized paragraphs with proper line breaks between them:\n\n${truncatedText}`;
+      prompt = `${translationPrefix}Please provide a detailed yet focused summary (1-2 paragraphs) of the following text.
+Cover the main points and key information.
+Structure your response with:
+1. A clear, descriptive title (one line)
+2. Well-organized paragraphs with proper line breaks between them
+3. Ensure the most important information is prioritized\n\n${truncatedText}`;
       break;
+      
     case 'key-points':
-      prompt = `${translationPrefix}${formattingInstructions}Please extract the 3-5 most important key points from the following text as a bullet list. Start with a brief title or description, then list each key point on a new line with a bullet point (•):\n\n${truncatedText}`;
+      prompt = `${translationPrefix}Extract exactly 3-5 of the most important key points from the following text.
+Format your response as:
+1. A brief title (one line only)
+2. A bullet list where each key point:
+   - Starts with a bullet point (•)
+   - Is concise (preferably one sentence)
+   - Captures a distinct important idea
+   - Is directly relevant to the main topic\n\n${truncatedText}`;
       break;
+      
     default:
-      prompt = `${translationPrefix}${formattingInstructions}Please summarize the following text with a clear structure, using paragraph breaks to separate main ideas:\n\n${truncatedText}`;
+      prompt = `${translationPrefix}Please summarize the following text with a clear structure.
+Use paragraph breaks to separate main ideas.
+Highlight the most important aspects while maintaining reasonable brevity:\n\n${truncatedText}`;
   }
   
   return prompt;
@@ -496,15 +522,23 @@ async function mockSummaryForTesting(text, format, translateToEnglish = false) {
   let summary;
   switch (format) {
     case 'short':
-      summary = `${translationPrefix}This webpage discusses ${title}. It covers the main concepts and provides information about the topic.`;
+      summary = `${translationPrefix}${title}
+This webpage discusses ${title.toLowerCase()} with key information about the main subject.`;
       break;
     
     case 'detailed':
-      summary = `${translationPrefix}This webpage titled "${title}" provides a comprehensive overview of the subject matter. The content explores various aspects of the topic, including key concepts, practical applications, and related information. The page appears to be informative and aimed at readers seeking to understand more about this subject.`;
+      summary = `${translationPrefix}${title}: Overview and Key Aspects
+      
+This webpage provides a comprehensive overview of ${title.toLowerCase()}. The content explores various aspects of the topic, including key concepts, practical applications, and related information. The page appears to be designed for readers seeking to understand more about this subject area.`;
       break;
     
     case 'key-points':
-      summary = `${translationPrefix}• The webpage is titled "${title}"\n• It contains information about the main subject matter\n• It likely covers definitions and explanations of key concepts\n• It may include examples or applications related to the topic\n• The content is structured to provide readers with a clear understanding of the subject`;
+      summary = `${translationPrefix}Key Points About ${title}
+      
+• The webpage covers essential information about ${title.toLowerCase()}
+• It contains detailed explanations of core concepts
+• It provides practical examples and applications
+• It appears to be aimed at both beginners and those with some knowledge of the topic`;
       break;
     
     default:
