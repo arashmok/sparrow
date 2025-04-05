@@ -8,10 +8,11 @@
 /* Make body and html expandable */
 html, body {
   width: 100%;
-  height: 100%;
+  height: 450px; /* Set a reasonable fixed height for the popup */
   margin: 0;
   padding: 0;
   min-width: 350px;
+  /* Remove overflow: hidden to allow scrolling */
   overflow-y: auto;
 }
 
@@ -21,25 +22,24 @@ body {
   background-color: #f9f9f9;
   color: #333;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Create a flex container for the whole popup */
 #app-wrapper {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 300px; /* Minimum height to ensure reasonable space */
+  height: 100%;
+  max-height: 100%;
 }
 
 /* Make the popup container fit content */
 #popup-container {
   position: relative;
   width: 100%;
+  height: auto;
+  min-width: 250px;
   display: flex;
   flex-direction: column;
-  flex: 1;
 }
 
 /* Header styles */
@@ -48,7 +48,6 @@ header {
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px solid #e0e0e0;
-  flex-shrink: 0;
 }
 
 h1 {
@@ -61,21 +60,19 @@ header p {
   color: #666;
 }
 
-/* Main content styles - make it grow to fill available space */
+/* Main content styles - let it grow naturally */
 main {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  flex: 1 1 auto;
-  min-height: 200px; /* Ensure minimum height for content */
 }
 
 .controls {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
-  position: relative;
-  flex-shrink: 0;
+  position: relative; /* For the settings button positioning */
 }
 
 .primary-btn {
@@ -100,7 +97,6 @@ select {
   display: flex;
   align-items: center;
   margin: 10px 0;
-  flex-shrink: 0;
 }
 
 .checkbox-option input[type="checkbox"] {
@@ -118,17 +114,19 @@ select {
   font-weight: 500;
 }
 
-/* Summary container - make it grow to fill available space */
+/* Summary container - dynamic size without scrollbars */
 .summary-container {
   background-color: white;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   padding: 10px;
   flex: 1 1 auto;
+  min-height: 100px;
+  height: auto;
+  overflow: visible; /* Let the content extend the container */
+  position: relative;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  min-height: 120px; /* Minimum height for summary */
 }
 
 /* Loading indicator centered */
@@ -153,7 +151,6 @@ select {
   margin-bottom: 0;
   line-height: 1.6;
   font-size: 14px;
-  overflow-y: auto;
 }
 
 /* Style for the summary title */
@@ -236,6 +233,15 @@ footer {
   margin: 0 5px;
 }
 
+#settings-link {
+  color: #4285f4;
+  text-decoration: none;
+}
+
+#settings-link:hover {
+  text-decoration: underline;
+}
+
 /* API indicator styles */
 .api-indicator {
   display: inline-block;
@@ -260,6 +266,68 @@ footer {
 .indicator-ollama {
   background-color: #E2E3FF;
   color: #3A3494;
+}
+
+.indicator-demo {
+  background-color: #FFF3CD;
+  color: #856404;
+}
+
+/* Additional CSS fixes for the settings page */
+
+/* Settings page specific overrides */
+body.settings-page {
+  height: auto;
+  min-height: 500px;
+  overflow-y: auto;
+}
+
+/* Fix for the actions bar at the bottom of settings */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #f9f9f9;
+  z-index: 10;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Ensure settings form has padding at bottom to avoid content being hidden by fixed buttons */
+#settings-form {
+  padding-bottom: 60px;
+}
+
+/* Make the Cancel button visually distinct */
+#cancel-btn {
+  background-color: #f1f1f1;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#cancel-btn:hover {
+  background-color: #e4e4e4;
+}
+
+/* Make the Save button more prominent */
+#save-btn {
+  width: 150px;
+}
+
+/* Fix for the settings page layout */
+.settings-page #app-wrapper,
+.settings-page #popup-container {
+  height: auto;
+  min-height: unset;
+  display: block;
 }
 
 .settings-btn {
