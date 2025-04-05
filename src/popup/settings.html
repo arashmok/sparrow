@@ -6,9 +6,11 @@
   <title>Sparrow Settings</title>
   <link rel="stylesheet" href="../../assets/css/popup.css">
   <style>
+    /* Settings-specific styles */
     html, body {
-      height: 100%;
-      width: 400px;
+      height: auto;
+      min-height: 500px;
+      width: 100%;
       margin: 0;
       padding: 0;
     }
@@ -16,6 +18,7 @@
     body {
       padding: 20px;
       overflow-y: auto;
+      /* Body already has the settings-page class in the HTML tag */
     }
     
     .form-group {
@@ -144,9 +147,24 @@
     main {
       padding-bottom: 60px; /* Add space for the fixed button bar */
     }
+
+    /* Button styling to match screenshot */
+    #cancel-btn {
+      background-color: #f1f1f1;
+      color: #333;
+      border: 1px solid #ccc;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      min-width: 100px;
+    }
+
+    #save-btn {
+      min-width: 150px;
+    }
   </style>
 </head>
-<body>
+<body class="settings-page">
   <header>
     <h1>Sparrow Settings</h1>
     <p>Configure your extension preferences</p>
