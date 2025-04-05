@@ -10,19 +10,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const summaryText = document.getElementById('summary-text');
   const apiProviderText = document.getElementById('api-provider-text');
   const apiIndicator = document.getElementById('api-indicator');
-  const settingsLink = document.getElementById('settings-link');
   
   // Event Listeners
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
   
   // Load saved preference for translation
-  chrome.storage.local.get(['translateToEnglish', 'apiMode', 'developmentMode'], (result) => {
+  chrome.storage.local.get(['translateToEnglish', 'apiMode'], (result) => {
     if (result.translateToEnglish !== undefined) {
       translateEnglish.checked = result.translateToEnglish;
     }
     
     // Update API mode indicator
-    updateApiModeIndicator(result.apiMode, result.developmentMode);
+    updateApiModeIndicator(result.apiMode);
   });
   
   // Save translation preference when changed
@@ -34,18 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
   checkForExistingSummary();
 
   // Function to update the API mode indicator
-  function updateApiModeIndicator(apiMode, devMode) {
+  function updateApiModeIndicator(apiMode) {
     // Determine the API provider info based on mode
     let providerText = '';
     let statusText = '';
     let statusClass = '';
     
-    if (devMode) {
-      // Demo mode
-      providerText = 'Demo Mode';
-      statusText = 'DEMO';
-      statusClass = 'indicator-demo';
-    } else if (apiMode === 'lmstudio') {
+    if (apiMode === 'lmstudio') {
       // LM Studio mode
       providerText = 'Powered by LM Studio';
       statusText = 'LOCAL';

@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Shared elements
   const defaultFormatSelect = document.getElementById('default-format');
-  const devModeCheckbox = document.getElementById('dev-mode');
   const cancelBtn = document.getElementById('cancel-btn');
   const messageDiv = document.getElementById('message');
   
@@ -77,8 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'lmstudioApiKey',
       'ollamaApiUrl',
       'ollamaModel',
-      'defaultFormat',
-      'developmentMode'
+      'defaultFormat'
     ], (result) => {
       // Set API mode
       const apiMode = result.apiMode || 'openai';
@@ -121,14 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (typeof CONFIG !== 'undefined' && CONFIG.DEFAULT_SUMMARY_FORMAT) {
         defaultFormatSelect.value = CONFIG.DEFAULT_SUMMARY_FORMAT;
       }
-      
-      // Set development mode checkbox
-      if (result.developmentMode !== undefined) {
-        devModeCheckbox.checked = result.developmentMode;
-      } else {
-        // Default to the opposite of whether we have an API key
-        devModeCheckbox.checked = !result.apiKey;
-      }
     });
   }
   
@@ -141,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const settings = {
       apiMode: apiMode,
       defaultFormat: defaultFormatSelect.value,
-      developmentMode: devModeCheckbox.checked,
       openaiModel: openaiModelSelect.value
     };
     
@@ -163,21 +152,19 @@ document.addEventListener('DOMContentLoaded', () => {
     settings.ollamaModel = ollamaModelInput.value;
     
     // Validation based on selected API mode
-    if (!settings.developmentMode) {
-      if (apiMode === 'openai' && !openaiApiKeyInput.dataset.hasKey && !openaiApiKeyInput.value) {
-        if (!confirm("You are trying to use the OpenAI API without an API key. This won't work. Continue anyway?")) {
-          return; // Don't save if they cancel
-        }
-      } else if (apiMode === 'lmstudio' && !lmstudioApiUrlInput.value) {
-        showMessage('Please provide a valid LM Studio server URL.', 'error');
-        return;
-      } else if (apiMode === 'ollama' && !ollamaApiUrlInput.value) {
-        showMessage('Please provide a valid Ollama server URL.', 'error');
-        return;
-      } else if (apiMode === 'ollama' && !ollamaModelInput.value) {
-        showMessage('Please provide an Ollama model name.', 'error');
-        return;
+    if (apiMode === 'openai' && !openaiApiKeyInput.dataset.hasKey && !openaiApiKeyInput.value) {
+      if (!confirm("You are trying to use the OpenAI API without an API key. This won't work. Continue anyway?")) {
+        return; // Don't save if they cancel
       }
+    } else if (apiMode === 'lmstudio' && !lmstudioApiUrlInput.value) {
+      showMessage('Please provide a valid LM Studio server URL.', 'error');
+      return;
+    } else if (apiMode === 'ollama' && !ollamaApiUrlInput.value) {
+      showMessage('Please provide a valid Ollama server URL.', 'error');
+      return;
+    } else if (apiMode === 'ollama' && !ollamaModelInput.value) {
+      showMessage('Please provide an Ollama model name.', 'error');
+      return;
     }
     
     // Remove any legacy popup size settings

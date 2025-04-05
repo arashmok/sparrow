@@ -4,9 +4,6 @@
 // 2. Add your OpenAI API key or LM Studio settings to config.js
 // 3. config.js will be ignored by git to keep your keys private
 
-// NOTE: Development mode is now controlled through the extension settings UI
-// You don't need to modify this file to toggle between development and production modes
-
 const CONFIG = {
   // API mode: "openai" or "lmstudio"
   API_MODE: "openai",

@@ -7,8 +7,7 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 let CONFIG = {
   API_MODE: 'openai',  // Default API mode
   MAX_TOKENS: 500,
-  TEMPERATURE: 0.5,
-  DEVELOPMENT_MODE: false
+  TEMPERATURE: 0.5
 };
 
 // Load configuration from storage when needed
@@ -30,29 +29,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       'lmstudioApiUrl',
       'lmstudioApiKey',
       'ollamaApiUrl',
-      'ollamaModel',
-      'developmentMode'
+      'ollamaModel'
     ], async (result) => {
       // Determine which API to use
       const apiMode = result.apiMode || CONFIG.API_MODE;
       console.log("Using API mode:", apiMode);
       
-      // Determine if we're in development mode
-      const isDevelopmentMode = result.developmentMode !== undefined ? 
-        result.developmentMode : CONFIG.DEVELOPMENT_MODE;
-      
-      console.log("Using development mode:", isDevelopmentMode);
-      
-      if (isDevelopmentMode) {
-        // Use mock data for testing
-        console.log("Using mock summary function (development mode)");
-        const summary = await mockSummaryForTesting(request.text, request.format, request.translateToEnglish);
-        console.log("Mock summary generated successfully");
-        sendResponse({ summary });
-        return;
-      }
-      
-      // Real API mode
       try {
         let summary;
         
@@ -496,57 +478,4 @@ function truncateText(text, maxChars) {
   // Otherwise truncate at a word boundary
   const lastSpace = truncated.lastIndexOf(' ');
   return text.substring(0, lastSpace) + '... [truncated]';
-}
-
-/**
- * Provides a mock summary for testing without API key
- * @param {string} text - The original text
- * @param {string} format - The requested format
- * @returns {Promise<string>} A mock summary
- */
-async function mockSummaryForTesting(text, format, translateToEnglish = false) {
-  console.log("Using mock summary function");
-  console.log("Translation to English:", translateToEnglish ? "Enabled" : "Disabled");
-  
-  // Extract title from the text if possible
-  let title = "webpage";
-  const titleMatch = text.match(/Title: (.*?)(\n|$)/);
-  if (titleMatch && titleMatch[1]) {
-    title = titleMatch[1].trim();
-  }
-  
-  // If translation is requested, add a note about it
-  const translationPrefix = translateToEnglish ? "[Translated to English] " : "";
-  
-  // Create different summaries based on format
-  let summary;
-  switch (format) {
-    case 'short':
-      summary = `${translationPrefix}${title}
-This webpage discusses ${title.toLowerCase()} with key information about the main subject.`;
-      break;
-    
-    case 'detailed':
-      summary = `${translationPrefix}${title}: Overview and Key Aspects
-      
-This webpage provides a comprehensive overview of ${title.toLowerCase()}. The content explores various aspects of the topic, including key concepts, practical applications, and related information. The page appears to be designed for readers seeking to understand more about this subject area.`;
-      break;
-    
-    case 'key-points':
-      summary = `${translationPrefix}Key Points About ${title}
-      
-• The webpage covers essential information about ${title.toLowerCase()}
-• It contains detailed explanations of core concepts
-• It provides practical examples and applications
-• It appears to be aimed at both beginners and those with some knowledge of the topic`;
-      break;
-    
-    default:
-      summary = `${translationPrefix}Summary of "${title}": This webpage provides information about the topic, covering key aspects and details that would be relevant to someone interested in the subject.`;
-  }
-  
-  console.log("Mock summary generated:", summary.substring(0, 50) + "...");
-  
-  // Return the summary
-  return summary;
 }

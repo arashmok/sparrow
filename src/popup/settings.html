@@ -79,19 +79,6 @@
       color: #721c24;
     }
     
-    .dev-mode-warning {
-      background-color: #fff3cd;
-      color: #856404;
-      padding: 8px;
-      margin-top: 5px;
-      border-radius: 4px;
-      display: none;
-    }
-    
-    #dev-mode:checked ~ .dev-mode-warning {
-      display: block;
-    }
-    
     .api-section {
       border: 1px solid #e0e0e0;
       border-radius: 4px;
@@ -206,6 +193,7 @@
             <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
             <option value="gpt-4">GPT-4</option>
             <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            <option value="gpt-4o">GPT-4o</option>
           </select>
         </div>
       </div>
@@ -249,17 +237,6 @@
           <option value="detailed">Detailed Summary</option>
           <option value="key-points">Key Takeaways</option>
         </select>
-      </div>
-      
-      <div class="form-group">
-        <div class="checkbox-group">
-          <input type="checkbox" id="dev-mode" />
-          <label for="dev-mode">Development Mode</label>
-        </div>
-        <div class="dev-mode-warning">
-          When development mode is enabled, Sparrow will use mock data instead of making real API calls.
-          This is useful for testing but will not generate real summaries.
-        </div>
       </div>
     </form>
     
