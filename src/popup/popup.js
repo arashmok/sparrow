@@ -263,33 +263,38 @@ function displaySummary(summary, url = null) {
 
 // Function to adjust window height based on content
 function adjustWindowHeight() {
-  // Delay to ensure DOM is updated
-  setTimeout(() => {
-    // Get the heights of each major section
-    const headerHeight = document.querySelector('header').offsetHeight;
-    const controlsHeight = document.querySelector('.controls').offsetHeight;
-    const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
-    const summaryHeight = summaryResult.offsetHeight;
-    const footerHeight = document.querySelector('footer').offsetHeight;
-    
-    // Add padding/margins
-    const padding = 50; // Extra padding for margins and spacing
-    
-    // Calculate optimal window height
-    const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryHeight + footerHeight + padding;
-    
-    // Limit to reasonable bounds
-    const minHeight = 300;
-    const maxHeight = 600; // Chrome has limitations on maximum popup height
-    
-    // Set height with constraints
-    const finalHeight = Math.max(minHeight, Math.min(maxHeight, optimalHeight));
-    
-    // Apply the height to body to let Chrome resize the popup window
-    document.body.style.height = `${finalHeight}px`;
-    
-    console.log(`Resized to ${finalHeight}px based on content height`);
-  }, 100); // Small delay to ensure DOM is fully updated
+  // Set a base height that ensures the footer is visible without scrolling
+  const baseHeight = 450;
+  
+  // Get content height for the summary
+  const summaryHeight = summaryResult.scrollHeight;
+  
+  // Calculate a height that accommodates the summary content plus some padding
+  // but doesn't grow excessively large
+  const maxSummaryHeight = 400; // Maximum height to allocate for summary
+  const adjustedSummaryHeight = Math.min(summaryHeight, maxSummaryHeight);
+  
+  // Calculate total height needed - ensure it's at least the base height
+  let finalHeight = Math.max(baseHeight, 300 + adjustedSummaryHeight);
+  
+  // Cap at a reasonable maximum height
+  finalHeight = Math.min(finalHeight, 600);
+  
+  // Apply the height
+  document.body.style.height = `${finalHeight}px`;
+  console.log(`Window resized to ${finalHeight}px based on content needs`);
+  
+  // Also adjust the summary container to use available space
+  const headerHeight = document.querySelector('header').offsetHeight;
+  const controlsHeight = document.querySelector('.controls').offsetHeight;
+  const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
+  const footerHeight = document.querySelector('footer').offsetHeight;
+  
+  // Calculate available space for the summary container
+  const availableSpace = finalHeight - headerHeight - controlsHeight - checkboxHeight - footerHeight - 60; // 60px for margins/padding
+  
+  // Apply minimum height to summary container to use available space
+  document.querySelector('.summary-container').style.minHeight = `${availableSpace}px`;
 }
   
   // Helper function to format summary text with better structure
@@ -379,7 +384,7 @@ function adjustWindowHeight() {
     return formattedHtml;
   }
   
-  // Function to display error message
+
 // Function to show error with dynamic sizing
 function showError(message) {
   loading.classList.add('hidden'); // Make sure to hide the loading indicator
