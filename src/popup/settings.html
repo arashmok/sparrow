@@ -50,12 +50,14 @@
       display: flex;
       justify-content: flex-end;
       gap: 10px;
-      margin-top: 20px;
-      padding: 10px 0;
-      position: sticky;
+      padding: 10px 20px;
+      position: fixed;
       bottom: 0;
+      left: 0;
+      right: 0;
       background-color: #f9f9f9;
       z-index: 10;
+      border-top: 1px solid #e0e0e0;
     }
     
     .message {
@@ -121,9 +123,13 @@
     }
     
     #message {
-      position: sticky;
+      position: fixed;
       bottom: 60px;
+      left: 0;
+      right: 0;
       z-index: 10;
+      margin: 0;
+      text-align: center;
     }
 
     header {
@@ -133,6 +139,10 @@
       z-index: 10;
       padding-bottom: 15px;
       margin-bottom: 20px;
+    }
+    
+    main {
+      padding-bottom: 60px; /* Add space for the fixed button bar */
     }
   </style>
 </head>
@@ -239,7 +249,7 @@
     
     <div class="actions">
       <button type="button" id="cancel-btn">Cancel</button>
-      <button type="submit" id="save-btn" class="primary-btn">Save Settings</button>
+      <button type="submit" id="save-btn" class="primary-btn">Save</button>
     </div>
   </main>
   
