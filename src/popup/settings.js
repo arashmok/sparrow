@@ -53,17 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedApiMode = document.querySelector('input[name="api-mode"]:checked').value;
     
     // Hide all sections first
-    openaiSection.classList.add('inactive-section');
-    lmstudioSection.classList.add('inactive-section');
-    ollamaSection.classList.add('inactive-section');
+    openaiSection.classList.add('hidden');
+    lmstudioSection.classList.add('hidden');
+    ollamaSection.classList.add('hidden');
     
-    // Show the selected section
+    // Show only the selected section
     if (selectedApiMode === 'openai') {
-      openaiSection.classList.remove('inactive-section');
+      openaiSection.classList.remove('hidden');
     } else if (selectedApiMode === 'lmstudio') {
-      lmstudioSection.classList.remove('inactive-section');
+      lmstudioSection.classList.remove('hidden');
     } else if (selectedApiMode === 'ollama') {
-      ollamaSection.classList.remove('inactive-section');
+      ollamaSection.classList.remove('hidden');
     }
   }
   
