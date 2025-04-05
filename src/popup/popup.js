@@ -240,29 +240,63 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   }
   
-  // Function to display the summary
-  function displaySummary(summary, url = null) {
-    loading.classList.add('hidden'); // Hide the loading message
-    summaryResult.classList.remove('hidden');
-    
-    // Format the summary with better structure
-    const formattedSummary = formatSummaryText(summary);
-    
-    // Replace the text content with formatted HTML
-    summaryText.innerHTML = formattedSummary;
-    
-    // Store the latest summary in local storage
-    const storageData = {
-      latestSummary: summary // Store the original unformatted summary
-    };
-    
-    // If URL was provided, store it too
-    if (url) {
-      storageData.latestUrl = url;
-    }
-    
-    chrome.storage.local.set(storageData);
+// Function to display the summary with dynamic sizing
+function displaySummary(summary, url = null) {
+  loading.classList.add('hidden'); // Hide the loading message
+  summaryResult.classList.remove('hidden');
+  
+  // Format the summary with better structure
+  const formattedSummary = formatSummaryText(summary);
+  
+  // Replace the text content with formatted HTML
+  summaryText.innerHTML = formattedSummary;
+  
+  // Adjust the window height based on content
+  adjustWindowHeight();
+  
+  // Store the latest summary in local storage
+  const storageData = {
+    latestSummary: summary // Store the original unformatted summary
+  };
+  
+  // If URL was provided, store it too
+  if (url) {
+    storageData.latestUrl = url;
   }
+  
+  chrome.storage.local.set(storageData);
+}
+
+// Function to adjust window height based on content
+function adjustWindowHeight() {
+  // Delay to ensure DOM is updated
+  setTimeout(() => {
+    // Get the heights of each major section
+    const headerHeight = document.querySelector('header').offsetHeight;
+    const controlsHeight = document.querySelector('.controls').offsetHeight;
+    const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
+    const summaryHeight = summaryResult.offsetHeight;
+    const footerHeight = document.querySelector('footer').offsetHeight;
+    
+    // Add padding/margins
+    const padding = 50; // Extra padding for margins and spacing
+    
+    // Calculate optimal window height
+    const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryHeight + footerHeight + padding;
+    
+    // Limit to reasonable bounds
+    const minHeight = 300;
+    const maxHeight = 600; // Chrome has limitations on maximum popup height
+    
+    // Set height with constraints
+    const finalHeight = Math.max(minHeight, Math.min(maxHeight, optimalHeight));
+    
+    // Apply the height to body to let Chrome resize the popup window
+    document.body.style.height = `${finalHeight}px`;
+    
+    console.log(`Resized to ${finalHeight}px based on content height`);
+  }, 100); // Small delay to ensure DOM is fully updated
+}
   
   // Helper function to format summary text with better structure
   function formatSummaryText(text) {
@@ -352,22 +386,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Function to display error message
-  function showError(message) {
-    loading.classList.add('hidden'); // Make sure to hide the loading indicator
-    summaryResult.classList.remove('hidden');
-    
-    // Reset button state
-    summarizeBtn.textContent = "Generate";
-    summarizeBtn.disabled = false;
-    
-    // Format the error message with an icon and better styling
-    summaryText.innerHTML = `
-      <div class="error">
-        <strong>Error:</strong> ${message}
-      </div>
-      <div class="summary-paragraph">
-        Try refreshing the page or checking your settings.
-      </div>
-    `;
+// Function to show error with dynamic sizing
+function showError(message) {
+  loading.classList.add('hidden'); // Make sure to hide the loading indicator
+  summaryResult.classList.remove('hidden');
+  
+  // Reset button state
+  summarizeBtn.textContent = "Generate";
+  summarizeBtn.disabled = false;
+  
+  // Format the error message with an icon and better styling
+  summaryText.innerHTML = `
+    <div class="error">
+      <strong>Error:</strong> ${message}
+    </div>
+    <div class="summary-paragraph">
+      Try refreshing the page or checking your settings.
+    </div>
+  `;
+  
+  // Adjust the window height
+  adjustWindowHeight();
   }
 });
