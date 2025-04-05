@@ -180,6 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
+    // Remove any legacy popup size settings
+    chrome.storage.local.remove(['popupWidth', 'popupHeight', 'popupSize']);
+    
     chrome.storage.local.set(settings, () => {
       showMessage('Settings saved successfully!', 'success');
       

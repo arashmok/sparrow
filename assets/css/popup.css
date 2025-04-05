@@ -277,49 +277,6 @@ footer {
   color: #856404;
 }
 
-/* Resize controls */
-.resize-controls {
-  display: flex;
-  gap: 2px;
-}
-
-.resize-btn {
-  padding: 1px 5px;
-  font-size: 10px;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  cursor: pointer;
-  color: #666;
-}
-
-.resize-btn:hover {
-  background-color: #e5e5e5;
-}
-
-.resize-btn.active {
-  background-color: #4285f4;
-  color: white;
-  border-color: #4285f4;
-}
-
-/* Basic styles for the resize handle */
-.resize-handle {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 16px;
-  height: 16px;
-  cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, #ccc 50%, #ccc 60%, transparent 60%);
-  border-radius: 0 0 4px 0;
-  z-index: 100;
-}
-
-.resize-handle:hover {
-  background: linear-gradient(135deg, transparent 50%, #4285f4 50%, #4285f4 60%, transparent 60%);
-}
-
 /* Utility classes */
 .hidden {
   display: none;
