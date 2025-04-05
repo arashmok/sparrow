@@ -6,6 +6,12 @@
   <title>Sparrow Settings</title>
   <link rel="stylesheet" href="../../assets/css/popup.css">
   <style>
+    html, body {
+      overflow-y: auto !important;
+      height: auto !important;
+      min-height: 500px;
+    }
+    
     body {
       width: 400px;
       padding: 20px;
@@ -44,6 +50,11 @@
       justify-content: flex-end;
       gap: 10px;
       margin-top: 20px;
+      position: sticky;
+      bottom: 0;
+      background-color: #f9f9f9;
+      padding: 10px 0;
+      z-index: 10;
     }
     
     .message {
@@ -107,6 +118,27 @@
       margin: 0 0 0 5px;
       display: inline;
     }
+    
+    .settings-container {
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    #message {
+      position: sticky;
+      bottom: 60px;
+      z-index: 10;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      background-color: #f9f9f9;
+      z-index: 10;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -116,104 +148,106 @@
   </header>
   
   <main>
-    <form id="settings-form">
-      <!-- API Mode Selection -->
-      <div class="form-group">
-        <label>API Source</label>
-        <div class="radio-group">
-          <div class="radio-option">
-            <input type="radio" id="api-openai" name="api-mode" value="openai" checked>
-            <label for="api-openai">OpenAI API</label>
-          </div>
-          <div class="radio-option">
-            <input type="radio" id="api-lmstudio" name="api-mode" value="lmstudio">
-            <label for="api-lmstudio">LM Studio (Local)</label>
-          </div>
-          <div class="radio-option">
-            <input type="radio" id="api-ollama" name="api-mode" value="ollama">
-            <label for="api-ollama">Ollama (Local)</label>
-          </div>
-        </div>
-      </div>
-      
-      <!-- OpenAI API Section -->
-      <div id="openai-section" class="api-section">
-        <div class="api-section-title">OpenAI API Settings</div>
+    <div class="settings-container">
+      <form id="settings-form">
+        <!-- API Mode Selection -->
         <div class="form-group">
-          <label for="openai-api-key">OpenAI API Key</label>
-          <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key" />
-          <small>Your API key is stored locally and is never sent to our servers.</small>
+          <label>API Source</label>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" id="api-openai" name="api-mode" value="openai" checked>
+              <label for="api-openai">OpenAI API</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="api-lmstudio" name="api-mode" value="lmstudio">
+              <label for="api-lmstudio">LM Studio (Local)</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="api-ollama" name="api-mode" value="ollama">
+              <label for="api-ollama">Ollama (Local)</label>
+            </div>
+          </div>
         </div>
         
+        <!-- OpenAI API Section -->
+        <div id="openai-section" class="api-section">
+          <div class="api-section-title">OpenAI API Settings</div>
+          <div class="form-group">
+            <label for="openai-api-key">OpenAI API Key</label>
+            <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key" />
+            <small>Your API key is stored locally and is never sent to our servers.</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="openai-model">Model</label>
+            <select id="openai-model">
+              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+              <option value="gpt-4">GPT-4</option>
+              <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- LM Studio Section -->
+        <div id="lmstudio-section" class="api-section inactive-section">
+          <div class="api-section-title">LM Studio Settings</div>
+          <div class="form-group">
+            <label for="lmstudio-api-url">LM Studio Server URL</label>
+            <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1" />
+            <small>The URL where your LM Studio server is running</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="lmstudio-api-key">API Key (Optional)</label>
+            <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio" />
+          </div>
+        </div>
+        
+        <!-- Ollama Section -->
+        <div id="ollama-section" class="api-section inactive-section">
+          <div class="api-section-title">Ollama Settings</div>
+          <div class="form-group">
+            <label for="ollama-api-url">Ollama Server URL</label>
+            <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api" />
+            <small>The base URL where your Ollama server is running</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="ollama-model">Model Name</label>
+            <input type="text" id="ollama-model" placeholder="llama2" value="llama2" />
+            <small>Name of the model you have pulled to Ollama (e.g., llama2, mistral, etc.)</small>
+          </div>
+        </div>
+        
+        <!-- Shared Settings -->
         <div class="form-group">
-          <label for="openai-model">Model</label>
-          <select id="openai-model">
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-            <option value="gpt-4">GPT-4</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+          <label for="default-format">Default Summary Format</label>
+          <select id="default-format">
+            <option value="short">Short Summary</option>
+            <option value="detailed">Detailed Summary</option>
+            <option value="key-points">Key Takeaways</option>
           </select>
         </div>
-      </div>
-      
-      <!-- LM Studio Section -->
-      <div id="lmstudio-section" class="api-section inactive-section">
-        <div class="api-section-title">LM Studio Settings</div>
-        <div class="form-group">
-          <label for="lmstudio-api-url">LM Studio Server URL</label>
-          <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1" />
-          <small>The URL where your LM Studio server is running</small>
-        </div>
         
         <div class="form-group">
-          <label for="lmstudio-api-key">API Key (Optional)</label>
-          <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio" />
+          <div class="checkbox-group">
+            <input type="checkbox" id="dev-mode" />
+            <label for="dev-mode">Development Mode</label>
+          </div>
+          <div class="dev-mode-warning">
+            When development mode is enabled, Sparrow will use mock data instead of making real API calls.
+            This is useful for testing but will not generate real summaries.
+          </div>
         </div>
-      </div>
-      
-      <!-- Ollama Section -->
-      <div id="ollama-section" class="api-section inactive-section">
-        <div class="api-section-title">Ollama Settings</div>
-        <div class="form-group">
-          <label for="ollama-api-url">Ollama Server URL</label>
-          <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api" />
-          <small>The base URL where your Ollama server is running</small>
-        </div>
-        
-        <div class="form-group">
-          <label for="ollama-model">Model Name</label>
-          <input type="text" id="ollama-model" placeholder="llama2" value="llama2" />
-          <small>Name of the model you have pulled to Ollama (e.g., llama2, mistral, etc.)</small>
-        </div>
-      </div>
-      
-      <!-- Shared Settings -->
-      <div class="form-group">
-        <label for="default-format">Default Summary Format</label>
-        <select id="default-format">
-          <option value="short">Short Summary</option>
-          <option value="detailed">Detailed Summary</option>
-          <option value="key-points">Key Takeaways</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <div class="checkbox-group">
-          <input type="checkbox" id="dev-mode" />
-          <label for="dev-mode">Development Mode</label>
-        </div>
-        <div class="dev-mode-warning">
-          When development mode is enabled, Sparrow will use mock data instead of making real API calls.
-          This is useful for testing but will not generate real summaries.
-        </div>
-      </div>
-      
-      <div class="actions">
-        <button type="button" id="cancel-btn">Cancel</button>
-        <button type="submit" id="save-btn" class="primary-btn">Save Settings</button>
-      </div>
-    </form>
+      </form>
+    </div>
     
     <div id="message" class="message hidden"></div>
+    
+    <div class="actions">
+      <button type="button" id="cancel-btn">Cancel</button>
+      <button type="submit" id="save-btn" class="primary-btn">Save Settings</button>
+    </div>
   </main>
   
   <script src="settings.js"></script>

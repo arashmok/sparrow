@@ -31,6 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Event Listeners
   settingsForm.addEventListener('submit', saveSettings);
+  document.getElementById('save-btn').addEventListener('click', function(e) {
+    // Prevent the default button behavior
+    e.preventDefault();
+    // Manually trigger the form submission
+    settingsForm.dispatchEvent(new Event('submit'));
+  });
   cancelBtn.addEventListener('click', () => {
     window.close();
   });
