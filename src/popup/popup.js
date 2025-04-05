@@ -91,6 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to summarize the current page
   async function summarizeCurrentPage() {
+    // Store original button text
+    const originalButtonText = summarizeBtn.textContent;
+    
+    // Update button state
+    summarizeBtn.textContent = "Generating...";
+    summarizeBtn.disabled = true;
+    
     // Clear any previous summary
     summaryText.textContent = '';
     
@@ -120,12 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch (error) {
             showError("Could not extract text from the page. Please refresh the page and try again.");
             console.error("Error after injection:", error);
+            // Reset button state
+            summarizeBtn.textContent = originalButtonText;
+            summarizeBtn.disabled = false;
           }
         }, 200);
       }
     } catch (error) {
       showError("An error occurred: " + error.message);
       console.error("General error:", error);
+      // Reset button state
+      summarizeBtn.textContent = originalButtonText;
+      summarizeBtn.disabled = false;
     }
   }
   
@@ -168,6 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function processSummarization(response, url) {
     if (!response || !response.text) {
       showError("No content found to summarize.");
+      // Reset button state
+      summarizeBtn.textContent = "Generate";
+      summarizeBtn.disabled = false;
       return;
     }
     
@@ -187,6 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
         translateToEnglish: translateToEnglish
       }, 
       (result) => {
+        // Always reset button state when we get a response
+        summarizeBtn.textContent = "Generate";
+        summarizeBtn.disabled = false;
+        
         // Check for runtime errors first
         if (chrome.runtime.lastError) {
           showError("Background script error: " + chrome.runtime.lastError.message);
@@ -335,6 +355,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function showError(message) {
     loading.classList.add('hidden'); // Make sure to hide the loading indicator
     summaryResult.classList.remove('hidden');
+    
+    // Reset button state
+    summarizeBtn.textContent = "Generate";
+    summarizeBtn.disabled = false;
     
     // Format the error message with an icon and better styling
     summaryText.innerHTML = `

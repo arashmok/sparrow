@@ -7,13 +7,13 @@
 
 /* Make body and html expandable */
 html, body {
-  overflow: hidden;
   width: 100%;
-  height: 100%;
+  height: 450px; /* Set a reasonable fixed height for the popup */
   margin: 0;
   padding: 0;
   min-width: 350px;
-  min-height: 400px;
+  /* Remove overflow: hidden to allow scrolling */
+  overflow-y: auto;
 }
 
 body {
@@ -29,6 +29,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: 100%;
 }
 
 /* Make the popup container resizable */
@@ -38,7 +39,8 @@ body {
   height: 100%;
   min-width: 250px;
   min-height: 300px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Header styles */
@@ -61,11 +63,14 @@ header p {
 
 /* Main content styles */
 main {
-  flex-grow: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  overflow: hidden;
+  /* Allow main to scroll if needed */
+  overflow-y: auto;
+  /* Add some bottom padding to prevent content being cut off by footer */
+  padding-bottom: 10px;
 }
 
 .controls {
@@ -87,6 +92,11 @@ main {
 
 .primary-btn:hover {
   background-color: #357ae8;
+}
+
+.primary-btn:disabled {
+  background-color: #9cb8e6;
+  cursor: not-allowed;
 }
 
 select {
@@ -125,7 +135,10 @@ select {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   padding: 10px;
-  flex-grow: 1;
+  /* Changed from flex-grow to flex with numbers to ensure it takes remaining space */
+  flex: 1 1 auto;
+  min-height: 150px;
+  max-height: 250px;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
@@ -213,7 +226,8 @@ select {
 
 /* Footer styles */
 footer {
-  margin-top: 15px;
+  flex: 0 0 auto;
+  margin-top: 10px;
   font-size: 12px;
   color: #666;
 }
