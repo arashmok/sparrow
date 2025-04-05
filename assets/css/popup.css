@@ -72,17 +72,11 @@ main {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
+  position: relative; /* For the settings button positioning */
 }
 
 .primary-btn {
-  background-color: #4285f4; /* Google blue */
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  flex-grow: 1;
-  font-weight: 500;
+  flex-grow: 4; /* Give more space to the primary button */
 }
 
 .primary-btn:hover {
@@ -95,11 +89,7 @@ main {
 }
 
 select {
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background-color: white;
-  cursor: pointer;
+  flex-grow: 3; /* Give good space to the dropdown */
 }
 
 /* Checkbox styling */
@@ -338,6 +328,29 @@ body.settings-page {
   height: auto;
   min-height: unset;
   display: block;
+}
+
+.settings-btn {
+  flex-grow: 1;
+  background-color: #f1f1f1;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.settings-btn:hover {
+  background-color: #e4e4e4;
+}
+
+.settings-icon {
+  width: 16px;
+  height: 16px;
+  fill: #666;
 }
 
 /* Utility classes */
