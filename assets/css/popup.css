@@ -574,6 +574,40 @@ body.settings-page {
   font-size: 15px;
 }
 
+/* API Method Indicator styles */
+.api-method-container {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 8px;
+}
+
+.api-method-indicator {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Method-specific styles */
+.api-method-indicator.indicator-openai {
+  background-color: #10a37f; /* OpenAI green */
+}
+
+.api-method-indicator.indicator-lmstudio {
+  background-color: #0C5460; /* LM Studio blue */
+}
+
+.api-method-indicator.indicator-ollama {
+  background-color: #3A3494; /* Ollama purple */
+}
+
+/* Hide the original footer API info */
+.api-info.hidden {
+  display: none;
+}
+
 /* Utility classes */
 .hidden {
   display: none;

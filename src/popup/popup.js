@@ -32,39 +32,43 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check if we have a saved summary from this session
   checkForExistingSummary();
 
-  // Function to update the API mode indicator
-  function updateApiModeIndicator(apiMode) {
-    // Determine the API provider info based on mode
-    let providerText = '';
-    let statusText = '';
-    let statusClass = '';
-    
-    if (apiMode === 'lmstudio') {
-      // LM Studio mode
-      providerText = 'Powered by LM Studio';
-      statusText = 'LOCAL';
-      statusClass = 'indicator-lmstudio';
-    } else if (apiMode === 'ollama') {
-      // Ollama mode
-      providerText = 'Powered by Ollama';
-      statusText = 'LOCAL';
-      statusClass = 'indicator-ollama';
-    } else {
-      // OpenAI mode
-      providerText = 'Powered by OpenAI';
-      statusText = 'OPENAI';
-      statusClass = 'indicator-openai';
-    }
-    
-    // Update the UI elements
-    apiProviderText.textContent = providerText;
-    apiIndicator.textContent = statusText;
-    
-    // Remove any existing indicator classes
-    apiIndicator.className = 'api-indicator';
-    // Add the appropriate class
-    apiIndicator.classList.add(statusClass);
+// Function to update the API mode indicator
+function updateApiModeIndicator(apiMode) {
+  // Get the new API method indicator element
+  const apiMethodIndicator = document.getElementById('api-method-indicator');
+  
+  // Determine the API method name based on mode
+  let methodName = '';
+  let statusClass = '';
+  
+  if (apiMode === 'lmstudio') {
+    // LM Studio mode
+    methodName = 'LM Studio';
+    statusClass = 'indicator-lmstudio';
+  } else if (apiMode === 'ollama') {
+    // Ollama mode
+    methodName = 'Ollama';
+    statusClass = 'indicator-ollama';
+  } else {
+    // OpenAI mode
+    methodName = 'OpenAI';
+    statusClass = 'indicator-openai';
   }
+  
+  // Update the method indicator
+  apiMethodIndicator.textContent = methodName;
+  
+  // Remove any existing indicator classes
+  apiMethodIndicator.className = 'api-method-indicator';
+  // Add the appropriate class
+  apiMethodIndicator.classList.add(statusClass);
+  
+  // Also update the original footer elements (keeping this for compatibility)
+  apiProviderText.textContent = `Powered by ${methodName}`;
+  apiIndicator.textContent = apiMode === 'openai' ? 'OPENAI' : 'LOCAL';
+  apiIndicator.className = 'api-indicator';
+  apiIndicator.classList.add(statusClass);
+}
 
   // Function to check for an existing summary
   function checkForExistingSummary() {
