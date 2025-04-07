@@ -434,6 +434,7 @@ function showError(message) {
       const apiMode = result.apiMode || 'openai';
       let endpoint;
       if (apiMode === 'openai') {
+        // For OpenAI, use a standard endpoint (adjust as needed)
         endpoint = "https://api.openai.com/v1/models";
       } else if (apiMode === 'lmstudio') {
         endpoint = result.lmstudioApiUrl ? result.lmstudioApiUrl + "/health" : null;
@@ -443,20 +444,25 @@ function showError(message) {
       
       const healthDiv = document.getElementById('healthcheck');
       if (!endpoint) {
-        healthDiv.innerHTML = `<i class="fa-solid fa-exclamation-circle health-error" title="No endpoint configured for ${apiMode}"></i>`;
+        healthDiv.textContent = "No endpoint configured for " + apiMode;
+        healthDiv.className = "health-error";
         return;
       }
       
+      // Simple fetch health check. (This assumes CORS and endpoint health route are configured.)
       fetch(endpoint, { method: 'GET' })
         .then(response => {
           if (response.ok) {
-            healthDiv.innerHTML = `<i class="fa-solid fa-check-circle health-ok" title="${capitalize(apiMode)} endpoint reachable"></i>`;
+            healthDiv.textContent = `${capitalize(apiMode)} endpoint reachable`;
+            healthDiv.className = "health-ok";
           } else {
-            healthDiv.innerHTML = `<i class="fa-solid fa-xmark-circle health-error" title="${capitalize(apiMode)} endpoint unreachable"></i>`;
+            healthDiv.textContent = `${capitalize(apiMode)} endpoint unreachable`;
+            healthDiv.className = "health-error";
           }
         })
         .catch(error => {
-          healthDiv.innerHTML = `<i class="fa-solid fa-xmark-circle health-error" title="${capitalize(apiMode)} endpoint unreachable"></i>`;
+          healthDiv.textContent = `${capitalize(apiMode)} endpoint unreachable`;
+          healthDiv.className = "health-error";
         });
     });
   }

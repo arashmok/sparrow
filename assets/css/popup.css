@@ -593,8 +593,3 @@ body.settings-page {
 .health-error {
   color: red;
 }
-
-#healthcheck i {
-  font-size: 18px;
-  vertical-align: middle;
-}
