@@ -390,13 +390,13 @@ footer {
 
 .footer-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   width: 100%;
 }
 
 .footer-right {
-  /* You can add additional styling if needed */
+  margin-left: auto; /* Forces the content in this container to move right */
+  text-align: right;
 }
 
 .api-info {
