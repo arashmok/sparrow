@@ -57,19 +57,24 @@ html, body {
   }
   
   /* API Mode selection */
-  .radio-group {
+  .radio-options {
     display: flex;
     flex-direction: row;
     gap: 20px;
     margin-bottom: 14px;
   }
   
-  .radio-option {
+  .radio-label {
     display: flex;
     align-items: center;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+    margin: 0;
+    font-weight: normal;
   }
   
-  .radio-option input[type="radio"] {
+  .radio-label input[type="radio"] {
     appearance: none;
     width: 16px;
     height: 16px;
@@ -81,11 +86,11 @@ html, body {
     cursor: pointer;
   }
   
-  .radio-option input[type="radio"]:checked {
+  .radio-label input[type="radio"]:checked {
     border-color: #4285f4;
   }
   
-  .radio-option input[type="radio"]:checked::after {
+  .radio-label input[type="radio"]:checked::after {
     content: "";
     position: absolute;
     top: 3px;
@@ -94,14 +99,6 @@ html, body {
     height: 6px;
     border-radius: 50%;
     background-color: #4285f4;
-  }
-  
-  .radio-option label {
-    margin: 0;
-    display: inline;
-    font-size: 14px;
-    color: #555;
-    cursor: pointer;
   }
   
   /* API Section */
