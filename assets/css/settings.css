@@ -120,7 +120,7 @@ main {
 
 /* Container to hold all API sections with a fixed height */
 .api-sections-container {
-    height: 245px; /* Fixed height sufficient for the tallest section */
+    height: 235px; /* Fixed height sufficient for the tallest section */
     position: relative;
     overflow: hidden; /* Hide any overflow to prevent an extra scrollbar */
 }
