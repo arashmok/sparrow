@@ -415,6 +415,25 @@ footer {
   color: #856404;
 }
 
+/* Settings icon link */
+.settings-icon-link {
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0 8px;
+}
+
+.settings-icon-link:hover {
+  color: #4285f4;
+}
+
+.settings-icon-link i {
+  font-size: 20px;
+}
+
 /* Additional CSS fixes for the settings page */
 
 /* Settings page specific overrides */
@@ -484,24 +503,6 @@ body.settings-page {
   display: block;
 }
 
-.settings-icon-link {
-  color: #888;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  padding: 0 8px;
-}
-
-.settings-icon-link:hover {
-  color: #4285f4;
-}
-
-.settings-icon-link i {
-  font-size: 20px;
-}
-
 /* Settings page form styles */
 .form-group {
   margin-bottom: 18px;
@@ -555,85 +556,6 @@ body.settings-page {
   margin-bottom: 14px;
   color: #4285f4;
   font-size: 15px;
-}
-
-/* Radio buttons styling */
-.radio-group {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.radio-option {
-  display: flex;
-  align-items: center;
-}
-
-.radio-option input[type="radio"] {
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border: 2px solid #d0d0d0;
-  border-radius: 50%;
-  margin-right: 8px;
-  position: relative;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.radio-option input[type="radio"]:checked {
-  border-color: #4285f4;
-}
-
-.radio-option input[type="radio"]:checked::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #4285f4;
-}
-
-.radio-option label {
-  margin: 0;
-  display: inline;
-  font-size: 14px;
-  color: #555;
-  cursor: pointer;
-}
-
-/* Message styling */
-#message {
-  position: fixed;
-  bottom: 60px;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  margin: 0 20px;
-  text-align: center;
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.success {
-  background-color: #d4edda;
-  color: #155724;
-  border-left: 4px solid #155724;
-}
-
-.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border-left: 4px solid #721c24;
 }
 
 /* Utility classes */

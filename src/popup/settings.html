@@ -5,71 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sparrow Settings</title>
   <link rel="stylesheet" href="../../assets/css/popup.css">
-  <style>
-    /* Settings-specific styles */
-    html, body {
-      height: auto;
-      min-height: 500px;
-      width: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      padding: 20px;
-      overflow-y: auto;
-      /* Body already has the settings-page class in the HTML tag */
-    }
-
-    header {
-      position: sticky;
-      top: 0;
-      background-color: #f8f9fb;
-      z-index: 10;
-      padding-bottom: 15px;
-      margin-bottom: 20px;
-    }
-    
-    main {
-      padding-bottom: 70px; /* Add space for the fixed button bar */
-    }
-
-    /* Message styling improved */
-    #message {
-      position: fixed;
-      bottom: 70px;
-      left: 20px;
-      right: 20px;
-      z-index: 10;
-      margin: 0;
-      text-align: center;
-      padding: 12px;
-      border-radius: 8px;
-      animation: fadeIn 0.3s;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .success {
-      background-color: #d4edda;
-      color: #155724;
-      border-left: 4px solid #155724;
-    }
-
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border-left: 4px solid #721c24;
-    }
-  </style>
+  <link rel="stylesheet" href="settings.css">
 </head>
 <body class="settings-page">
   <header>
-    <h1>Sparrow Settings</h1>
-    <p>Configure your extension preferences</p>
+    <h1>Settings</h1>
+    <p>Extension preferences</p>
   </header>
   
   <main>
@@ -80,26 +21,26 @@
         <div class="radio-group">
           <div class="radio-option">
             <input type="radio" id="api-openai" name="api-mode" value="openai" checked>
-            <label for="api-openai">OpenAI API</label>
+            <label for="api-openai">OpenAI</label>
           </div>
           <div class="radio-option">
             <input type="radio" id="api-lmstudio" name="api-mode" value="lmstudio">
-            <label for="api-lmstudio">LM Studio (Local)</label>
+            <label for="api-lmstudio">LM Studio</label>
           </div>
           <div class="radio-option">
             <input type="radio" id="api-ollama" name="api-mode" value="ollama">
-            <label for="api-ollama">Ollama (Local)</label>
+            <label for="api-ollama">Ollama</label>
           </div>
         </div>
       </div>
       
       <!-- OpenAI API Section -->
       <div id="openai-section" class="api-section">
-        <div class="api-section-title">OpenAI API Settings</div>
+        <div class="api-section-title">OpenAI Settings</div>
         <div class="form-group">
-          <label for="openai-api-key">OpenAI API Key</label>
+          <label for="openai-api-key">API Key</label>
           <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key" />
-          <small>Your API key is stored locally and is never sent to our servers.</small>
+          <small>Your API key is stored locally on your device.</small>
         </div>
         
         <div class="form-group">
@@ -117,9 +58,8 @@
       <div id="lmstudio-section" class="api-section hidden">
         <div class="api-section-title">LM Studio Settings</div>
         <div class="form-group">
-          <label for="lmstudio-api-url">LM Studio Server URL</label>
+          <label for="lmstudio-api-url">Server URL</label>
           <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1" />
-          <small>The URL where your LM Studio server is running</small>
         </div>
         
         <div class="form-group">
@@ -132,15 +72,13 @@
       <div id="ollama-section" class="api-section hidden">
         <div class="api-section-title">Ollama Settings</div>
         <div class="form-group">
-          <label for="ollama-api-url">Ollama Server URL</label>
+          <label for="ollama-api-url">Server URL</label>
           <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api" />
-          <small>The base URL where your Ollama server is running</small>
         </div>
         
         <div class="form-group">
           <label for="ollama-model">Model Name</label>
           <input type="text" id="ollama-model" placeholder="llama2" value="llama2" />
-          <small>Name of the model you have pulled to Ollama (e.g., llama2, mistral, etc.)</small>
         </div>
       </div>
       
