@@ -608,6 +608,54 @@ body.settings-page {
   display: none;
 }
 
+/* API Method Indicator styles */
+.api-method-container {
+  position: absolute;
+  bottom: 15px;
+  right: 16px;
+  z-index: 10;
+}
+
+.api-method-indicator {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Method-specific styles */
+.api-method-indicator.indicator-openai {
+  background-color: #10a37f; /* OpenAI green */
+}
+
+.api-method-indicator.indicator-lmstudio {
+  background-color: #0C5460; /* LM Studio blue */
+}
+
+.api-method-indicator.indicator-ollama {
+  background-color: #3A3494; /* Ollama purple */
+}
+
+/* Update translate option to match the top red rectangle position */
+.translate-option {
+  margin: 0 0 16px 0;
+  padding: 6px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Make the summary container position relative for absolute positioning of the API indicator */
+.summary-container {
+  position: relative;
+}
+
+/* Hide the original footer API info */
+.api-info.hidden {
+  display: none;
+}
+
 /* Utility classes */
 .hidden {
   display: none;
