@@ -118,6 +118,12 @@ main {
     font-size: 15px;
 }
 
+/* Container to hold all API sections with a fixed minimum height */
+.api-sections-container {
+    min-height: 220px; /* Adjust the value as needed */
+    position: relative;
+}
+
 /* Input fields and select dropdowns */
 input[type="text"],
 input[type="password"],

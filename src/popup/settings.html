@@ -34,48 +34,51 @@
                 </div>
             </div>
 
-            <!-- OpenAI API Section -->
-            <div id="openai-section" class="api-section">
-                <div class="api-section-title">OpenAI Settings</div>
-                <div class="form-group">
-                    <label for="openai-api-key">API Key</label>
-                    <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key">
-                    <small>Your API key is stored locally on your device.</small>
+            <!-- API Sections Container -->
+            <div class="api-sections-container">
+                <!-- OpenAI API Section -->
+                <div id="openai-section" class="api-section">
+                    <div class="api-section-title">OpenAI Settings</div>
+                    <div class="form-group">
+                        <label for="openai-api-key">API Key</label>
+                        <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key">
+                        <small>Your API key is stored locally on your device.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="openai-model">Model</label>
+                        <select id="openai-model">
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="gpt-4o">GPT-4o</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="openai-model">Model</label>
-                    <select id="openai-model">
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                        <option value="gpt-4o">GPT-4o</option>
-                    </select>
-                </div>
-            </div>
 
-            <!-- LM Studio Section -->
-            <div id="lmstudio-section" class="api-section hidden">
-                <div class="api-section-title">LM Studio Settings</div>
-                <div class="form-group">
-                    <label for="lmstudio-api-url">Server URL</label>
-                    <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1">
+                <!-- LM Studio Section -->
+                <div id="lmstudio-section" class="api-section hidden">
+                    <div class="api-section-title">LM Studio Settings</div>
+                    <div class="form-group">
+                        <label for="lmstudio-api-url">Server URL</label>
+                        <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1">
+                    </div>
+                    <div class="form-group">
+                        <label for="lmstudio-api-key">API Key (Optional)</label>
+                        <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="lmstudio-api-key">API Key (Optional)</label>
-                    <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio">
-                </div>
-            </div>
 
-            <!-- Ollama Section -->
-            <div id="ollama-section" class="api-section hidden">
-                <div class="api-section-title">Ollama Settings</div>
-                <div class="form-group">
-                    <label for="ollama-api-url">Server URL</label>
-                    <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api">
-                </div>
-                <div class="form-group">
-                    <label for="ollama-model">Model Name</label>
-                    <input type="text" id="ollama-model" placeholder="llama2" value="llama2">
+                <!-- Ollama Section -->
+                <div id="ollama-section" class="api-section hidden">
+                    <div class="api-section-title">Ollama Settings</div>
+                    <div class="form-group">
+                        <label for="ollama-api-url">Server URL</label>
+                        <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api">
+                    </div>
+                    <div class="form-group">
+                        <label for="ollama-model">Model Name</label>
+                        <input type="text" id="ollama-model" placeholder="llama2" value="llama2">
+                    </div>
                 </div>
             </div>
 
