@@ -62,10 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
     apiMethodIndicator.classList.add(statusClass);
     
     // Also update the original footer elements (keeping this for compatibility)
-    apiProviderText.textContent = `Powered by ${methodName}`;
-    apiIndicator.textContent = apiMode === 'openai' ? 'OPENAI' : 'LOCAL';
-    apiIndicator.className = 'api-indicator';
-    apiIndicator.classList.add(statusClass);
+    if (apiProviderText) {
+      apiProviderText.textContent = `Powered by ${methodName}`;
+    }
+    if (apiIndicator) {
+      apiIndicator.textContent = apiMode === 'openai' ? 'OPENAI' : 'LOCAL';
+      apiIndicator.className = 'api-indicator';
+      apiIndicator.classList.add(statusClass);
+    }
   }
 
   // Function to check for an existing summary
@@ -185,11 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log("Sending text to background script for summarization");
     
-    // Get metadata about the extracted content
-    const metadata = response.metadata || { length: response.text.length, isLarge: false };
-    
-    // No special message needed for large content processing
-    
     // Send extracted text to background script for API call
     const format = summaryFormat.value;
     const translateToEnglish = translateEnglish.checked;
@@ -208,8 +207,11 @@ document.addEventListener('DOMContentLoaded', () => {
         summarizeBtn.querySelector('span').textContent = "Generate";
         summarizeBtn.disabled = false;
         
-        // Reset loading message
-        loading.querySelector('span').textContent = "Generating summary...";
+        // Reset loading message if it exists
+        const loadingText = loading.querySelector('span');
+        if (loadingText) {
+          loadingText.textContent = "Generating summary...";
+        }
         
         // Check for runtime errors first
         if (chrome.runtime.lastError) {
@@ -239,212 +241,241 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Display the summary
-        displaySummary(result.summary, url, metadata);
+        displaySummary(result.summary, url);
       }
     );
   }
   
-  // Helper function to update the loading message
-  function updateLoadingMessage(message) {
-    const loadingText = loading.querySelector('span');
-    if (loadingText) {
-      loadingText.textContent = message;
+  // Function to display the summary with dynamic sizing
+  function displaySummary(summary, url = null) {
+    loading.classList.add('hidden'); // Hide the loading message
+    summaryResult.classList.remove('hidden');
+    
+    // Format the summary with better structure
+    const formattedSummary = formatSummaryText(summary);
+    
+    // Replace the text content with formatted HTML
+    summaryText.innerHTML = formattedSummary;
+    
+    // Adjust the window height based on content
+    adjustWindowHeight();
+    
+    // Store the latest summary in local storage
+    const storageData = {
+      latestSummary: summary // Store the original unformatted summary
+    };
+    
+    // If URL was provided, store it too
+    if (url) {
+      storageData.latestUrl = url;
     }
+    
+    chrome.storage.local.set(storageData);
   }
-  
-// Function to display the summary with dynamic sizing
-function displaySummary(summary, url = null, metadata = null) {
-  loading.classList.add('hidden'); // Hide the loading message
-  summaryResult.classList.remove('hidden');
-  
-  // Format the summary with better structure
-  const formattedSummary = formatSummaryText(summary, metadata);
-  
-  // Replace the text content with formatted HTML
-  summaryText.innerHTML = formattedSummary;
-  
-  // Adjust the window height based on content
-  adjustWindowHeight();
-  
-  // Store the latest summary in local storage
-  const storageData = {
-    latestSummary: summary // Store the original unformatted summary
-  };
-  
-  // If URL was provided, store it too
-  if (url) {
-    storageData.latestUrl = url;
-  }
-  
-  chrome.storage.local.set(storageData);
-}
 
-// Function to adjust window height based on content
-function adjustWindowHeight() {
-  // Delay to ensure DOM is updated
-  setTimeout(() => {
-    // Get the heights of each major section
-    const headerHeight = document.querySelector('header').offsetHeight;
-    const controlsHeight = document.querySelector('.controls').offsetHeight;
-    const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
-    const summaryHeight = summaryResult.offsetHeight;
-    const footerHeight = document.querySelector('footer').offsetHeight;
-    
-    // Add padding/margins
-    const padding = 50; // Extra padding for margins and spacing
-    
-    // Calculate optimal window height
-    const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryHeight + footerHeight + padding;
-    
-    // Limit to reasonable bounds
-    const minHeight = 300;
-    const maxHeight = 600; // Chrome has limitations on maximum popup height
-    
-    // Set height with constraints
-    const finalHeight = Math.max(minHeight, Math.min(maxHeight, optimalHeight));
-    
-    // Apply the height to body to let Chrome resize the popup window
-    document.body.style.height = `${finalHeight}px`;
-    
-    console.log(`Resized to ${finalHeight}px based on content height`);
-  }, 100); // Small delay to ensure DOM is fully updated
-}
-  
-// Helper function to format summary text with better structure
-function formatSummaryText(text, metadata = null) {
-  // Check if this is a translated summary
-  const isTranslated = text.includes("[Translated to English]");
-  
-  // Remove the translation prefix for processing
-  let processedText = text.replace("[Translated to English] ", "");
-  
-  // Split all content by new lines for easier processing
-  const allLines = processedText.split('\n').map(line => line.trim()).filter(line => line);
-  
-  // Prepare variables for content organization
-  let title = '';
-  let contentLines = [];
-  let bulletPoints = [];
-  
-  // First pass - identify potential title and bullet points
-  for (let i = 0; i < allLines.length; i++) {
-    const line = allLines[i];
-    
-    // Check if it's a bullet point
-    if (line.startsWith('•') || line.startsWith('*') || /^\d+\./.test(line)) {
-      bulletPoints.push(line);
-    } 
-    // Check if it looks like a title (especially at the beginning or end)
-    else if (
-      (i === 0 || i === allLines.length - 1) && 
-      (
-        line.startsWith('"') || 
-        line.startsWith('Title:') || 
-        line.includes('**') || 
-        /^\*.*\*$/.test(line) || // Matches text between asterisks
-        line.length < 60
-      )
-    ) {
-      // This looks like a title, clean it up
-      title = line.replace(/^\*+|\*+$/g, '')  // Remove surrounding asterisks
-                  .replace(/^"|"$/g, '')      // Remove surrounding quotes
-                  .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
-                  .trim();
-    } 
-    // Regular content line
-    else {
-      contentLines.push(line);
-    }
-  }
-  
-  // Second pass - if we didn't find a title but have bullet points at the end
-  // The last bullet point might be a title in disguise
-  if (!title && bulletPoints.length > 0) {
-    const lastBullet = bulletPoints[bulletPoints.length - 1];
-    
-    // If it's short or has formatting cues, it might be a title
-    if (lastBullet.length < 80 || 
-        lastBullet.includes('**') || 
-        /\*[^*]+\*/.test(lastBullet)) {
+  // Function to adjust window height based on content
+  function adjustWindowHeight() {
+    // Delay to ensure DOM is updated
+    setTimeout(() => {
+      // Get the heights of each major section
+      const headerHeight = document.querySelector('header').offsetHeight;
+      const controlsHeight = document.querySelector('.controls').offsetHeight;
+      const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
+      const summaryHeight = summaryResult.offsetHeight;
+      const footerHeight = document.querySelector('footer').offsetHeight;
       
-      // Extract it as title and remove from bullet points
-      title = lastBullet.replace(/^[•*]\s*/, '')  // Remove bullet
-                        .replace(/^\*+|\*+$/g, '') // Remove asterisks
-                        .trim();
-      bulletPoints.pop();
-    }
-  }
-  
-  // Generate the formatted HTML
-  let formattedHtml = '';
-  
-  // No badge needed for large content
-  
-  // Add translation badge if necessary
-  if (isTranslated) {
-    formattedHtml += '<span class="translation-badge">Translated</span>';
-  }
-  
-  // Add title at the top if we found one
-  if (title) {
-    formattedHtml += `<div class="summary-title">${title}</div>`;
-  }
-  
-  // Add regular content
-  if (contentLines.length > 0) {
-    // If multiple content lines, treat as paragraphs
-    if (contentLines.length > 1) {
-      contentLines.forEach(para => {
-        formattedHtml += `<div class="summary-paragraph">${para}</div>`;
-      });
-    } 
-    // For a single long paragraph, consider breaking it up
-    else if (contentLines[0].length > 150) {
-      const sentences = contentLines[0].match(/[^.!?]+[.!?]+/g) || [contentLines[0]];
-      const sentencesPerParagraph = sentences.length <= 3 ? sentences.length : Math.ceil(sentences.length / 3);
+      // Add padding/margins
+      const padding = 50; // Extra padding for margins and spacing
       
-      for (let i = 0; i < sentences.length; i += sentencesPerParagraph) {
-        const paragraph = sentences.slice(i, i + sentencesPerParagraph).join(' ');
-        formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
+      // Calculate optimal window height
+      const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryHeight + footerHeight + padding;
+      
+      // Limit to reasonable bounds
+      const minHeight = 300;
+      const maxHeight = 600; // Chrome has limitations on maximum popup height
+      
+      // Set height with constraints
+      const finalHeight = Math.max(minHeight, Math.min(maxHeight, optimalHeight));
+      
+      // Apply the height to body to let Chrome resize the popup window
+      document.body.style.height = `${finalHeight}px`;
+      
+      console.log(`Resized to ${finalHeight}px based on content height`);
+    }, 100); // Small delay to ensure DOM is fully updated
+  }
+  
+  // Helper function to format summary text with better structure
+  function formatSummaryText(text) {
+    // Check if this is a translated summary
+    const isTranslated = text.includes("[Translated to English]");
+    
+    // Remove the translation prefix for processing
+    let processedText = text.replace("[Translated to English] ", "");
+    
+    // Split all content by new lines for easier processing
+    const allLines = processedText.split('\n').map(line => line.trim()).filter(line => line);
+    
+    // Prepare variables for content organization
+    let title = '';
+    let contentLines = [];
+    let bulletPoints = [];
+    
+    // First check if the first item is a formatted title within a bullet point
+    // This catches cases like "• **Title**" or "• *Title*"
+    if (allLines.length > 0 && 
+        (allLines[0].match(/^[•*]\s*\*\*.*\*\*/) || 
+         allLines[0].match(/^[•*]\s*\*.*\*/))) {
+      // This is a title incorrectly formatted as a bullet - extract it
+      const line = allLines[0];
+      // Extract content between asterisks
+      const titleMatch = line.match(/\*\*(.*?)\*\*/) || line.match(/\*(.*?)\*/);
+      if (titleMatch && titleMatch[1]) {
+        title = titleMatch[1].trim();
+        // Remove this line from processing
+        allLines.shift();
       }
-    } 
-    // Just add the single paragraph
-    else {
-      formattedHtml += `<div class="summary-paragraph">${contentLines[0]}</div>`;
     }
+    
+    // If we didn't find a special case title, proceed with normal processing
+    if (!title) {
+      // First pass - identify potential title and bullet points
+      for (let i = 0; i < allLines.length; i++) {
+        const line = allLines[i];
+        
+        // Check if it's a bullet point
+        if (line.startsWith('•') || line.startsWith('*') || /^\d+\./.test(line)) {
+          // Check if this bullet point might actually be a title
+          // (first bullet with special formatting)
+          if (i === 0 && bulletPoints.length === 0 && 
+              (line.includes('**') || /\*[^*]+\*/.test(line))) {
+            // Extract title from the bullet point
+            const titleMatch = line.match(/\*\*(.*?)\*\*/) || line.match(/\*(.*?)\*/);
+            if (titleMatch && titleMatch[1]) {
+              title = titleMatch[1].trim();
+            } else {
+              // If no match, use the bullet point without the bullet character
+              title = line.replace(/^[•*]\s*/, '').trim();
+            }
+          } else {
+            bulletPoints.push(line);
+          }
+        } 
+        // Check if it looks like a title (especially at the beginning or end)
+        else if (
+          (i === 0 || i === allLines.length - 1) && 
+          (
+            line.startsWith('"') || 
+            line.startsWith('Title:') || 
+            line.includes('**') || 
+            /^\*.*\*$/.test(line) || // Matches text between asterisks
+            line.length < 60
+          )
+        ) {
+          // This looks like a title, clean it up
+          title = line.replace(/^\*+|\*+$/g, '')  // Remove surrounding asterisks
+                      .replace(/^"|"$/g, '')      // Remove surrounding quotes
+                      .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
+                      .replace(/\*\*(.*?)\*\*/, '$1') // Remove markdown bold
+                      .trim();
+        } 
+        // Regular content line
+        else {
+          contentLines.push(line);
+        }
+      }
+    }
+    
+    // Second pass - if we didn't find a title but have bullet points at the beginning
+    // The first bullet point might be a title in disguise
+    if (!title && bulletPoints.length > 0) {
+      const firstBullet = bulletPoints[0];
+      
+      // If it's formatted or has asterisks, it might be a title
+      if (firstBullet.includes('**') || 
+          /\*[^*]+\*/.test(firstBullet) ||
+          firstBullet.length < 80) {
+        
+        // Extract it as title and remove from bullet points
+        const titleMatch = firstBullet.match(/\*\*(.*?)\*\*/) || firstBullet.match(/\*(.*?)\*/);
+        if (titleMatch && titleMatch[1]) {
+          title = titleMatch[1].trim();
+        } else {
+          title = firstBullet.replace(/^[•*]\s*/, '').trim();  // Remove bullet
+        }
+        bulletPoints.shift(); // Remove the first bullet point
+      }
+    }
+    
+    // Generate the formatted HTML
+    let formattedHtml = '';
+    
+    // Add translation badge if necessary
+    if (isTranslated) {
+      formattedHtml += '<span class="translation-badge">Translated</span>';
+    }
+    
+    // Add title at the top if we found one
+    if (title) {
+      formattedHtml += `<div class="summary-title">${title}</div>`;
+    }
+    
+    // Add regular content
+    if (contentLines.length > 0) {
+      // If multiple content lines, treat as paragraphs
+      if (contentLines.length > 1) {
+        contentLines.forEach(para => {
+          formattedHtml += `<div class="summary-paragraph">${para}</div>`;
+        });
+      } 
+      // For a single long paragraph, consider breaking it up
+      else if (contentLines[0].length > 150) {
+        const sentences = contentLines[0].match(/[^.!?]+[.!?]+/g) || [contentLines[0]];
+        const sentencesPerParagraph = sentences.length <= 3 ? sentences.length : Math.ceil(sentences.length / 3);
+        
+        for (let i = 0; i < sentences.length; i += sentencesPerParagraph) {
+          const paragraph = sentences.slice(i, i + sentencesPerParagraph).join(' ');
+          formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
+        }
+      } 
+      // Just add the single paragraph
+      else {
+        formattedHtml += `<div class="summary-paragraph">${contentLines[0]}</div>`;
+      }
+    }
+    
+    // Add bullet points at the end
+    bulletPoints.forEach(point => {
+      // Clean up the bullet point formatting
+      const cleanedPoint = point.replace(/^[•*]\s*/, '')  // Remove bullet
+                                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove markdown bold
+                                .replace(/\*(.*?)\*/g, '$1') // Remove markdown italic
+                                .trim();
+      formattedHtml += `<div class="key-point">${cleanedPoint}</div>`;
+    });
+    
+    return formattedHtml;
   }
   
-  // Add bullet points at the end
-  bulletPoints.forEach(point => {
-    // Clean up the bullet point formatting
-    const cleanedPoint = point.replace(/^[•*]\s*/, '')
-                              .trim();
-    formattedHtml += `<div class="key-point">${cleanedPoint}</div>`;
-  });
-  
-  return formattedHtml;
-}
-  
-// Function to show error with dynamic sizing
-function showError(message) {
-  loading.classList.add('hidden'); // Make sure to hide the loading indicator
-  summaryResult.classList.remove('hidden');
-  
-  // Reset button state
-  summarizeBtn.querySelector('span').textContent = "Generate";
-  summarizeBtn.disabled = false;
-  
-  // Format the error message with an icon and better styling
-  summaryText.innerHTML = `
-    <div class="error">
-      <strong>Error:</strong> ${message}
-    </div>
-    <div class="summary-paragraph">
-      Try refreshing the page or checking your settings.
-    </div>
-  `;
-  
-  // Adjust the window height
-  adjustWindowHeight();
+  // Function to show error with dynamic sizing
+  function showError(message) {
+    loading.classList.add('hidden'); // Make sure to hide the loading indicator
+    summaryResult.classList.remove('hidden');
+    
+    // Reset button state
+    summarizeBtn.querySelector('span').textContent = "Generate";
+    summarizeBtn.disabled = false;
+    
+    // Format the error message with an icon and better styling
+    summaryText.innerHTML = `
+      <div class="error">
+        <strong>Error:</strong> ${message}
+      </div>
+      <div class="summary-paragraph">
+        Try refreshing the page or checking your settings.
+      </div>
+    `;
+    
+    // Adjust the window height
+    adjustWindowHeight();
   }
 });
