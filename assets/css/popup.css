@@ -14,14 +14,15 @@ html, body {
   min-width: 350px;
   /* Remove overflow: hidden to allow scrolling */
   overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 15px;
-  background-color: #f9f9f9;
+  padding: 16px;
+  background-color: #f8f9fb;
   color: #333;
   box-sizing: border-box;
+  line-height: 1.5;
 }
 
 /* Create a flex container for the whole popup */
@@ -44,20 +45,46 @@ body {
 
 /* Header styles */
 header {
-  text-align: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #4285f4;
+  border-radius: 12px;
+  margin-right: 14px;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+}
+
+.logo-icon {
+  font-size: 20px;
+  color: white;
+}
+
+.header-text {
+  flex: 1;
 }
 
 h1 {
   font-size: 24px;
   color: #4285f4; /* Google blue */
+  font-weight: 600;
+  margin-bottom: 4px;
+  line-height: 1.2;
 }
 
 header p {
   font-size: 14px;
   color: #666;
+  opacity: 0.9;
 }
 
 /* Main content styles - let it grow naturally */
@@ -65,48 +92,132 @@ main {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 16px;
 }
 
 .controls {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 12px;
   position: relative; /* For the settings button positioning */
+}
+
+/* Buttons and Selects - more modern styling */
+button, select {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .primary-btn {
   flex-grow: 4; /* Give more space to the primary button */
+  background-color: #4285f4;
+  color: white;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  font-size: 14px;
 }
 
 .primary-btn:hover {
   background-color: #357ae8;
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+  transform: translateY(-1px);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(66, 133, 244, 0.2);
 }
 
 .primary-btn:disabled {
   background-color: #9cb8e6;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 select {
   flex-grow: 3; /* Give good space to the dropdown */
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  color: #555;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px;
+  padding-right: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+select:hover {
+  border-color: #d0d0d0;
+}
+
+select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
 }
 
 /* Checkbox styling */
 .checkbox-option {
   display: flex;
   align-items: center;
-  margin: 10px 0;
+  margin: 8px 0;
 }
 
 .checkbox-option input[type="checkbox"] {
-  margin-right: 8px;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d0d0d0;
+  border-radius: 4px;
+  margin-right: 10px;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.checkbox-option input[type="checkbox"]:checked {
+  background-color: #4285f4;
+  border-color: #4285f4;
+}
+
+.checkbox-option input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 3px;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg);
 }
 
 .checkbox-option label {
   font-size: 14px;
-  color: #666;
+  color: #555;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label-icon {
+  color: #4285f4;
+  font-size: 12px;
 }
 
 .checkbox-option input[type="checkbox"]:checked + label {
@@ -117,9 +228,8 @@ select {
 /* Summary container - dynamic size without scrollbars */
 .summary-container {
   background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 16px;
   flex: 1 1 auto;
   min-height: 100px;
   height: auto;
@@ -127,15 +237,25 @@ select {
   position: relative;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 /* Loading indicator centered */
 #loading {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100px;
   color: #666;
+  font-weight: 500;
+  gap: 12px;
+}
+
+.spinner {
+  color: #4285f4;
+  font-size: 24px;
 }
 
 #loading.hidden {
@@ -144,6 +264,24 @@ select {
 
 #summary-result.hidden {
   display: none;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: #777;
+  height: 100%;
+}
+
+.empty-icon {
+  font-size: 28px;
+  color: #4285f4;
+  opacity: 0.7;
+  margin-bottom: 12px;
 }
 
 /* Summary text styling */
@@ -157,10 +295,10 @@ select {
 .summary-title {
   font-weight: 600;
   font-size: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: #4285f4;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* Style for paragraphs in the summary */
@@ -170,15 +308,15 @@ select {
 
 /* Style for key points */
 .key-point {
-  margin-bottom: 8px;
-  padding-left: 18px;
+  margin-bottom: 10px;
+  padding-left: 22px;
   position: relative;
 }
 
 .key-point:before {
   content: "•";
   position: absolute;
-  left: 5px;
+  left: 8px;
   color: #4285f4;
   font-weight: bold;
 }
@@ -188,11 +326,12 @@ select {
   display: inline-block;
   background-color: #e8f0fe;
   color: #1a73e8;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 12px;
   margin-right: 8px;
+  margin-bottom: 8px;
   vertical-align: middle;
 }
 
@@ -201,7 +340,7 @@ select {
   color: #d32f2f;
   background-color: #ffebee;
   padding: 12px;
-  border-radius: 4px;
+  border-radius: 8px;
   margin-bottom: 10px;
   border-left: 4px solid #d32f2f;
   font-size: 14px;
@@ -209,9 +348,9 @@ select {
 
 /* Footer always at the bottom */
 footer {
-  margin-top: 15px;
-  padding-top: 10px;
-  border-top: 1px solid #e0e0e0;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
   font-size: 12px;
   color: #666;
   flex-shrink: 0;
@@ -227,6 +366,12 @@ footer {
 .api-info {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.api-icon {
+  color: #4285f4;
+  font-size: 12px;
 }
 
 .separator {
@@ -245,10 +390,10 @@ footer {
 /* API indicator styles */
 .api-indicator {
   display: inline-block;
-  margin-left: 5px;
+  margin-left: 6px;
   font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 3px 8px;
+  border-radius: 4px;
   font-weight: bold;
   text-transform: uppercase;
 }
@@ -286,40 +431,52 @@ body.settings-page {
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 10px 20px;
+  gap: 12px;
+  padding: 12px 20px;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #f9f9f9;
+  background-color: #f8f9fb;
   z-index: 10;
-  border-top: 1px solid #e0e0e0;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Ensure settings form has padding at bottom to avoid content being hidden by fixed buttons */
 #settings-form {
-  padding-bottom: 60px;
+  padding-bottom: 70px;
 }
 
 /* Make the Cancel button visually distinct */
 #cancel-btn {
-  background-color: #f1f1f1;
-  color: #333;
-  border: 1px solid #ccc;
-  padding: 8px 16px;
-  border-radius: 4px;
+  background-color: white;
+  color: #444;
+  border: 1px solid #ddd;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 #cancel-btn:hover {
-  background-color: #e4e4e4;
+  background-color: #f2f2f2;
+  border-color: #ccc;
 }
 
 /* Make the Save button more prominent */
 #save-btn {
   width: 150px;
+  background-color: #4285f4;
+  color: white;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
+}
+
+#save-btn:hover {
+  background-color: #357ae8;
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+  transform: translateY(-1px);
 }
 
 /* Fix for the settings page layout */
@@ -332,25 +489,160 @@ body.settings-page {
 
 .settings-btn {
   flex-grow: 1;
-  background-color: #f1f1f1;
+  background-color: white;
   color: #666;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .settings-btn:hover {
-  background-color: #e4e4e4;
+  background-color: #f5f5f5;
+  border-color: #ccc;
+  color: #4285f4;
 }
 
-.settings-icon {
-  width: 16px;
-  height: 16px;
-  fill: #666;
+.settings-btn i {
+  font-size: 16px;
+}
+
+/* Settings page form styles */
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #444;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="url"],
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.form-group small {
+  display: block;
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+}
+
+/* API Section styling */
+.api-section {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.api-section-title {
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: #4285f4;
+  font-size: 15px;
+}
+
+/* Radio buttons styling */
+.radio-group {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+}
+
+.radio-option input[type="radio"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d0d0d0;
+  border-radius: 50%;
+  margin-right: 8px;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"]:checked {
+  border-color: #4285f4;
+}
+
+.radio-option input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4285f4;
+}
+
+.radio-option label {
+  margin: 0;
+  display: inline;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+/* Message styling */
+#message {
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0 20px;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.success {
+  background-color: #d4edda;
+  color: #155724;
+  border-left: 4px solid #155724;
+}
+
+.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-left: 4px solid #721c24;
 }
 
 /* Utility classes */
