@@ -184,8 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
         lmstudioApiKeyInput.dataset.hasKey = 'true';
       }
       
-      // Navigate back to the main popup
-      window.location.href = "popup.html";
+      // Delay navigation to allow user to see the success message (2 seconds delay)
+      setTimeout(() => {
+        window.location.href = "popup.html";
+      }, 2000);
     });
   }
   
