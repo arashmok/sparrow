@@ -259,6 +259,7 @@ select:focus {
 
 /* Summary container - dynamic size without scrollbars */
 .summary-container {
+  position: relative;
   background-color: white;
   border-radius: 12px;
   padding: 16px;
@@ -266,7 +267,6 @@ select:focus {
   min-height: 100px;
   height: auto;
   overflow: visible; /* Let the content extend the container */
-  position: relative;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -611,7 +611,7 @@ body.settings-page {
 /* API Method Indicator styles */
 .api-method-container {
   position: absolute;
-  bottom: 15px;
+  top: -25px;   /* Adjust this value if needed */
   right: 16px;
   z-index: 10;
 }
