@@ -43,6 +43,35 @@ body {
   flex-direction: column;
 }
 
+/* Settings icon positioned in top-left corner */
+.settings-icon-container {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+}
+
+.settings-icon-link {
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  line-height: 1;
+}
+
+.settings-icon-link:hover {
+  color: #4285f4;
+}
+
+.settings-icon-link i {
+  font-size: 18px;
+}
+
 /* Header styles */
 header {
   display: flex;
@@ -50,6 +79,8 @@ header {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: relative;
+  padding-left: 20px;
 }
 
 .logo-container {
@@ -96,7 +127,12 @@ main {
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
-  position: relative; /* For the settings button positioning */
+  width: 100%;
+}
+
+/* Hide settings icon in the controls */
+.controls .settings-icon-link {
+  display: none;
 }
 
 /* Buttons and Selects - more modern styling */
@@ -413,25 +449,6 @@ footer {
 .indicator-demo {
   background-color: #FFF3CD;
   color: #856404;
-}
-
-/* Settings icon link */
-.settings-icon-link {
-  color: #888;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  padding: 0 8px;
-}
-
-.settings-icon-link:hover {
-  color: #4285f4;
-}
-
-.settings-icon-link i {
-  font-size: 20px;
 }
 
 /* Additional CSS fixes for the settings page */
