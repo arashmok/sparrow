@@ -118,10 +118,11 @@ main {
     font-size: 15px;
 }
 
-/* Container to hold all API sections with a fixed minimum height */
+/* Container to hold all API sections with a fixed height */
 .api-sections-container {
-    min-height: 220px; /* Adjust the value as needed */
+    height: 250px; /* Fixed height sufficient for the tallest section */
     position: relative;
+    overflow: hidden; /* Hide any overflow to prevent an extra scrollbar */
 }
 
 /* Input fields and select dropdowns */
