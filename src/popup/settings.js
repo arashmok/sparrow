@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsForm.dispatchEvent(new Event('submit'));
   });
   cancelBtn.addEventListener('click', () => {
-    window.close();
+    window.location.href = "popup.html";
   });
   
   // Toggle between API sections when radio buttons are clicked
@@ -183,6 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
         lmstudioApiKeyInput.value = '••••••••••••••••••••••••••';
         lmstudioApiKeyInput.dataset.hasKey = 'true';
       }
+      
+      // Navigate back to the main popup
+      window.location.href = "popup.html";
     });
   }
   
