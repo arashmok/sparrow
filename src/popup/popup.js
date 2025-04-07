@@ -300,9 +300,64 @@ function formatSummaryText(text) {
   // Remove the translation prefix for processing
   let processedText = text.replace("[Translated to English] ", "");
   
-  // Detect the format type based on content
-  const hasKeyPoints = processedText.includes("•") || processedText.includes("*");
+  // Split all content by new lines for easier processing
+  const allLines = processedText.split('\n').map(line => line.trim()).filter(line => line);
   
+  // Prepare variables for content organization
+  let title = '';
+  let contentLines = [];
+  let bulletPoints = [];
+  
+  // First pass - identify potential title and bullet points
+  for (let i = 0; i < allLines.length; i++) {
+    const line = allLines[i];
+    
+    // Check if it's a bullet point
+    if (line.startsWith('•') || line.startsWith('*') || /^\d+\./.test(line)) {
+      bulletPoints.push(line);
+    } 
+    // Check if it looks like a title (especially at the beginning or end)
+    else if (
+      (i === 0 || i === allLines.length - 1) && 
+      (
+        line.startsWith('"') || 
+        line.startsWith('Title:') || 
+        line.includes('**') || 
+        /^\*.*\*$/.test(line) || // Matches text between asterisks
+        line.length < 60
+      )
+    ) {
+      // This looks like a title, clean it up
+      title = line.replace(/^\*+|\*+$/g, '')  // Remove surrounding asterisks
+                  .replace(/^"|"$/g, '')      // Remove surrounding quotes
+                  .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
+                  .trim();
+    } 
+    // Regular content line
+    else {
+      contentLines.push(line);
+    }
+  }
+  
+  // Second pass - if we didn't find a title but have bullet points at the end
+  // The last bullet point might be a title in disguise
+  if (!title && bulletPoints.length > 0) {
+    const lastBullet = bulletPoints[bulletPoints.length - 1];
+    
+    // If it's short or has formatting cues, it might be a title
+    if (lastBullet.length < 80 || 
+        lastBullet.includes('**') || 
+        /\*[^*]+\*/.test(lastBullet)) {
+      
+      // Extract it as title and remove from bullet points
+      title = lastBullet.replace(/^[•*]\s*/, '')  // Remove bullet
+                        .replace(/^\*+|\*+$/g, '') // Remove asterisks
+                        .trim();
+      bulletPoints.pop();
+    }
+  }
+  
+  // Generate the formatted HTML
   let formattedHtml = '';
   
   // Add translation badge if necessary
@@ -310,90 +365,42 @@ function formatSummaryText(text) {
     formattedHtml += '<span class="translation-badge">Translated</span>';
   }
   
-  // For key points format
-  if (hasKeyPoints) {
-    // Split by bullet points
-    const lines = processedText.split('\n');
-    
-    // Extract title if present (first line without bullet)
-    let title = '';
-    let points = [];
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line && (line.startsWith('•') || line.startsWith('*'))) {
-        // This is a key point
-        points.push(line.replace(/^[•*]\s*/, ''));
-      } else if (line && title === '') {
-        // This is likely a title or introduction
-        title = line;
-      }
-    }
-    
-    // Add title if found
-    if (title) {
-      formattedHtml += `<div class="summary-title">${title}</div>`;
-    }
-    
-    // Add key points
-    points.forEach(point => {
-      formattedHtml += `<div class="key-point">${point}</div>`;
-    });
-  } else {
-    // For paragraph-based summaries
-    const paragraphs = processedText.split('\n\n');
-    
-    // Check for the special case where the title is at the end
-    // (common in some AI model outputs when using certain prompt templates)
-    let title = '';
-    let contentParagraphs = [...paragraphs];
-    
-    // Look for potential title line at the end, often starts with quotes
-    // or has "Title:" or similar formats, or is very short compared to other paragraphs
-    const lastPara = paragraphs[paragraphs.length - 1].trim();
-    if (
-      // Check if it matches title patterns
-      (lastPara.startsWith('"') && lastPara.endsWith('"')) ||
-      lastPara.startsWith('Title:') ||
-      lastPara.startsWith('*') ||
-      (lastPara.length < 100 && lastPara.length < paragraphs[0].length * 0.7)
-    ) {
-      // This looks like a title at the end
-      title = lastPara.replace(/^["*]|["*]$/g, '').replace(/^Title:\s*/i, '');
-      contentParagraphs.pop(); // Remove the title from content paragraphs
-    }
-    
-    // If no title was found at the end, check if the first paragraph is a title
-    if (!title && paragraphs.length > 1 && paragraphs[0].length < 100) {
-      title = paragraphs[0];
-      contentParagraphs.shift(); // Remove title from content
-    }
-    
-    // Add title at the beginning if found anywhere
-    if (title) {
-      formattedHtml += `<div class="summary-title">${title}</div>`;
-    }
-    
-    // If it's a single paragraph after title extraction, consider breaking it up
-    if (contentParagraphs.length === 1 && contentParagraphs[0].length > 150) {
-      const sentences = contentParagraphs[0].match(/[^.!?]+[.!?]+/g) || [contentParagraphs[0]];
-      
-      // Group sentences into reasonable paragraphs (2-3 sentences per paragraph)
-      const sentencesPerParagraph = sentences.length <= 3 ? sentences.length : Math.ceil(sentences.length / 2);
+  // Add title at the top if we found one
+  if (title) {
+    formattedHtml += `<div class="summary-title">${title}</div>`;
+  }
+  
+  // Add regular content
+  if (contentLines.length > 0) {
+    // If multiple content lines, treat as paragraphs
+    if (contentLines.length > 1) {
+      contentLines.forEach(para => {
+        formattedHtml += `<div class="summary-paragraph">${para}</div>`;
+      });
+    } 
+    // For a single long paragraph, consider breaking it up
+    else if (contentLines[0].length > 150) {
+      const sentences = contentLines[0].match(/[^.!?]+[.!?]+/g) || [contentLines[0]];
+      const sentencesPerParagraph = sentences.length <= 3 ? sentences.length : Math.ceil(sentences.length / 3);
       
       for (let i = 0; i < sentences.length; i += sentencesPerParagraph) {
         const paragraph = sentences.slice(i, i + sentencesPerParagraph).join(' ');
         formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
       }
-    } else {
-      // Format all content paragraphs
-      contentParagraphs.forEach(paragraph => {
-        if (paragraph.trim()) {
-          formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
-        }
-      });
+    } 
+    // Just add the single paragraph
+    else {
+      formattedHtml += `<div class="summary-paragraph">${contentLines[0]}</div>`;
     }
   }
+  
+  // Add bullet points at the end
+  bulletPoints.forEach(point => {
+    // Clean up the bullet point formatting
+    const cleanedPoint = point.replace(/^[•*]\s*/, '')
+                              .trim();
+    formattedHtml += `<div class="key-point">${cleanedPoint}</div>`;
+  });
   
   return formattedHtml;
 }
