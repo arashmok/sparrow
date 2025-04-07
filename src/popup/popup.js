@@ -188,10 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get metadata about the extracted content
     const metadata = response.metadata || { length: response.text.length, isLarge: false };
     
-    // Show processing message for large content
-    if (metadata.isLarge) {
-      updateLoadingMessage("Processing large content...");
-    }
+    // No special message needed for large content processing
     
     // Send extracted text to background script for API call
     const format = summaryFormat.value;
@@ -381,10 +378,7 @@ function formatSummaryText(text, metadata = null) {
   // Generate the formatted HTML
   let formattedHtml = '';
   
-  // Add badges for metadata if available
-  if (metadata && metadata.isLarge) {
-    formattedHtml += '<span class="translation-badge" style="background-color: #e8f0fe; color: #1a73e8;">Large Content</span>';
-  }
+  // No badge needed for large content
   
   // Add translation badge if necessary
   if (isTranslated) {

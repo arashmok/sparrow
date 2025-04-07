@@ -13,15 +13,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const extractedText = extractPageContent();
       console.log("Extracted text length:", extractedText.length);
       
-      // Include extraction metadata to inform the user about large content
-      const metadata = {
-        length: extractedText.length,
-        isLarge: extractedText.length > 4000
-      };
-      
+      // Send the extracted text without unnecessary metadata indicators
       sendResponse({ 
-        text: extractedText, 
-        metadata: metadata,
+        text: extractedText,
         success: true 
       });
     } catch (error) {
