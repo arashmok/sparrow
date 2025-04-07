@@ -380,8 +380,8 @@ select:focus {
 
 /* Footer always at the bottom */
 footer {
-  margin-top: 16px;
-  padding-top: 12px;
+  margin-top: 8px;       /* Reduced margin-top */
+  padding-top: 4px;      /* Reduced padding-top to lessen the gap above the indicator */
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   font-size: 12px;
   color: #666;
