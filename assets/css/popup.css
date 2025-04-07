@@ -395,6 +395,10 @@ footer {
   width: 100%;
 }
 
+.footer-right {
+  /* You can add additional styling if needed */
+}
+
 .api-info {
   display: flex;
   align-items: center;
@@ -609,12 +613,14 @@ body.settings-page {
 }
 
 /* API Method Indicator styles */
+/*
 .api-method-container {
   position: absolute;
-  top: -25px;   /* Adjust this value if needed */
+  top: -25px;   Adjust this value if needed 
   right: 16px;
   z-index: 10;
 }
+*/
 
 .api-method-indicator {
   display: inline-block;
