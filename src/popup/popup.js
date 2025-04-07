@@ -319,90 +319,51 @@ document.addEventListener('DOMContentLoaded', () => {
     let title = '';
     let contentLines = [];
     let bulletPoints = [];
+    let foundTitle = false;
     
-    // First check if the first item is a formatted title within a bullet point
-    // This catches cases like "• **Title**" or "• *Title*"
-    if (allLines.length > 0 && 
-        (allLines[0].match(/^[•*]\s*\*\*.*\*\*/) || 
-         allLines[0].match(/^[•*]\s*\*.*\*/))) {
-      // This is a title incorrectly formatted as a bullet - extract it
-      const line = allLines[0];
-      // Extract content between asterisks
-      const titleMatch = line.match(/\*\*(.*?)\*\*/) || line.match(/\*(.*?)\*/);
-      if (titleMatch && titleMatch[1]) {
-        title = titleMatch[1].trim();
-        // Remove this line from processing
-        allLines.shift();
-      }
-    }
-    
-    // If we didn't find a special case title, proceed with normal processing
-    if (!title) {
-      // First pass - identify potential title and bullet points
-      for (let i = 0; i < allLines.length; i++) {
-        const line = allLines[i];
-        
-        // Check if it's a bullet point
-        if (line.startsWith('•') || line.startsWith('*') || /^\d+\./.test(line)) {
-          // Check if this bullet point might actually be a title
-          // (first bullet with special formatting)
-          if (i === 0 && bulletPoints.length === 0 && 
-              (line.includes('**') || /\*[^*]+\*/.test(line))) {
-            // Extract title from the bullet point
-            const titleMatch = line.match(/\*\*(.*?)\*\*/) || line.match(/\*(.*?)\*/);
-            if (titleMatch && titleMatch[1]) {
-              title = titleMatch[1].trim();
-            } else {
-              // If no match, use the bullet point without the bullet character
-              title = line.replace(/^[•*]\s*/, '').trim();
-            }
-          } else {
-            bulletPoints.push(line);
-          }
-        } 
-        // Check if it looks like a title (especially at the beginning or end)
-        else if (
-          (i === 0 || i === allLines.length - 1) && 
-          (
-            line.startsWith('"') || 
-            line.startsWith('Title:') || 
-            line.includes('**') || 
-            /^\*.*\*$/.test(line) || // Matches text between asterisks
-            line.length < 60
-          )
-        ) {
-          // This looks like a title, clean it up
-          title = line.replace(/^\*+|\*+$/g, '')  // Remove surrounding asterisks
-                      .replace(/^"|"$/g, '')      // Remove surrounding quotes
-                      .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
-                      .replace(/\*\*(.*?)\*\*/, '$1') // Remove markdown bold
-                      .trim();
-        } 
-        // Regular content line
-        else {
-          contentLines.push(line);
-        }
-      }
-    }
-    
-    // Second pass - if we didn't find a title but have bullet points at the beginning
-    // The first bullet point might be a title in disguise
-    if (!title && bulletPoints.length > 0) {
-      const firstBullet = bulletPoints[0];
+    // First pass - identify if first line is a title with markdown formatting in a bullet
+    if (allLines.length > 0) {
+      const firstLine = allLines[0];
       
-      // If it's formatted or has asterisks, it might be a title
-      if (firstBullet.includes('**') || 
-          /\*[^*]+\*/.test(firstBullet) ||
-          firstBullet.length < 80) {
-        
-        // Extract it as title and remove from bullet points
-        const titleMatch = firstBullet.match(/\*\*(.*?)\*\*/) || firstBullet.match(/\*(.*?)\*/);
+      // Check if it's a markdown-formatted title within a bullet point
+      if ((firstLine.match(/^[•*]\s*\*\*.*\*\*/) || firstLine.match(/^[•*]\s*\*.*\*/))) {
+        // Extract title from markup
+        const titleMatch = firstLine.match(/\*\*(.*?)\*\*/) || firstLine.match(/\*(.*?)\*/);
         if (titleMatch && titleMatch[1]) {
           title = titleMatch[1].trim();
-        } else {
-          title = firstBullet.replace(/^[•*]\s*/, '').trim();  // Remove bullet
+          foundTitle = true;
+          // Don't remove the line, as it might contain important content
         }
-        bulletPoints.shift(); // Remove the first bullet point
+      }
+      // Check if it's a short first line that looks like a title
+      else if (firstLine.length < 80 && !firstLine.startsWith('•') && !firstLine.startsWith('*')) {
+        title = firstLine
+                .replace(/^\*+|\*+$/g, '')  // Remove surrounding asterisks
+                .replace(/^"|"$/g, '')      // Remove surrounding quotes
+                .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
+                .replace(/\*\*(.*?)\*\*/, '$1') // Remove markdown bold
+                .trim();
+        foundTitle = true;
+        allLines.shift(); // Remove the title line from processing
+      }
+    }
+    
+    // Second pass - identify content vs bullet points
+    for (let i = 0; i < allLines.length; i++) {
+      const line = allLines[i];
+      
+      // Skip processing this line if it was already identified as the title
+      if (foundTitle && i === 0 && line.includes(title)) {
+        continue;
+      }
+      
+      // Check if it's a bullet point
+      if (line.startsWith('•') || line.startsWith('*') || /^\d+\./.test(line)) {
+        bulletPoints.push(line);
+      } 
+      // Otherwise it's regular content
+      else {
+        contentLines.push(line);
       }
     }
     
@@ -443,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Add bullet points at the end
+    // Add bullet points
     bulletPoints.forEach(point => {
       // Clean up the bullet point formatting
       const cleanedPoint = point.replace(/^[•*]\s*/, '')  // Remove bullet
@@ -452,6 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .trim();
       formattedHtml += `<div class="key-point">${cleanedPoint}</div>`;
     });
+    
+    // If we have no content at all, display the entire text formatted as paragraphs
+    if (formattedHtml === '' || (title && !contentLines.length && !bulletPoints.length)) {
+      formattedHtml = processedText.split('\n').map(line => 
+        line.trim() ? `<div class="summary-paragraph">${line.trim()}</div>` : ''
+      ).join('');
+    }
     
     return formattedHtml;
   }
