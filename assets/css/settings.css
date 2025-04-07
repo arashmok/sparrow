@@ -61,44 +61,38 @@ html, body {
     display: flex;
     flex-direction: row;
     gap: 20px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
+    margin-top: 6px;
   }
   
-  .radio-label {
+  .radio-option {
     display: flex;
     align-items: center;
-    font-size: 14px;
-    color: #555;
-    cursor: pointer;
-    margin: 0;
-    font-weight: normal;
   }
   
-  .radio-label input[type="radio"] {
+  .radio-option input[type="radio"] {
     appearance: none;
     width: 16px;
     height: 16px;
-    border: 2px solid #d0d0d0;
+    border: 1px solid #bbb;
     border-radius: 50%;
-    margin-right: 6px;
+    margin-right: 8px;
     position: relative;
     transition: all 0.2s ease;
     cursor: pointer;
   }
   
-  .radio-label input[type="radio"]:checked {
+  .radio-option input[type="radio"]:checked {
     border-color: #4285f4;
+    border-width: 5px;
   }
   
-  .radio-label input[type="radio"]:checked::after {
-    content: "";
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #4285f4;
+  .radio-option label {
+    margin: 0;
+    display: inline;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
   }
   
   /* API Section */
