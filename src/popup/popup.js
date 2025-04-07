@@ -427,4 +427,51 @@ function showError(message) {
   // Adjust the window height
   adjustWindowHeight();
   }
+  
+  // Function to perform health check for the configured endpoint
+  function checkHealth() {
+    chrome.storage.local.get(['apiMode', 'lmstudioApiUrl', 'ollamaApiUrl'], (result) => {
+      const apiMode = result.apiMode || 'openai';
+      let endpoint;
+      if (apiMode === 'openai') {
+        // For OpenAI, use a standard endpoint (adjust as needed)
+        endpoint = "https://api.openai.com/v1/models";
+      } else if (apiMode === 'lmstudio') {
+        endpoint = result.lmstudioApiUrl ? result.lmstudioApiUrl + "/health" : null;
+      } else if (apiMode === 'ollama') {
+        endpoint = result.ollamaApiUrl ? result.ollamaApiUrl + "/health" : null;
+      }
+      
+      const healthDiv = document.getElementById('healthcheck');
+      if (!endpoint) {
+        healthDiv.textContent = "No endpoint configured for " + apiMode;
+        healthDiv.className = "health-error";
+        return;
+      }
+      
+      // Simple fetch health check. (This assumes CORS and endpoint health route are configured.)
+      fetch(endpoint, { method: 'GET' })
+        .then(response => {
+          if (response.ok) {
+            healthDiv.textContent = `${capitalize(apiMode)} endpoint reachable`;
+            healthDiv.className = "health-ok";
+          } else {
+            healthDiv.textContent = `${capitalize(apiMode)} endpoint unreachable`;
+            healthDiv.className = "health-error";
+          }
+        })
+        .catch(error => {
+          healthDiv.textContent = `${capitalize(apiMode)} endpoint unreachable`;
+          healthDiv.className = "health-error";
+        });
+    });
+  }
+  
+  // Helper function to capitalize a string
+  function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+  
+  // Call the health check on popup load
+  checkHealth();
 });
