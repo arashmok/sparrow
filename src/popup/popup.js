@@ -292,94 +292,113 @@ function adjustWindowHeight() {
   }, 100); // Small delay to ensure DOM is fully updated
 }
   
-  // Helper function to format summary text with better structure
-  function formatSummaryText(text) {
-    // Check if this is a translated summary
-    const isTranslated = text.includes("[Translated to English]");
-    
-    // Remove the translation prefix for processing
-    let processedText = text.replace("[Translated to English] ", "");
-    
-    // Detect the format type based on content
-    const hasKeyPoints = processedText.includes("•") || processedText.includes("*");
-    
-    let formattedHtml = '';
-    
-    // Add translation badge if necessary
-    if (isTranslated) {
-      formattedHtml += '<span class="translation-badge">Translated</span>';
-    }
-    
-    // For key points format
-    if (hasKeyPoints) {
-      // Split by bullet points
-      const lines = processedText.split('\n');
-      
-      // Extract title if present (first line without bullet)
-      let title = '';
-      let points = [];
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line && (line.startsWith('•') || line.startsWith('*'))) {
-          // This is a key point
-          points.push(line.replace(/^[•*]\s*/, ''));
-        } else if (line && title === '') {
-          // This is likely a title or introduction
-          title = line;
-        }
-      }
-      
-      // Add title if found
-      if (title) {
-        formattedHtml += `<div class="summary-title">${title}</div>`;
-      }
-      
-      // Add key points
-      points.forEach(point => {
-        formattedHtml += `<div class="key-point">${point}</div>`;
-      });
-    } else {
-      // For paragraph-based summaries
-      const paragraphs = processedText.split('\n\n');
-      
-      // If it's a single paragraph, look for sentences to split it better
-      if (paragraphs.length === 1 && paragraphs[0].length > 150) {
-        const sentences = paragraphs[0].match(/[^.!?]+[.!?]+/g) || [paragraphs[0]];
-        
-        // Group sentences into reasonable paragraphs (2-3 sentences per paragraph)
-        const sentencesPerParagraph = sentences.length <= 3 ? sentences.length : Math.ceil(sentences.length / 2);
-        
-        for (let i = 0; i < sentences.length; i += sentencesPerParagraph) {
-          const paragraph = sentences.slice(i, i + sentencesPerParagraph).join(' ');
-          formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
-        }
-      } else {
-        // Extract first paragraph as title if it's short
-        if (paragraphs.length > 1 && paragraphs[0].length < 100) {
-          formattedHtml += `<div class="summary-title">${paragraphs[0]}</div>`;
-          
-          // Add remaining paragraphs
-          for (let i = 1; i < paragraphs.length; i++) {
-            if (paragraphs[i].trim()) {
-              formattedHtml += `<div class="summary-paragraph">${paragraphs[i]}</div>`;
-            }
-          }
-        } else {
-          // Just format all paragraphs normally
-          paragraphs.forEach(paragraph => {
-            if (paragraph.trim()) {
-              formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
-            }
-          });
-        }
-      }
-    }
-    
-    return formattedHtml;
+// Helper function to format summary text with better structure
+function formatSummaryText(text) {
+  // Check if this is a translated summary
+  const isTranslated = text.includes("[Translated to English]");
+  
+  // Remove the translation prefix for processing
+  let processedText = text.replace("[Translated to English] ", "");
+  
+  // Detect the format type based on content
+  const hasKeyPoints = processedText.includes("•") || processedText.includes("*");
+  
+  let formattedHtml = '';
+  
+  // Add translation badge if necessary
+  if (isTranslated) {
+    formattedHtml += '<span class="translation-badge">Translated</span>';
   }
   
-  // Function to display error message
+  // For key points format
+  if (hasKeyPoints) {
+    // Split by bullet points
+    const lines = processedText.split('\n');
+    
+    // Extract title if present (first line without bullet)
+    let title = '';
+    let points = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line && (line.startsWith('•') || line.startsWith('*'))) {
+        // This is a key point
+        points.push(line.replace(/^[•*]\s*/, ''));
+      } else if (line && title === '') {
+        // This is likely a title or introduction
+        title = line;
+      }
+    }
+    
+    // Add title if found
+    if (title) {
+      formattedHtml += `<div class="summary-title">${title}</div>`;
+    }
+    
+    // Add key points
+    points.forEach(point => {
+      formattedHtml += `<div class="key-point">${point}</div>`;
+    });
+  } else {
+    // For paragraph-based summaries
+    const paragraphs = processedText.split('\n\n');
+    
+    // Check for the special case where the title is at the end
+    // (common in some AI model outputs when using certain prompt templates)
+    let title = '';
+    let contentParagraphs = [...paragraphs];
+    
+    // Look for potential title line at the end, often starts with quotes
+    // or has "Title:" or similar formats, or is very short compared to other paragraphs
+    const lastPara = paragraphs[paragraphs.length - 1].trim();
+    if (
+      // Check if it matches title patterns
+      (lastPara.startsWith('"') && lastPara.endsWith('"')) ||
+      lastPara.startsWith('Title:') ||
+      lastPara.startsWith('*') ||
+      (lastPara.length < 100 && lastPara.length < paragraphs[0].length * 0.7)
+    ) {
+      // This looks like a title at the end
+      title = lastPara.replace(/^["*]|["*]$/g, '').replace(/^Title:\s*/i, '');
+      contentParagraphs.pop(); // Remove the title from content paragraphs
+    }
+    
+    // If no title was found at the end, check if the first paragraph is a title
+    if (!title && paragraphs.length > 1 && paragraphs[0].length < 100) {
+      title = paragraphs[0];
+      contentParagraphs.shift(); // Remove title from content
+    }
+    
+    // Add title at the beginning if found anywhere
+    if (title) {
+      formattedHtml += `<div class="summary-title">${title}</div>`;
+    }
+    
+    // If it's a single paragraph after title extraction, consider breaking it up
+    if (contentParagraphs.length === 1 && contentParagraphs[0].length > 150) {
+      const sentences = contentParagraphs[0].match(/[^.!?]+[.!?]+/g) || [contentParagraphs[0]];
+      
+      // Group sentences into reasonable paragraphs (2-3 sentences per paragraph)
+      const sentencesPerParagraph = sentences.length <= 3 ? sentences.length : Math.ceil(sentences.length / 2);
+      
+      for (let i = 0; i < sentences.length; i += sentencesPerParagraph) {
+        const paragraph = sentences.slice(i, i + sentencesPerParagraph).join(' ');
+        formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
+      }
+    } else {
+      // Format all content paragraphs
+      contentParagraphs.forEach(paragraph => {
+        if (paragraph.trim()) {
+          formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
+        }
+      });
+    }
+  }
+  
+  return formattedHtml;
+}
+  
+
 // Function to show error with dynamic sizing
 function showError(message) {
   loading.classList.add('hidden'); // Make sure to hide the loading indicator
