@@ -578,18 +578,3 @@ body.settings-page {
 .hidden {
   display: none;
 }
-
-/* Health Check Indicator */
-#healthcheck {
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.health-ok {
-  color: green;
-}
-
-.health-error {
-  color: red;
-}
