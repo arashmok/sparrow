@@ -63,6 +63,8 @@ html, body {
     gap: 20px;
     margin-bottom: 16px;
     margin-top: 6px;
+    flex-wrap: nowrap; /* Prevent wrapping */
+    white-space: nowrap; /* Ensure text doesn't break */
   }
   
   .radio-item {
@@ -94,6 +96,7 @@ html, body {
     color: #555;
     cursor: pointer;
     vertical-align: middle;
+    white-space: nowrap; /* Avoid line break in labels */
   }
   
   /* API Section */
