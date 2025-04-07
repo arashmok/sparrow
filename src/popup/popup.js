@@ -405,7 +405,6 @@ function formatSummaryText(text) {
   return formattedHtml;
 }
   
-
 // Function to show error with dynamic sizing
 function showError(message) {
   loading.classList.add('hidden'); // Make sure to hide the loading indicator
