@@ -56,21 +56,20 @@ html, body {
     color: #444;
   }
   
-  /* API Mode selection */
-  .radio-options {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
+  /* API Mode selection - HORIZONTAL */
+  .horizontal-radio-group {
+    display: block;
+    white-space: nowrap;
     margin-bottom: 16px;
     margin-top: 6px;
   }
   
-  .radio-option {
-    display: flex;
-    align-items: center;
+  .radio-item {
+    display: inline-block;
+    margin-right: 20px;
   }
   
-  .radio-option input[type="radio"] {
+  .radio-item input[type="radio"] {
     appearance: none;
     width: 16px;
     height: 16px;
@@ -80,19 +79,20 @@ html, body {
     position: relative;
     transition: all 0.2s ease;
     cursor: pointer;
+    vertical-align: middle;
   }
   
-  .radio-option input[type="radio"]:checked {
+  .radio-item input[type="radio"]:checked {
     border-color: #4285f4;
     border-width: 5px;
   }
   
-  .radio-option label {
-    margin: 0;
+  .radio-item label {
     display: inline;
     font-size: 14px;
     color: #555;
     cursor: pointer;
+    vertical-align: middle;
   }
   
   /* API Section */
