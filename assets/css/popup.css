@@ -209,12 +209,6 @@ select:focus {
   margin: 8px 0;
 }
 
-/* Update translate option to match the top position */
-.translate-option {
-  margin: 0 0 16px 0;
-  padding: 6px 0;
-}
-
 .checkbox-option input[type="checkbox"] {
   appearance: none;
   width: 18px;
@@ -277,42 +271,6 @@ select:focus {
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-/* API Method Indicator styles */
-.api-method-container {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.api-method-indicator {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 18px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-/* Method-specific styles */
-.api-method-indicator.indicator-openai {
-  background-color: #10a37f; /* OpenAI green */
-}
-
-.api-method-indicator.indicator-lmstudio {
-  background-color: #0C5460; /* LM Studio blue */
-}
-
-.api-method-indicator.indicator-ollama {
-  background-color: #3A3494; /* Ollama purple */
-}
-
-/* Ensure the empty state doesn't overlap with the API indicator */
-.empty-state {
-  padding-bottom: 20px;
 }
 
 /* Loading indicator centered */
@@ -441,11 +399,6 @@ footer {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-/* Hide the original footer API info */
-.api-info.hidden {
-  display: none;
 }
 
 .api-icon {
@@ -619,6 +572,88 @@ body.settings-page {
   margin-bottom: 14px;
   color: #4285f4;
   font-size: 15px;
+}
+
+/* API Method Indicator styles */
+.api-method-container {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 8px;
+}
+
+.api-method-indicator {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Method-specific styles */
+.api-method-indicator.indicator-openai {
+  background-color: #10a37f; /* OpenAI green */
+}
+
+.api-method-indicator.indicator-lmstudio {
+  background-color: #0C5460; /* LM Studio blue */
+}
+
+.api-method-indicator.indicator-ollama {
+  background-color: #3A3494; /* Ollama purple */
+}
+
+/* Hide the original footer API info */
+.api-info.hidden {
+  display: none;
+}
+
+/* API Method Indicator styles */
+.api-method-container {
+  position: absolute;
+  bottom: 15px;
+  right: 16px;
+  z-index: 10;
+}
+
+.api-method-indicator {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Method-specific styles */
+.api-method-indicator.indicator-openai {
+  background-color: #10a37f; /* OpenAI green */
+}
+
+.api-method-indicator.indicator-lmstudio {
+  background-color: #0C5460; /* LM Studio blue */
+}
+
+.api-method-indicator.indicator-ollama {
+  background-color: #3A3494; /* Ollama purple */
+}
+
+/* Update translate option to match the top red rectangle position */
+.translate-option {
+  margin: 0 0 16px 0;
+  padding: 6px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Make the summary container position relative for absolute positioning of the API indicator */
+.summary-container {
+  position: relative;
+}
+
+/* Hide the original footer API info */
+.api-info.hidden {
+  display: none;
 }
 
 /* Utility classes */
