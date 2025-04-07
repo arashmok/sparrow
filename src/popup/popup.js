@@ -185,6 +185,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log("Sending text to background script for summarization");
     
+    // Get metadata about the extracted content
+    const metadata = response.metadata || { length: response.text.length, isLarge: false };
+    
+    // Show processing message for large content
+    if (metadata.isLarge) {
+      updateLoadingMessage("Processing large content...");
+    }
+    
     // Send extracted text to background script for API call
     const format = summaryFormat.value;
     const translateToEnglish = translateEnglish.checked;
@@ -202,6 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Always reset button state when we get a response
         summarizeBtn.querySelector('span').textContent = "Generate";
         summarizeBtn.disabled = false;
+        
+        // Reset loading message
+        loading.querySelector('span').textContent = "Generating summary...";
         
         // Check for runtime errors first
         if (chrome.runtime.lastError) {
@@ -231,18 +242,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Display the summary
-        displaySummary(result.summary, url);
+        displaySummary(result.summary, url, metadata);
       }
     );
   }
   
+  // Helper function to update the loading message
+  function updateLoadingMessage(message) {
+    const loadingText = loading.querySelector('span');
+    if (loadingText) {
+      loadingText.textContent = message;
+    }
+  }
+  
 // Function to display the summary with dynamic sizing
-function displaySummary(summary, url = null) {
+function displaySummary(summary, url = null, metadata = null) {
   loading.classList.add('hidden'); // Hide the loading message
   summaryResult.classList.remove('hidden');
   
   // Format the summary with better structure
-  const formattedSummary = formatSummaryText(summary);
+  const formattedSummary = formatSummaryText(summary, metadata);
   
   // Replace the text content with formatted HTML
   summaryText.innerHTML = formattedSummary;
@@ -295,7 +314,7 @@ function adjustWindowHeight() {
 }
   
 // Helper function to format summary text with better structure
-function formatSummaryText(text) {
+function formatSummaryText(text, metadata = null) {
   // Check if this is a translated summary
   const isTranslated = text.includes("[Translated to English]");
   
@@ -361,6 +380,11 @@ function formatSummaryText(text) {
   
   // Generate the formatted HTML
   let formattedHtml = '';
+  
+  // Add badges for metadata if available
+  if (metadata && metadata.isLarge) {
+    formattedHtml += '<span class="translation-badge" style="background-color: #e8f0fe; color: #1a73e8;">Large Content</span>';
+  }
   
   // Add translation badge if necessary
   if (isTranslated) {
