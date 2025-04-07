@@ -1,105 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sparrow Settings</title>
-  <link rel="stylesheet" href="../../assets/css/popup.css">
-  <link rel="stylesheet" href="../../assets/css/settings.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparrow Settings</title>
+    <link rel="stylesheet" href="../../assets/css/popup.css">
+    <link rel="stylesheet" href="../../assets/css/settings.css">
 </head>
 <body class="settings-page">
-  <header>
-    <h1>Settings</h1><span class="subtitle">Extension preferences</span>
-  </header>
-  
-  <main>
-    <form id="settings-form">
-      <!-- API Mode Selection -->
-      <div class="form-group">
-        <label>API Source</label>
-        <div class="horizontal-radio-group">
-          <span class="radio-item">
-            <input type="radio" id="api-openai" name="api-mode" value="openai" checked>
-            <label for="api-openai">OpenAI</label>
-          </span>
-          <span class="radio-item">
-            <input type="radio" id="api-lmstudio" name="api-mode" value="lmstudio">
-            <label for="api-lmstudio">LM Studio</label>
-          </span>
-          <span class="radio-item">
-            <input type="radio" id="api-ollama" name="api-mode" value="ollama">
-            <label for="api-ollama">Ollama</label>
-          </span>
+    <header>
+        <h1>Settings</h1>
+        <span class="subtitle">Extension preferences</span>
+    </header>
+
+    <main>
+        <form id="settings-form">
+            <!-- API Mode Selection -->
+            <div class="form-group">
+                <label>API Source</label>
+                <div class="horizontal-radio-group">
+                    <span class="radio-item">
+                        <input type="radio" id="api-openai" name="api-mode" value="openai" checked>
+                        <label for="api-openai">OpenAI</label>
+                    </span>
+                    <span class="radio-item">
+                        <input type="radio" id="api-lmstudio" name="api-mode" value="lmstudio">
+                        <label for="api-lmstudio">LM Studio</label>
+                    </span>
+                    <span class="radio-item">
+                        <input type="radio" id="api-ollama" name="api-mode" value="ollama">
+                        <label for="api-ollama">Ollama</label>
+                    </span>
+                </div>
+            </div>
+
+            <!-- OpenAI API Section -->
+            <div id="openai-section" class="api-section">
+                <div class="api-section-title">OpenAI Settings</div>
+                <div class="form-group">
+                    <label for="openai-api-key">API Key</label>
+                    <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key">
+                    <small>Your API key is stored locally on your device.</small>
+                </div>
+                <div class="form-group">
+                    <label for="openai-model">Model</label>
+                    <select id="openai-model">
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-4o">GPT-4o</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- LM Studio Section -->
+            <div id="lmstudio-section" class="api-section hidden">
+                <div class="api-section-title">LM Studio Settings</div>
+                <div class="form-group">
+                    <label for="lmstudio-api-url">Server URL</label>
+                    <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1">
+                </div>
+                <div class="form-group">
+                    <label for="lmstudio-api-key">API Key (Optional)</label>
+                    <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio">
+                </div>
+            </div>
+
+            <!-- Ollama Section -->
+            <div id="ollama-section" class="api-section hidden">
+                <div class="api-section-title">Ollama Settings</div>
+                <div class="form-group">
+                    <label for="ollama-api-url">Server URL</label>
+                    <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api">
+                </div>
+                <div class="form-group">
+                    <label for="ollama-model">Model Name</label>
+                    <input type="text" id="ollama-model" placeholder="llama2" value="llama2">
+                </div>
+            </div>
+
+            <!-- Shared Settings -->
+            <div class="form-group">
+                <label for="default-format">Default Summary Format</label>
+                <select id="default-format">
+                    <option value="short">Short Summary</option>
+                    <option value="detailed">Detailed Summary</option>
+                    <option value="key-points">Key Takeaways</option>
+                </select>
+            </div>
+        </form>
+
+        <div id="message" class="message hidden"></div>
+
+        <div class="actions">
+            <button type="button" id="cancel-btn">Cancel</button>
+            <button type="submit" id="save-btn" class="primary-btn">Save</button>
         </div>
-      </div>
-      
-      <!-- OpenAI API Section -->
-      <div id="openai-section" class="api-section">
-        <div class="api-section-title">OpenAI Settings</div>
-        <div class="form-group">
-          <label for="openai-api-key">API Key</label>
-          <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key" />
-          <small>Your API key is stored locally on your device.</small>
-        </div>
-        
-        <div class="form-group">
-          <label for="openai-model">Model</label>
-          <select id="openai-model">
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-            <option value="gpt-4">GPT-4</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-            <option value="gpt-4o">GPT-4o</option>
-          </select>
-        </div>
-      </div>
-      
-      <!-- LM Studio Section -->
-      <div id="lmstudio-section" class="api-section hidden">
-        <div class="api-section-title">LM Studio Settings</div>
-        <div class="form-group">
-          <label for="lmstudio-api-url">Server URL</label>
-          <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1" />
-        </div>
-        
-        <div class="form-group">
-          <label for="lmstudio-api-key">API Key (Optional)</label>
-          <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio" />
-        </div>
-      </div>
-      
-      <!-- Ollama Section -->
-      <div id="ollama-section" class="api-section hidden">
-        <div class="api-section-title">Ollama Settings</div>
-        <div class="form-group">
-          <label for="ollama-api-url">Server URL</label>
-          <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api" />
-        </div>
-        
-        <div class="form-group">
-          <label for="ollama-model">Model Name</label>
-          <input type="text" id="ollama-model" placeholder="llama2" value="llama2" />
-        </div>
-      </div>
-      
-      <!-- Shared Settings -->
-      <div class="form-group">
-        <label for="default-format">Default Summary Format</label>
-        <select id="default-format">
-          <option value="short">Short Summary</option>
-          <option value="detailed">Detailed Summary</option>
-          <option value="key-points">Key Takeaways</option>
-        </select>
-      </div>
-    </form>
-    
-    <div id="message" class="message hidden"></div>
-    
-    <div class="actions">
-      <button type="button" id="cancel-btn">Cancel</button>
-      <button type="submit" id="save-btn" class="primary-btn">Save</button>
-    </div>
-  </main>
-  
-  <script src="settings.js"></script>
+    </main>
+
+    <script src="settings.js"></script>
 </body>
 </html>
