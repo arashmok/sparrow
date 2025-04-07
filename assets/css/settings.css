@@ -20,16 +20,19 @@ html, body {
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     padding-bottom: 12px;
     margin-bottom: 16px;
+    display: flex;
+    align-items: baseline;
   }
   
   h1 {
     font-size: 22px;
     font-weight: 600;
     color: #4285f4;
-    margin: 0 0 4px 0;
+    margin: 0;
+    margin-right: 8px;
   }
   
-  header p {
+  .subtitle {
     font-size: 14px;
     color: #666;
     margin: 0;
@@ -56,6 +59,7 @@ html, body {
   /* API Mode selection */
   .radio-group {
     display: flex;
+    flex-direction: row;
     gap: 20px;
     margin-bottom: 14px;
   }
