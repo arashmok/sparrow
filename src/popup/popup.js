@@ -86,10 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to summarize the current page
   async function summarizeCurrentPage() {
     // Store original button text
-    const originalButtonText = summarizeBtn.textContent;
+    const originalButtonText = summarizeBtn.querySelector('span').textContent;
     
     // Update button state
-    summarizeBtn.textContent = "Generating...";
+    summarizeBtn.querySelector('span').textContent = "Generating...";
     summarizeBtn.disabled = true;
     
     // Clear any previous summary
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showError("Could not extract text from the page. Please refresh the page and try again.");
             console.error("Error after injection:", error);
             // Reset button state
-            summarizeBtn.textContent = originalButtonText;
+            summarizeBtn.querySelector('span').textContent = originalButtonText;
             summarizeBtn.disabled = false;
           }
         }, 200);
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showError("An error occurred: " + error.message);
       console.error("General error:", error);
       // Reset button state
-      summarizeBtn.textContent = originalButtonText;
+      summarizeBtn.querySelector('span').textContent = originalButtonText;
       summarizeBtn.disabled = false;
     }
   }
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!response || !response.text) {
       showError("No content found to summarize.");
       // Reset button state
-      summarizeBtn.textContent = "Generate";
+      summarizeBtn.querySelector('span').textContent = "Generate Summary";
       summarizeBtn.disabled = false;
       return;
     }
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 
       (result) => {
         // Always reset button state when we get a response
-        summarizeBtn.textContent = "Generate";
+        summarizeBtn.querySelector('span').textContent = "Generate Summary";
         summarizeBtn.disabled = false;
         
         // Check for runtime errors first
@@ -412,7 +412,7 @@ function showError(message) {
   summaryResult.classList.remove('hidden');
   
   // Reset button state
-  summarizeBtn.textContent = "Generate";
+  summarizeBtn.querySelector('span').textContent = "Generate Summary";
   summarizeBtn.disabled = false;
   
   // Format the error message with an icon and better styling
