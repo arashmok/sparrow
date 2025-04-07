@@ -8,15 +8,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+  <!-- Moved the settings icon outside #app-wrapper -->
+  <div class="settings-icon-container">
+    <a href="settings.html" title="Settings" class="settings-icon-link">
+      <i class="fa-solid fa-gear"></i>
+    </a>
+  </div>
+  
   <div id="app-wrapper">
     <div id="popup-container">
-      <!-- Settings icon in top-right corner -->
-      <div class="settings-icon-container">
-        <a href="settings.html" title="Settings" class="settings-icon-link">
-          <i class="fa-solid fa-gear"></i>
-        </a>
-      </div>
-      
       <header>
         <div class="logo-container">
           <img src="../../assets/icons/icon48.png" alt="Sparrow logo" class="logo-img">
@@ -38,7 +38,6 @@
             <option value="detailed">Detailed Summary</option>
             <option value="key-points">Key Takeaways</option>
           </select>
-          <!-- Removed settings icon from here -->
         </div>
         
         <div class="checkbox-option">
