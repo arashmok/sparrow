@@ -12,24 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiIndicator = document.getElementById('api-indicator');
   const apiMethodIndicator = document.getElementById('api-method-indicator');
   
+  // Initialize popup by loading saved settings
+  initializePopup();
+  
   // Event Listeners
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
-  
-  // Load saved preferences
-  chrome.storage.local.get(['translateToEnglish', 'apiMode', 'summaryFormat'], (result) => {
-    // Set translation preference
-    if (result.translateToEnglish !== undefined) {
-      translateEnglish.checked = result.translateToEnglish;
-    }
-    
-    // Set summary format preference
-    if (result.summaryFormat) {
-      summaryFormat.value = result.summaryFormat;
-    }
-    
-    // Update API mode indicator
-    updateApiModeIndicator(result.apiMode);
-  });
   
   // Save translation preference when changed
   translateEnglish.addEventListener('change', () => {
@@ -38,11 +25,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Save summary format preference when changed
   summaryFormat.addEventListener('change', () => {
-    chrome.storage.local.set({ summaryFormat: summaryFormat.value });
+    console.log("Format changed to:", summaryFormat.value);
+    chrome.storage.local.set({ defaultFormat: summaryFormat.value });
   });
   
-  // Check if we have a saved summary from this session
-  checkForExistingSummary();
+  // Initialize popup with saved settings
+  function initializePopup() {
+    // Load saved preferences
+    chrome.storage.local.get(['translateToEnglish', 'apiMode', 'defaultFormat'], (result) => {
+      console.log("Loaded settings:", result);
+      
+      // Set translation preference
+      if (result.translateToEnglish !== undefined) {
+        translateEnglish.checked = result.translateToEnglish;
+      }
+      
+      // Set summary format preference - ensure this happens AFTER the DOM is fully loaded
+      if (result.defaultFormat) {
+        console.log("Setting format to saved value:", result.defaultFormat);
+        
+        // Add a small delay to make sure the dropdown is ready
+        setTimeout(() => {
+          summaryFormat.value = result.defaultFormat;
+          console.log("Format set to:", summaryFormat.value);
+        }, 10);
+      } else {
+        console.log("No saved format found");
+      }
+      
+      // Update API mode indicator
+      updateApiModeIndicator(result.apiMode);
+      
+      // Check if we have a saved summary from this session
+      checkForExistingSummary();
+    });
+  }
 
   // Function to update the API mode indicator
   function updateApiModeIndicator(apiMode) {
@@ -205,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const translateToEnglish = translateEnglish.checked;
     
     // Save current format to storage to persist between popup sessions
-    chrome.storage.local.set({ summaryFormat: format });
+    chrome.storage.local.set({ defaultFormat: format });
     
     console.log("Translation to English:", translateToEnglish ? "Enabled" : "Disabled");
     console.log("Using summary format:", format);

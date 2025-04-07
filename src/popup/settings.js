@@ -76,8 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
       'lmstudioApiKey',
       'ollamaApiUrl',
       'ollamaModel',
-      'defaultFormat'
+      'defaultFormat' // Use defaultFormat consistently
     ], (result) => {
+      console.log("Loaded settings:", result);
+      
       // Set API mode
       const apiMode = result.apiMode || 'openai';
       document.querySelector(`input[name="api-mode"][value="${apiMode}"]`).checked = true;
@@ -113,8 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ollamaModelInput.value = result.ollamaModel;
       }
       
-      // Format settings
+      // Format settings - IMPORTANT: use defaultFormat consistently
       if (result.defaultFormat) {
+        console.log("Setting default format to:", result.defaultFormat);
         defaultFormatSelect.value = result.defaultFormat;
       } else if (typeof CONFIG !== 'undefined' && CONFIG.DEFAULT_SUMMARY_FORMAT) {
         defaultFormatSelect.value = CONFIG.DEFAULT_SUMMARY_FORMAT;
@@ -130,9 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const settings = {
       apiMode: apiMode,
-      defaultFormat: defaultFormatSelect.value,
+      defaultFormat: defaultFormatSelect.value, // Use defaultFormat consistently
       openaiModel: openaiModelSelect.value
     };
+    
+    console.log("Saving settings:", settings);
     
     // Only update the OpenAI API key if it was changed (not just dots)
     if (openaiApiKeyInput.value && openaiApiKeyInput.value !== '••••••••••••••••••••••••••') {
