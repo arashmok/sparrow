@@ -449,8 +449,7 @@ function showError(message) {
       
       fetch(endpoint, { method: 'GET' })
         .then(response => {
-          // For OpenAI, a 401 indicates that the endpoint is reachable.
-          if (response.ok || (apiMode === 'openai' && response.status === 401)) {
+          if (response.ok) {
             healthDiv.innerHTML = `<i class="fa-solid fa-check-circle health-ok" title="${capitalize(apiMode)} endpoint reachable"></i>`;
           } else {
             healthDiv.innerHTML = `<i class="fa-solid fa-xmark-circle health-error" title="${capitalize(apiMode)} endpoint unreachable"></i>`;
