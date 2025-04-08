@@ -62,6 +62,7 @@ body {
   border: none;
   background: transparent;
   line-height: 1;
+  text-decoration: none; /* Added to remove the underline */
 }
 
 .settings-icon-link:hover {
