@@ -104,25 +104,26 @@ main {
 .api-section {
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 16px;
+    padding: 16px; /* Increased padding */
+    margin-bottom: 20px; /* Increased margin */
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    min-height: 180px; /* Ensures a consistent height for all API sections */
+    min-height: 200px; /* Increased min-height */
 }
 
 .api-section-title {
     font-weight: 600;
-    margin-bottom: 12px;
+    margin-bottom: 16px; /* Increased margin */
     color: #4285f4;
-    font-size: 15px;
+    font-size: 16px; /* Increased font size */
 }
 
-/* Container to hold all API sections with a fixed height */
+/* Container to hold all API sections with adjustable height */
 .api-sections-container {
-    height: 235px; /* Fixed height sufficient for the tallest section */
+    height: auto; /* Changed from fixed to auto height */
+    min-height: 235px;
     position: relative;
-    overflow: hidden; /* Hide any overflow to prevent an extra scrollbar */
+    margin-bottom: 20px; /* Added margin */
 }
 
 /* Input fields and select dropdowns */
@@ -131,12 +132,25 @@ input[type="password"],
 input[type="url"],
 select {
     width: 100%;
-    padding: 8px 10px;
+    padding: 10px 12px; /* Increased padding */
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     font-size: 14px;
     transition: all 0.2s ease;
     background-color: #fff;
+}
+
+/* Special handling for select dropdowns to show long options */
+select {
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+select option {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 5px;
 }
 
 input:focus,
@@ -148,7 +162,8 @@ select:focus {
 
 small {
     display: block;
-    margin-top: 4px;
+    margin-top: 6px; /* Increased margin */
+    margin-bottom: 14px; /* Added bottom margin */
     color: #666;
     font-size: 12px;
 }
@@ -264,6 +279,7 @@ select {
     display: flex;
     gap: 8px;
     align-items: center;
+    margin-bottom: 10px; /* Added margin */
 }
 
 .input-with-button input {
@@ -274,10 +290,14 @@ select {
     background-color: #f0f0f0;
     border: 1px solid #ddd;
     border-radius: 6px;
-    padding: 8px 10px;
+    padding: 10px; /* Increased padding */
+    min-width: 40px; /* Added min-width */
     cursor: pointer;
     color: #555;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .refresh-btn:hover {
@@ -294,11 +314,13 @@ select {
     position: relative;
     display: flex;
     align-items: center;
+    margin-bottom: 5px; /* Added margin */
 }
 
 .select-with-spinner select {
     flex: 1;
     width: 100%;
+    text-overflow: ellipsis;
 }
 
 .spinner {
