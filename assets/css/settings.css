@@ -354,3 +354,9 @@ select:disabled {
 #settings-form {
     padding-bottom: 20px;
 }
+
+/* Override for LM Studio model selection to avoid unnecessary scroll */
+#lmstudio-section .select-with-spinner select {
+    overflow-y: visible;
+    max-height: none;
+}
