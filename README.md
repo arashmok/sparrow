@@ -15,7 +15,6 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 ## Coming Soon
 
 - Multi-language support
-- Dark Mode UI
 - History & Bookmarking for past summaries
 
 ## Installation
@@ -53,21 +52,27 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 
 ## AI Providers
 
-Sparrow supports two AI providers for generating summaries:
+Sparrow supports three AI providers for generating summaries:
 
-### OpenAI API
+#### OpenAI API
 
 - Requires an API key from OpenAI
-- High-quality summarization capabilities
-- Internet connection required
+- Provides high-quality summarizations using OpenAI models
+- Requires an Internet connection
 
-### LM Studio (Local)
+#### LM Studio (Local)
 
 - Run AI models locally on your computer
-- Complete privacy - no data sent to external servers
+- Complete privacy – no data sent to external servers
 - Works offline
-- Free to use (no API costs)
 - Requires [LM Studio](https://lmstudio.ai/) to be installed and configured
+
+#### Ollama (Local)
+
+- Run AI models locally using Ollama
+- Provides an alternative local summarization solution
+- Works offline
+- Requires [Ollama](https://ollama.ai/) to be installed and configured
 
 ## Development
 
@@ -76,12 +81,13 @@ Sparrow supports two AI providers for generating summaries:
 ```
 sparrow/
 ├── manifest.json             # Extension configuration
-├── assets/                   # Static assets
-├── src/                      # Source code
-│   ├── popup/                # Popup UI
-│   ├── scripts/              # Extension scripts
-│   └── lib/                  # Third-party libraries
-├── test/                     # Tests
+├── assets/                  # Static assets (CSS, icons)
+├── src/                     # Source code
+│   ├── popup/               # Popup UI and settings pages ([popup.html](src/popup/popup.html), [settings.html](src/popup/settings.html))
+│   └── scripts/             # Background and content scripts ([background.js](src/scripts/background.js), [content.js](src/scripts/content.js))
+├── config.template.js       # Template configuration file
+├── README.md                # Project documentation
+├── LICENSE                  # Project license
 └── ...
 ```
 
