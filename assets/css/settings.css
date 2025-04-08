@@ -3,16 +3,14 @@
 html,
 body {
     height: auto;
-    max-height: none;
-    overflow: hidden;
     width: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 
 body.settings-page {
     padding: 12px;
-    /* overflow-y removed */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     background-color: #f8f9fb;
     color: #333;
@@ -105,26 +103,26 @@ main {
 .api-section {
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 10px;
-    padding: 16px; /* Increased padding */
-    margin-bottom: 20px; /* Increased margin */
+    padding: 16px;
+    margin-bottom: 20px;
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    min-height: 200px; /* Increased min-height */
+    min-height: 200px;
 }
 
 .api-section-title {
     font-weight: 600;
-    margin-bottom: 16px; /* Increased margin */
+    margin-bottom: 16px;
     color: #4285f4;
-    font-size: 16px; /* Increased font size */
+    font-size: 16px;
 }
 
 /* Container to hold all API sections with adjustable height */
 .api-sections-container {
-    height: auto; /* Changed from fixed to auto height */
+    height: auto;
     min-height: 235px;
     position: relative;
-    margin-bottom: 20px; /* Added margin */
+    margin-bottom: 20px;
 }
 
 /* Input fields and select dropdowns */
@@ -133,7 +131,7 @@ input[type="password"],
 input[type="url"],
 select {
     width: 100%;
-    padding: 10px 12px; /* Increased padding */
+    padding: 10px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     font-size: 14px;
@@ -141,10 +139,16 @@ select {
     background-color: #fff;
 }
 
-/* Special handling for select dropdowns to show long options */
+/* Select styling with fixes for overflow issues */
 select {
     text-overflow: ellipsis;
     max-width: 100%;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px;
+    padding-right: 28px;
 }
 
 select option {
@@ -163,20 +167,10 @@ select:focus {
 
 small {
     display: block;
-    margin-top: 6px; /* Increased margin */
-    margin-bottom: 14px; /* Added bottom margin */
+    margin-top: 6px;
+    margin-bottom: 14px;
     color: #666;
     font-size: 12px;
-}
-
-/* Custom select arrow */
-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 10px;
-    padding-right: 28px;
 }
 
 /* Bottom action buttons */
@@ -276,7 +270,7 @@ select {
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-bottom: 10px; /* Added margin */
+    margin-bottom: 10px;
 }
 
 .input-with-button input {
@@ -287,8 +281,8 @@ select {
     background-color: #f0f0f0;
     border: 1px solid #ddd;
     border-radius: 6px;
-    padding: 10px; /* Increased padding */
-    min-width: 40px; /* Added min-width */
+    padding: 10px;
+    min-width: 40px;
     cursor: pointer;
     color: #555;
     transition: all 0.2s ease;
@@ -311,13 +305,24 @@ select {
     position: relative;
     display: flex;
     align-items: center;
-    margin-bottom: 5px; /* Added margin */
+    margin-bottom: 5px;
 }
 
 .select-with-spinner select {
     flex: 1;
     width: 100%;
     text-overflow: ellipsis;
+    height: auto;
+    overflow-y: hidden !important;
+}
+
+/* Fix for LM Studio model selection to prevent scrolling */
+#lmstudio-section .select-with-spinner select {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    text-overflow: ellipsis !important;
+    padding-right: 35px !important;
 }
 
 .spinner {
@@ -350,19 +355,7 @@ select:disabled {
     opacity: 0.7;
 }
 
-/* Optionally, remove extra bottom padding from the settings form */
+/* Form padding */
 #settings-form {
     padding-bottom: 20px;
-}
-
-/* Override for LM Studio model selection to avoid unnecessary scroll */
-#lmstudio-section .select-with-spinner select {
-    overflow-y: visible;
-    max-height: none;
-}
-
-/* Override for LM Studio model selection to avoid unnecessary scroll */
-#lmstudio-section .select-with-spinner select {
-    overflow-y: visible !important;
-    max-height: none !important;
 }
