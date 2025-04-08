@@ -6,6 +6,7 @@
     <title>Sparrow Settings</title>
     <link rel="stylesheet" href="../../assets/css/popup.css">
     <link rel="stylesheet" href="../../assets/css/settings.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="settings-page">
     <header>
@@ -60,11 +61,28 @@
                     <div class="api-section-title">LM Studio Settings</div>
                     <div class="form-group">
                         <label for="lmstudio-api-url">Server URL</label>
-                        <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1">
+                        <div class="input-with-button">
+                            <input type="url" id="lmstudio-api-url" placeholder="http://localhost:1234/v1" value="http://localhost:1234/v1">
+                            <button type="button" id="lmstudio-refresh-btn" class="refresh-btn" title="Refresh Models">
+                                <i class="fa-solid fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="lmstudio-api-key">API Key (Optional)</label>
                         <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio">
+                    </div>
+                    <div class="form-group">
+                        <label for="lmstudio-model">Model</label>
+                        <div class="select-with-spinner">
+                            <select id="lmstudio-model">
+                                <option value="">Loading models...</option>
+                            </select>
+                            <div id="lmstudio-spinner" class="spinner hidden">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                            </div>
+                        </div>
+                        <small id="lmstudio-model-message">Models will load when a valid server URL is provided.</small>
                     </div>
                 </div>
 
@@ -73,11 +91,24 @@
                     <div class="api-section-title">Ollama Settings</div>
                     <div class="form-group">
                         <label for="ollama-api-url">Server URL</label>
-                        <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api">
+                        <div class="input-with-button">
+                            <input type="url" id="ollama-api-url" placeholder="http://localhost:11434/api" value="http://localhost:11434/api">
+                            <button type="button" id="ollama-refresh-btn" class="refresh-btn" title="Refresh Models">
+                                <i class="fa-solid fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="ollama-model">Model Name</label>
-                        <input type="text" id="ollama-model" placeholder="llama2" value="llama2">
+                        <label for="ollama-model">Model</label>
+                        <div class="select-with-spinner">
+                            <select id="ollama-model">
+                                <option value="">Loading models...</option>
+                            </select>
+                            <div id="ollama-spinner" class="spinner hidden">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                            </div>
+                        </div>
+                        <small id="ollama-model-message">Models will load when a valid server URL is provided.</small>
                     </div>
                 </div>
             </div>

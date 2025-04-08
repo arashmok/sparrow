@@ -29,6 +29,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       'openaiModel',
       'lmstudioApiUrl',
       'lmstudioApiKey',
+      'lmstudioModel',
       'ollamaApiUrl',
       'ollamaModel'
     ], async (result) => {
@@ -63,6 +64,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           // Get LM Studio settings
           const lmStudioUrl = result.lmstudioApiUrl || 'http://localhost:1234/v1';
           const lmStudioKey = result.lmstudioApiKey || '';
+          const lmStudioModel = result.lmstudioModel || '';
           
           if (!lmStudioUrl) {
             sendResponse({ 
@@ -71,13 +73,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return;
           }
           
-          console.log("Using LM Studio API at:", lmStudioUrl);
+          console.log("Using LM Studio API at:", lmStudioUrl, "with model:", lmStudioModel);
           summary = await generateLMStudioSummary(
             request.text, 
             request.format, 
             lmStudioUrl,
             lmStudioKey,
-            request.translateToEnglish
+            request.translateToEnglish,
+            lmStudioModel
           );
         } else if (apiMode === 'ollama') {
           // Get Ollama settings
@@ -216,9 +219,10 @@ async function callOpenAIAPI(text, format, apiKey, model, translateToEnglish = f
  * @param {string} apiUrl - The LM Studio API URL
  * @param {string} apiKey - The LM Studio API key (optional)
  * @param {boolean} translateToEnglish - Whether to translate the text to English
+ * @param {string} model - The model to use (optional)
  * @returns {Promise<string>} The generated summary
  */
-async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', translateToEnglish = false) {
+async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', translateToEnglish = false, model = '') {
   try {
     // Check if we need to use chunking
     if (text.length > MAX_CHUNK_SIZE) {
@@ -227,12 +231,12 @@ async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', transl
         format, 
         translateToEnglish,
         async (chunk, chunkFormat, isTranslate) => {
-          return await callLMStudioAPI(chunk, chunkFormat, apiUrl, apiKey, isTranslate);
+          return await callLMStudioAPI(chunk, chunkFormat, apiUrl, apiKey, isTranslate, model);
         }
       );
     } else {
       // For smaller texts, just process in one go
-      return await callLMStudioAPI(text, format, apiUrl, apiKey, translateToEnglish);
+      return await callLMStudioAPI(text, format, apiUrl, apiKey, translateToEnglish, model);
     }
   } catch (error) {
     console.error('Error in LM Studio summarization:', error);
@@ -247,9 +251,10 @@ async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', transl
  * @param {string} apiUrl - The LM Studio API URL
  * @param {string} apiKey - The API key (optional)
  * @param {boolean} translateToEnglish - Whether to translate to English
+ * @param {string} model - The model to use (optional)
  * @returns {Promise<string>} The generated summary
  */
-async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEnglish = false) {
+async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEnglish = false, model = '') {
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
   
@@ -269,22 +274,30 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
     
+    // Prepare request body
+    const requestBody = {
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 500,
+      temperature: 0.5,
+      stream: false
+    };
+    
+    // Add model if provided
+    if (model) {
+      requestBody.model = model;
+    }
+    
     // Make the API call to LM Studio
     const response = await fetch(chatEndpoint, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 500,
-        temperature: 0.5,
-        stream: false
-      })
+      body: JSON.stringify(requestBody)
     });
     
     if (!response.ok) {
