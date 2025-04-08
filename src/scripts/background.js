@@ -90,6 +90,78 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+// Listen for messages from the popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "summarize") {
+    // Get settings from storage
+    chrome.storage.local.get([
+      'apiMode', 
+      'apiKey', 
+      'openaiModel',
+      'lmstudioApiUrl',
+      'lmstudioApiKey',
+      'lmstudioModel',
+      'ollamaApiUrl',
+      'ollamaModel'
+    ], async (settings) => {
+      try {
+        // Determine which API to use
+        const apiMode = settings.apiMode || 'openai';
+        console.log("Using API mode:", apiMode);
+        
+        let summary;
+        
+        if (apiMode === 'openai') {
+          // Use OpenAI API
+          const apiKey = settings.apiKey;
+          const model = settings.openaiModel || 'gpt-3.5-turbo';
+          
+          if (!apiKey) {
+            sendResponse({ error: 'No OpenAI API key found. Please add your API key in the extension settings.' });
+            return;
+          }
+          
+          summary = await generateOpenAISummary(request.text, request.format, apiKey, model, request.translateToEnglish);
+        } else if (apiMode === 'lmstudio') {
+          // Use LM Studio API
+          const lmStudioUrl = settings.lmstudioApiUrl || 'http://localhost:1234/v1';
+          const lmStudioKey = settings.lmstudioApiKey || '';
+          const lmStudioModel = settings.lmstudioModel || '';
+          
+          if (!lmStudioUrl) {
+            sendResponse({ error: 'No LM Studio server URL found. Please check your settings.' });
+            return;
+          }
+          
+          summary = await generateLMStudioSummary(request.text, request.format, lmStudioUrl, lmStudioKey, request.translateToEnglish, lmStudioModel);
+        } else if (apiMode === 'ollama') {
+          // Use Ollama API
+          const ollamaApiUrl = settings.ollamaApiUrl || 'http://localhost:11434/api';
+          const ollamaModel = settings.ollamaModel || 'llama2';
+          
+          if (!ollamaApiUrl) {
+            sendResponse({ error: 'No Ollama server URL found. Please check your settings.' });
+            return;
+          }
+          
+          summary = await generateOllamaSummary(request.text, request.format, ollamaApiUrl, ollamaModel, request.translateToEnglish);
+        } else {
+          sendResponse({ error: `Unknown API mode: ${apiMode}` });
+          return;
+        }
+        
+        sendResponse({ summary: summary });
+      } catch (error) {
+        console.error('Error generating summary:', error);
+        sendResponse({ error: error.message });
+      }
+    });
+    
+    // Return true to indicate that the response will be sent asynchronously
+    return true;
+  }
+});
+
 // Function to extract page content
 function extractPageContent() {
   try {

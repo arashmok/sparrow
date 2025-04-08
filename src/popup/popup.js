@@ -28,6 +28,32 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Format changed to:", summaryFormat.value);
     chrome.storage.local.set({ defaultFormat: summaryFormat.value });
   });
+
+  // Chat button functionality
+  document.getElementById('chat-btn').addEventListener('click', async () => {
+    try {
+      // Get the active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      // Send message to background script to open the chat panel
+      chrome.runtime.sendMessage({
+        action: 'open-chat-panel',
+        tabId: tab.id
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error opening chat panel:", chrome.runtime.lastError);
+          return;
+        }
+        
+        if (response && response.success) {
+          // Close the popup after initiating the chat panel
+          window.close();
+        }
+      });
+    } catch (error) {
+      console.error("Error handling chat button click:", error);
+    }
+  });
   
   // Initialize popup with saved settings
   function initializePopup() {
@@ -478,40 +504,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // Adjust the window height
     adjustWindowHeight();
   }
-  
-  function addChatButton() {
-    // Create the chat button element
-    const chatButton = document.createElement('button');
-    chatButton.id = 'chat-btn';
-    chatButton.className = 'primary-btn';
-    
-    // Use a more compact icon/text layout
-    chatButton.innerHTML = '<i class="fa-solid fa-comments btn-icon"></i><span>Chat</span>';
-    
-    // Get the controls container
-    const controlsContainer = document.querySelector('.controls');
-    
-    // Add the chat button
-    controlsContainer.appendChild(chatButton);
-    
-    // Optional: Adjust the summarize button to match size
-    const summarizeBtn = document.getElementById('summarize-btn');
-    if (summarizeBtn) {
-      summarizeBtn.style.flex = '1';
-    }
-    
-    // Add event listener
-    chatButton.addEventListener('click', () => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.runtime.sendMessage({
-          action: 'open-chat-panel',
-          tabId: tabs[0].id
-        });
-        window.close();
-      });
-    });
-  }
-  
-  // Call this function when popup is initialized
-  addChatButton();
 });

@@ -25,29 +25,52 @@ document.addEventListener('DOMContentLoaded', () => {
       // Listen for messages from the background script
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.action === 'chat-initiate') {
-          // Display the page content
-          pageContent = message.pageContent;
+          const selectedText = message.text || '';
+          const chatAction = message.chatAction || '';
+          chrome.storage.local.get('latestSummary', (result) => {
+            const storedSummary = result.latestSummary || (message.pageContent || selectedText);
+            
+            if (storedSummary) {
+              pageContentContainer.classList.remove('hidden');
+              
+              // Instead of truncating, display the full generated summary.
+              // If the summary includes a title on the first line, display it with a different style.
+              const lines = storedSummary.split('\n');
+              if (lines.length > 1) {
+                pageContentText.innerHTML =
+                  `<div class="generated-title">${lines[0]}</div>` +
+                  `<div class="generated-content">${lines.slice(1).join('\n')}</div>`;
+              } else {
+                pageContentText.textContent = storedSummary;
+              }
+              
+              // Set conversation history with the full generated summary as context
+              conversationHistory = [{
+                role: 'system',
+                content: `The following is the generated summary of the current page:\n\n${storedSummary}`
+              }];
+              
+              if (selectedText && chatAction) {
+                let userMessage = '';
+                if (chatAction === 'ask') {
+                  userMessage = `I want to ask about this text: "${selectedText.substring(0, 100)}${selectedText.length > 100 ? '...' : ''}"`;
+                } else if (chatAction === 'explain') {
+                  userMessage = `Please explain this text in simple terms: "${selectedText.substring(0, 100)}${selectedText.length > 100 ? '...' : ''}"`;
+                }
+                
+                if (userMessage) {
+                  addMessage(userMessage, 'user');
+                  conversationHistory.push({ role: 'user', content: userMessage });
+                  showTypingIndicator();
+                  processSelectedText(selectedText, chatAction);
+                }
+              }
+            }
+            
+            sendResponse({ success: true });
+          });
           
-          if (pageContent) {
-            pageContentContainer.classList.remove('hidden');
-            
-            // Show a truncated preview of the page content
-            const previewLength = 300;
-            pageContentText.textContent = pageContent.length > previewLength 
-              ? pageContent.substring(0, previewLength) + '...' 
-              : pageContent;
-            
-            // Add initial welcoming message from the assistant
-            addMessage("Hello! I've received the content of this page. How can I help you with it?", 'assistant');
-            
-            // Update conversation history with page content as context
-            conversationHistory = [{
-              role: 'system',
-              content: `The following is the content of the webpage the user is viewing:\n\n${pageContent}`
-            }];
-          }
-          
-          sendResponse({ success: true });
+          return true;
         }
       });
       
@@ -57,6 +80,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           sendMessage();
+        }
+      });
+    }
+    
+    // Function to process selected text
+    function processSelectedText(text, action) {
+      // Generate message based on the action
+      let prompt = '';
+      
+      if (action === 'ask') {
+        prompt = `The user wants to know more about the following text: "${text}"`;
+      } else if (action === 'explain') {
+        prompt = `The user wants you to explain the following text in simple terms: "${text}"`;
+      } else {
+        prompt = `The user has selected the following text: "${text}"`;
+      }
+      
+      // Send message to background script for processing
+      chrome.runtime.sendMessage({
+        action: 'chat-message',
+        text: prompt,
+        history: conversationHistory
+      }, (response) => {
+        hideTypingIndicator();
+        
+        if (response && response.reply) {
+          addMessage(response.reply, 'assistant');
+          
+          // Update conversation history
+          conversationHistory.push({
+            role: 'assistant',
+            content: response.reply
+          });
+        } else {
+          addMessage('Sorry, I encountered an error processing your message.', 'assistant');
         }
       });
     }

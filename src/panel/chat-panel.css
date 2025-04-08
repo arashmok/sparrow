@@ -231,3 +231,13 @@
     0%, 100% { opacity: 0.6; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.2); }
   }
+
+  /* Generated content styles */
+  .generated-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .generated-content {
+    font-size: 14px;
+  }

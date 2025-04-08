@@ -5,15 +5,16 @@
   padding: 0;
 }
 
-/* Make body and html expandable */
-html, body {
+/* Update body sizing to ensure proper fit */
+html,
+body {
   width: 100%;
-  height: 450px; /* Set a reasonable fixed height for the popup */
+  height: auto;
   margin: 0;
   padding: 0;
-  min-width: 400px; /* Increase from the current 350px */
-  /* Remove overflow: hidden to allow scrolling */
-  overflow-y: auto;
+  min-width: 450px; /* Increased to better fit controls */
+  max-height: none; /* Remove height restriction */
+  overflow-y: visible; /* Changed from auto to visible to prevent scrollbars unless needed */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
@@ -29,16 +30,17 @@ body {
 #app-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  /* Removed fixed height: let content dictate the overall size */
   max-height: 100%;
 }
 
-/* Make the popup container fit content */
+/* Ensure the popup container has proper spacing */
 #popup-container {
   position: relative;
   width: 100%;
   height: auto;
-  min-width: 400px; /* Increase from the current 350px */
+  min-height: 350px;
+  padding-bottom: 60px; /* Add padding at bottom to ensure footer has space */
   display: flex;
   flex-direction: column;
 }
@@ -125,6 +127,7 @@ main {
 
 .controls {
   display: flex;
+  flex-wrap: nowrap;
   gap: 12px;
   margin-bottom: 12px;
   width: 100%;
@@ -145,6 +148,7 @@ button, select {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 select {
@@ -251,16 +255,16 @@ select:focus {
   font-weight: 500;
 }
 
-/* Summary container - dynamic size without scrollbars */
+/* Make the summary container expandable */
 .summary-container {
   position: relative;
   background-color: white;
   border-radius: 12px;
   padding: 16px;
-  flex: 1 1 auto;
-  min-height: 100px;
+  flex-grow: 1;
+  min-height: 150px;
   height: auto;
-  overflow: visible; /* Let the content extend the container */
+  overflow-y: visible;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -372,25 +376,30 @@ select:focus {
   font-size: 14px;
 }
 
-/* Footer always at the bottom */
+/* Fix footer positioning */
 footer {
-  margin-top: 8px;       /* Reduced margin-top */
-  padding-top: 4px;      /* Reduced padding-top to lessen the gap above the indicator */
+  margin-top: 16px;
+  padding: 12px 0;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
-  font-size: 12px;
-  color: #666;
-  flex-shrink: 0;
-}
-
-.footer-content {
-  display: flex;
-  align-items: center;
   width: 100%;
 }
 
+/* Ensure footer content has proper spacing */
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 8px;
+}
+
 .footer-right {
-  margin-left: auto; /* Forces the content in this container to move right */
   text-align: right;
+}
+
+/* Footer always at the bottom */
+footer {
+  flex-shrink: 0;
 }
 
 .api-info {
@@ -659,4 +668,19 @@ body.settings-page {
 /* Utility classes */
 .hidden {
   display: none;
+}
+
+function processSummarization(response, url) {
+  // ...
+  chrome.runtime.sendMessage(
+    { 
+      action: "summarize", 
+      text: response.text,
+      format: format,
+      translateToEnglish: translateToEnglish
+    }, 
+    (result) => {
+      // ...
+    }
+  );
 }
