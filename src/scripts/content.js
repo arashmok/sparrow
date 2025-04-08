@@ -149,3 +149,6 @@ function findParentOfType(element, selectors) {
   
   return null;
 }
+
+// Import selection menu functionality
+importScripts('selection-menu.js');

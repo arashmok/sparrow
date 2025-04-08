@@ -15,116 +15,425 @@ const MAX_CHUNK_SIZE = 3500;
 // Maximum number of chunks to process (to avoid excessive API calls)
 const MAX_CHUNKS = 5;
 
-// Listen for messages from popup and content scripts
+// Handle side panel functionality
+
+// Open the side panel when requested
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("Background script received message:", request.action);
-  
-  if (request.action === "summarize") {
-    console.log("Processing summarize request for text of length:", request.text.length);
+  if (request.action === 'open-chat-panel') {
+    // Get the active tab ID
+    const tabId = request.tabId;
     
+    // Open the side panel
+    chrome.sidePanel.open({ tabId });
+    
+    // Extract page content
+    chrome.scripting.executeScript({
+      target: { tabId },
+      function: extractPageContent
+    }).then(results => {
+      const pageContent = results[0].result;
+      
+      // Send the page content to the side panel
+      setTimeout(() => {
+        chrome.runtime.sendMessage({
+          action: 'chat-initiate',
+          pageContent: pageContent
+        });
+      }, 300);
+    }).catch(error => {
+      console.error('Error extracting page content:', error);
+    });
+    
+    sendResponse({ success: true });
+    return true;
+  }
+  
+  // Handle chat messages for API communication
+  if (request.action === 'chat-message') {
+    handleChatMessage(request)
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ error: error.message }));
+    
+    return true; // Async response
+  }
+});
+
+// Handle side panel functionality
+
+// Open the side panel when requested
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'initiate-side-panel') {
+    // Open the side panel
+    chrome.sidePanel.open({ tabId: sender.tab.id });
+    
+    // Set a small timeout to ensure the panel is ready
+    setTimeout(() => {
+      // Send the selected text to the side panel
+      chrome.runtime.sendMessage({
+        action: 'chat-initiate',
+        text: request.text,
+        chatAction: request.chatAction,
+        newSession: true
+      });
+    }, 300);
+    
+    sendResponse({ success: true });
+  }
+  
+  // Handle chat messages for API communication
+  if (request.action === 'chat-message') {
+    handleChatMessage(request)
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ error: error.message }));
+    
+    return true; // Async response
+  }
+});
+
+// Function to extract page content
+function extractPageContent() {
+  try {
+    // Get page metadata
+    const pageTitle = document.title || '';
+    const pageUrl = window.location.href;
+    
+    // Extract main content using similar logic to your existing content.js
+    let mainContent = '';
+    
+    // Try to find the main content container
+    const contentSelectors = [
+      'article',
+      '[role="main"]',
+      'main',
+      '.main-content',
+      '#main-content',
+      '.post-content',
+      '.article-content',
+      '.entry-content',
+      '.content',
+      '#content'
+    ];
+    
+    // Try each selector until we find content
+    let contentElement = null;
+    
+    for (const selector of contentSelectors) {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length > 0) {
+        // Use the element with the most text content
+        contentElement = Array.from(elements).reduce((largest, current) => {
+          return (current.textContent.length > largest.textContent.length) ? current : largest;
+        }, elements[0]);
+        
+        if (contentElement.textContent.length > 500) {
+          break; // Found substantial content
+        }
+      }
+    }
+    
+    // If we found a specific content element, use it
+    if (contentElement && contentElement.textContent.trim().length > 0) {
+      mainContent = contentElement.textContent;
+    } else {
+      // Otherwise, use a more general approach to extract relevant content
+      // Get all paragraphs and headings
+      const paragraphs = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6');
+      
+      // Filter out elements that are likely not main content
+      const contentElements = Array.from(paragraphs).filter(element => {
+        // Skip very short paragraphs that might be UI elements
+        if (element.textContent.trim().length < 20 && !element.tagName.startsWith('H')) {
+          return false;
+        }
+        
+        // Skip elements in navigation, footer, sidebar, etc.
+        const parent = findParentOfType(element, [
+          'nav', 'footer', 'aside', 
+          '[role="navigation"]', '[role="complementary"]',
+          '.nav', '.navigation', '.menu', '.footer', '.sidebar', '.widget', '.comment'
+        ]);
+        
+        return !parent; // Keep elements that don't have these parents
+      });
+      
+      // Combine the filtered elements
+      mainContent = contentElements.map(el => el.textContent.trim()).join('\n\n');
+    }
+    
+    // If we couldn't extract meaningful content, try a last resort approach
+    if (mainContent.length < 500) {
+      // Get all text from the body, removing scripts and styles
+      const bodyClone = document.body.cloneNode(true);
+      const scripts = bodyClone.querySelectorAll('script, style, noscript, svg, canvas, iframe');
+      scripts.forEach(script => script.remove());
+      
+      mainContent = bodyClone.textContent.trim();
+    }
+    
+    // Prepare the final text
+    return `Title: ${pageTitle}\nURL: ${pageUrl}\n\n${mainContent}`;
+    
+  } catch (error) {
+    console.error('Error extracting page content:', error);
+    return `Error extracting content: ${error.message}`;
+  }
+}
+
+// Handle chat messages and API communication
+async function handleChatMessage(request) {
+  try {
     // Get the settings from storage
-    chrome.storage.local.get([
-      'apiMode',
-      'apiKey',
+    const settings = await chrome.storage.local.get([
+      'apiMode', 
+      'apiKey', 
       'openaiModel',
       'lmstudioApiUrl',
       'lmstudioApiKey',
       'lmstudioModel',
       'ollamaApiUrl',
       'ollamaModel'
-    ], async (result) => {
-      // Determine which API to use
-      const apiMode = result.apiMode || CONFIG.API_MODE;
-      console.log("Using API mode:", apiMode);
+    ]);
+    
+    // Determine which API to use
+    const apiMode = settings.apiMode || 'openai';
+    console.log("Using API mode for chat:", apiMode);
+    
+    // User message from request
+    const userMessage = request.text;
+    
+    // Generate response based on API mode
+    let reply;
+    
+    if (apiMode === 'openai') {
+      // Use OpenAI API
+      const apiKey = settings.apiKey;
+      const model = settings.openaiModel || 'gpt-3.5-turbo';
       
-      try {
-        let summary;
-        
-        if (apiMode === 'openai') {
-          // Get the OpenAI API key
-          const apiKey = result.apiKey || '';
-          const model = result.openaiModel || 'gpt-3.5-turbo';
-          
-          if (!apiKey) {
-            sendResponse({ 
-              error: 'No OpenAI API key found. Please add your API key in the extension settings.'
-            });
-            return;
-          }
-          
-          console.log("Using OpenAI API with model:", model);
-          summary = await generateOpenAISummary(
-            request.text, 
-            request.format, 
-            apiKey, 
-            model,
-            request.translateToEnglish
-          );
-        } else if (apiMode === 'lmstudio') {
-          // Get LM Studio settings
-          const lmStudioUrl = result.lmstudioApiUrl || 'http://localhost:1234/v1';
-          const lmStudioKey = result.lmstudioApiKey || '';
-          const lmStudioModel = result.lmstudioModel || '';
-          
-          if (!lmStudioUrl) {
-            sendResponse({ 
-              error: 'No LM Studio server URL found. Please check your settings.'
-            });
-            return;
-          }
-          
-          console.log("Using LM Studio API at:", lmStudioUrl, "with model:", lmStudioModel);
-          summary = await generateLMStudioSummary(
-            request.text, 
-            request.format, 
-            lmStudioUrl,
-            lmStudioKey,
-            request.translateToEnglish,
-            lmStudioModel
-          );
-        } else if (apiMode === 'ollama') {
-          // Get Ollama settings
-          const ollamaApiUrl = result.ollamaApiUrl || 'http://localhost:11434/api';
-          const ollamaModel = result.ollamaModel || 'llama2';
-          
-          if (!ollamaApiUrl) {
-            sendResponse({ 
-              error: 'No Ollama server URL found. Please check your settings.'
-            });
-            return;
-          }
-          
-          if (!ollamaModel) {
-            sendResponse({ 
-              error: 'No Ollama model specified. Please check your settings.'
-            });
-            return;
-          }
-          
-          console.log("Using Ollama API at:", ollamaApiUrl, "with model:", ollamaModel);
-          summary = await generateOllamaSummary(
-            request.text, 
-            request.format, 
-            ollamaApiUrl,
-            ollamaModel,
-            request.translateToEnglish
-          );
-        } else {
-          throw new Error(`Unknown API mode: ${apiMode}`);
-        }
-        
-        console.log("Summary generated successfully");
-        sendResponse({ summary });
-      } catch (error) {
-        console.error('Error generating summary:', error);
-        sendResponse({ error: error.message });
+      if (!apiKey) {
+        throw new Error('No OpenAI API key found. Please add your API key in the extension settings.');
       }
+      
+      reply = await generateOpenAIChatResponse(userMessage, request.history || [], apiKey, model);
+      
+    } else if (apiMode === 'lmstudio') {
+      // Use LM Studio API
+      const lmStudioUrl = settings.lmstudioApiUrl || 'http://localhost:1234/v1';
+      const lmStudioKey = settings.lmstudioApiKey || '';
+      const lmStudioModel = settings.lmstudioModel || '';
+      
+      if (!lmStudioUrl) {
+        throw new Error('No LM Studio server URL found. Please check your settings.');
+      }
+      
+      reply = await generateLMStudioChatResponse(userMessage, request.history || [], lmStudioUrl, lmStudioKey, lmStudioModel);
+      
+    } else if (apiMode === 'ollama') {
+      // Use Ollama API
+      const ollamaApiUrl = settings.ollamaApiUrl || 'http://localhost:11434/api';
+      const ollamaModel = settings.ollamaModel || 'llama2';
+      
+      if (!ollamaApiUrl) {
+        throw new Error('No Ollama server URL found. Please check your settings.');
+      }
+      
+      if (!ollamaModel) {
+        throw new Error('No Ollama model specified. Please check your settings.');
+      }
+      
+      reply = await generateOllamaChatResponse(userMessage, request.history || [], ollamaApiUrl, ollamaModel);
+    } else {
+      throw new Error(`Unknown API mode: ${apiMode}`);
+    }
+    
+    return { reply };
+  } catch (error) {
+    console.error('Error handling chat message:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a chat response using OpenAI's API
+ * @param {string} userMessage - The user's message
+ * @param {Array} history - Conversation history
+ * @param {string} apiKey - OpenAI API key
+ * @param {string} model - Model name
+ */
+async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
+  try {
+    // Prepare conversation messages
+    let messages = [];
+    
+    // System message to set the context
+    messages.push({
+      role: 'system',
+      content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
     });
     
-    // Return true to indicate that we will send a response asynchronously
-    return true;
+    // Add conversation history if available
+    if (history && history.length > 0) {
+      messages = messages.concat(history);
+    }
+    
+    // Add the current user message if not already in history
+    if (!history || !history.some(msg => msg.role === 'user' && msg.content === userMessage)) {
+      messages.push({
+        role: 'user',
+        content: userMessage
+      });
+    }
+    
+    // Make the API call
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        max_tokens: 500,
+        temperature: 0.7
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || `Failed to generate response (Status: ${response.status})`);
+    }
+    
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+    
+  } catch (error) {
+    console.error('Error generating OpenAI chat response:', error);
+    throw error;
   }
-});
+}
+
+/**
+ * Generate a chat response using LM Studio's API
+ * @param {string} userMessage - The user's message
+ * @param {Array} history - Conversation history
+ * @param {string} apiUrl - LM Studio API URL
+ * @param {string} apiKey - LM Studio API key
+ * @param {string} model - Model name to use
+ * @returns {Promise<string>} The generated chat reply
+ */
+async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey, model) {
+  // Prepare conversation messages similar to OpenAI
+  let messages = [{
+    role: 'system',
+    content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
+  }];
+  
+  if (history && history.length > 0) {
+    messages = messages.concat(history);
+  }
+  
+  // Add the current message if not present
+  if (!history || !history.some(msg => msg.role === 'user' && msg.content === userMessage)) {
+    messages.push({
+      role: 'user',
+      content: userMessage
+    });
+  }
+
+  // Build the LM Studio API endpoint URL. Assuming the endpoint for chat completions.
+  const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+  
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        max_tokens: CONFIG.MAX_TOKENS,
+        temperature: CONFIG.TEMPERATURE
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || `Failed to generate response (Status: ${response.status})`);
+    }
+    
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Error generating LM Studio chat response:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a chat response using Ollama's API
+ * @param {string} userMessage - The user's message
+ * @param {Array} history - Conversation history
+ * @param {string} apiUrl - Ollama API base URL
+ * @param {string} model - Ollama model to use
+ * @returns {Promise<string>} The generated chat reply
+ */
+async function generateOllamaChatResponse(userMessage, history, apiUrl, model) {
+  // Prepare conversation messages similar to OpenAI
+  let messages = [{
+    role: 'system',
+    content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
+  }];
+  
+  if (history && history.length > 0) {
+    messages = messages.concat(history);
+  }
+  
+  // Add the current user message if not already in history
+  if (!history || !history.some(msg => msg.role === 'user' && msg.content === userMessage)) {
+    messages.push({
+      role: 'user',
+      content: userMessage
+    });
+  }
+  
+  // Build the Ollama API chat endpoint
+  const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat`;
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        options: { temperature: CONFIG.TEMPERATURE },
+        stream: false
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to generate response (Status: ${response.status})`);
+    }
+    
+    const data = await response.json();
+    let reply = '';
+    if (data.message && data.message.content) {
+      reply = data.message.content.trim();
+    } else if (data.response) {
+      reply = data.response.trim();
+    } else {
+      throw new Error('Unexpected response format from Ollama API');
+    }
+    
+    return reply;
+  } catch (error) {
+    console.error('Error generating Ollama chat response:', error);
+    throw error;
+  }
+}
 
 /**
  * Generates a summary using OpenAI's API
