@@ -479,28 +479,37 @@ document.addEventListener('DOMContentLoaded', () => {
     adjustWindowHeight();
   }
   
-  // Add chat button to the controls
   function addChatButton() {
     // Create the chat button element
     const chatButton = document.createElement('button');
     chatButton.id = 'chat-btn';
     chatButton.className = 'primary-btn';
+    
+    // Use a more compact icon/text layout
     chatButton.innerHTML = '<i class="fa-solid fa-comments btn-icon"></i><span>Chat</span>';
     
-    // Add event listener to open the chat panel
+    // Get the controls container
+    const controlsContainer = document.querySelector('.controls');
+    
+    // Add the chat button
+    controlsContainer.appendChild(chatButton);
+    
+    // Optional: Adjust the summarize button to match size
+    const summarizeBtn = document.getElementById('summarize-btn');
+    if (summarizeBtn) {
+      summarizeBtn.style.flex = '1';
+    }
+    
+    // Add event listener
     chatButton.addEventListener('click', () => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.runtime.sendMessage({
           action: 'open-chat-panel',
           tabId: tabs[0].id
         });
-        window.close(); // Close the popup
+        window.close();
       });
     });
-    
-    // Find the controls container and add the chat button
-    const controlsContainer = document.querySelector('.controls');
-    controlsContainer.appendChild(chatButton);
   }
   
   // Call this function when popup is initialized
