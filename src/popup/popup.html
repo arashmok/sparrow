@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <!-- Moved the settings icon outside #app-wrapper -->
+  <!-- Settings icon in the top right -->
   <div class="settings-icon-container">
     <a href="settings.html" title="Settings" class="settings-icon-link">
       <i class="fa-solid fa-gear"></i>
@@ -40,7 +40,7 @@
           </select>
         </div>
         
-        <!-- Moved the translate option to the top red rectangle area -->
+        <!-- Translate option -->
         <div class="checkbox-option translate-option">
           <input type="checkbox" id="translate-english" />
           <label for="translate-english">
@@ -68,16 +68,12 @@
       </main>
       
       <footer>
-        <div class="footer-content">
-          <div class="footer-left">
-            <span id="api-method-indicator" class="api-method-indicator indicator-openai">OpenAI</span>
-          </div>
-          <div class="footer-right">
-            <button id="chat-btn" class="footer-chat-btn">
-              <i class="fa-solid fa-comments"></i>
-              <span>Chat</span>
-            </button>
-          </div>
+        <div class="bottom-actions">
+          <span class="api-method-indicator indicator-ollama">Ollama</span>
+          <button class="chat-button">
+            <i class="fa-solid fa-comment"></i>
+            Chat
+          </button>
         </div>
       </footer>
     </div>

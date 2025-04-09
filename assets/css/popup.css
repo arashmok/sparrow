@@ -5,17 +5,16 @@
   padding: 0;
 }
 
-/* Update body sizing to ensure proper fit */
-html,
-body {
+/* Make body and html expandable */
+html, body {
   width: 100%;
-  height: auto;
+  height: auto; /* Allow height to adjust to content */
   margin: 0;
   padding: 0;
-  /* Reduced min-width for a narrower popup */
-  min-width: 360px; /* Was 450px */
-  max-height: none; /* Remove height restriction */
-  overflow-y: visible; /* Changed from auto to visible to prevent scrollbars unless needed */
+  min-width: 320px;
+  max-width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  overflow-y: hidden; /* Prevent vertical scrolling by default */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
@@ -25,28 +24,27 @@ body {
   color: #333;
   box-sizing: border-box;
   line-height: 1.5;
+  position: relative;
 }
 
 /* Create a flex container for the whole popup */
 #app-wrapper {
   display: flex;
   flex-direction: column;
-  /* Removed fixed height: let content dictate the overall size */
+  height: 100%;
   max-height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
-/* Ensure the popup container has proper spacing */
+/* Make the popup container fit content */
 #popup-container {
   position: relative;
   width: 100%;
-  max-width: 360px; /* Adjust as necessary for your content */
-  margin: 0 auto;
-  padding: 16px;
   height: auto;
-  min-height: 350px;
-  padding-bottom: 60px; /* Add padding at bottom to ensure footer has space */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* Update settings icon container */
@@ -68,11 +66,11 @@ body {
   border: none;
   background: transparent;
   line-height: 1;
-  text-decoration: none; /* Added to remove the underline */
+  text-decoration: none;
 }
 
 .settings-icon-link:hover {
-  color: #4285f4;
+  color: #2980b9; /* Changed to match primary button color */
 }
 
 .settings-icon-link i {
@@ -109,7 +107,7 @@ header {
 
 h1 {
   font-size: 24px;
-  color: #4285f4; /* Google blue */
+  color: #2980b9; /* Changed from #4285f4 */
   font-weight: 600;
   margin-bottom: 4px;
   line-height: 1.2;
@@ -127,18 +125,16 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 250px;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .controls {
   display: flex;
-  flex-wrap: nowrap;
   gap: 12px;
   margin-bottom: 12px;
   width: 100%;
-  justify-content: space-between; /* Ensure equal distribution */
-  /* Remove any extra horizontal padding that might contribute to width */
-  padding-left: 0;
-  padding-right: 0;
 }
 
 /* Hide settings icon in the controls */
@@ -155,17 +151,49 @@ button, select {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+}
+
+/* Change primary button color to #2980b9 */
+.primary-btn {
+  flex-grow: 4; /* Give more space to the primary button */
+  background-color: #2980b9; /* Changed from #4285f4 */
+  color: white;
+  box-shadow: 0 2px 4px rgba(41, 128, 185, 0.2); /* Adjusted shadow color */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
+.primary-btn:hover {
+  background-color: #236fa0; /* Darker shade for hover */
+  box-shadow: 0 4px 8px rgba(41, 128, 185, 0.3); /* Adjusted shadow color */
+  transform: translateY(-1px);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(41, 128, 185, 0.2); /* Adjusted shadow color */
+}
+
+.primary-btn:disabled {
+  background-color: #82b2d1; /* Lighter shade for disabled state */
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 select {
-  flex: 1 1 auto; /* Allow it to shrink if needed */
-  min-width: 120px; /* Ensure it doesn't get too small */
+  flex-grow: 3; /* Give good space to the dropdown */
   background-color: white;
   border: 1px solid #e0e0e0;
   color: #555;
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 10px;
@@ -179,32 +207,8 @@ select:hover {
 
 select:focus {
   outline: none;
-  border-color: #4285f4;
-  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
-}
-
-/* Chat button styling */
-#chat-btn {
-  flex: 1;
-  background-color: #4285f4;
-  color: white;
-  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px; /* Slightly smaller gap */
-  margin-left: 8px; /* Space between buttons */
-}
-
-#chat-btn:hover {
-  background-color: #357ae8;
-  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
-  transform: translateY(-1px);
-}
-
-#chat-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(66, 133, 244, 0.2);
+  border-color: #2980b9; /* Changed from #4285f4 */
+  box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.2); /* Adjusted shadow color */
 }
 
 /* Checkbox styling */
@@ -227,8 +231,8 @@ select:focus {
 }
 
 .checkbox-option input[type="checkbox"]:checked {
-  background-color: #4285f4;
-  border-color: #4285f4;
+  background-color: #2980b9; /* Changed from #4285f4 */
+  border-color: #2980b9; /* Changed from #4285f4 */
 }
 
 .checkbox-option input[type="checkbox"]:checked::after {
@@ -253,32 +257,31 @@ select:focus {
 }
 
 .label-icon {
-  color: #4285f4;
+  color: #2980b9; /* Changed from #4285f4 */
   font-size: 12px;
 }
 
 .checkbox-option input[type="checkbox"]:checked + label {
-  color: #4285f4;
+  color: #2980b9; /* Changed from #4285f4 */
   font-weight: 500;
 }
 
-/* Make the summary container expandable */
+/* Summary container - dynamic size without scrollbars */
 .summary-container {
   position: relative;
   background-color: white;
   border-radius: 12px;
   padding: 16px;
-  flex-grow: 1;
-  min-height: 150px;
+  flex: 1 1 auto;
+  min-height: 100px;
   height: auto;
-  overflow-y: visible;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.04);
-  /* Remove any extra horizontal padding that might contribute to width */
-  padding-left: 0;
-  padding-right: 0;
+  margin-bottom: 12px; /* Increased space between summary and footer */
+  overflow: hidden;
+  max-width: 100%;
 }
 
 /* Loading indicator centered */
@@ -294,7 +297,7 @@ select:focus {
 }
 
 .spinner {
-  color: #4285f4;
+  color: #2980b9; /* Changed from #4285f4 */
   font-size: 24px;
 }
 
@@ -319,7 +322,7 @@ select:focus {
 
 .empty-icon {
   font-size: 28px;
-  color: #4285f4;
+  color: #2980b9; /* Changed from #4285f4 */
   opacity: 0.7;
   margin-bottom: 12px;
 }
@@ -336,7 +339,7 @@ select:focus {
   font-weight: 600;
   font-size: 16px;
   margin-bottom: 12px;
-  color: #4285f4;
+  color: #2980b9; /* Changed from #4285f4 */
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -357,7 +360,7 @@ select:focus {
   content: "•";
   position: absolute;
   left: 8px;
-  color: #4285f4;
+  color: #2980b9; /* Changed from #4285f4 */
   font-weight: bold;
 }
 
@@ -386,278 +389,15 @@ select:focus {
   font-size: 14px;
 }
 
-/* Fix footer positioning */
+/* Footer positioning at the bottom */
 footer {
-  margin-top: 16px;
-  padding: 12px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  width: 100%;
-  /* Remove any extra horizontal padding that might contribute to width */
-  padding-left: 0;
-  padding-right: 0;
-}
-
-/* Ensure footer content has proper spacing */
-.footer-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 0 8px;
-}
-
-.footer-right {
-  text-align: right;
-}
-
-/* Footer always at the bottom */
-footer {
+  margin-top: auto; /* Push to bottom */
+  padding: 0;
+  border-top: none;
   flex-shrink: 0;
-}
-
-.api-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.api-icon {
-  color: #4285f4;
-  font-size: 12px;
-}
-
-.separator {
-  margin: 0 5px;
-}
-
-#settings-link {
-  color: #4285f4;
-  text-decoration: none;
-}
-
-#settings-link:hover {
-  text-decoration: underline;
-}
-
-/* API indicator styles */
-.api-indicator {
-  display: inline-block;
-  margin-left: 6px;
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.indicator-openai {
-  background-color: #D4EDDA;
-  color: #155724;
-}
-
-.indicator-lmstudio {
-  background-color: #D1ECF1;
-  color: #0C5460;
-}
-
-.indicator-ollama {
-  background-color: #E2E3FF;
-  color: #3A3494;
-}
-
-.indicator-demo {
-  background-color: #FFF3CD;
-  color: #856404;
-}
-
-/* Additional CSS fixes for the settings page */
-
-/* Settings page specific overrides */
-body.settings-page {
-  height: auto;
-  min-height: 500px;
-  overflow-y: auto;
-}
-
-/* Fix for the actions bar at the bottom of settings */
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 12px 20px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #f8f9fb;
-  z-index: 10;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.05);
-}
-
-/* Ensure settings form has padding at bottom to avoid content being hidden by fixed buttons */
-#settings-form {
-  padding-bottom: 70px;
-}
-
-/* Make the Cancel button visually distinct */
-#cancel-btn {
-  background-color: white;
-  color: #444;
-  border: 1px solid #ddd;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-#cancel-btn:hover {
-  background-color: #f2f2f2;
-  border-color: #ccc;
-}
-
-/* Make the Save button more prominent */
-#save-btn {
-  width: 150px;
-  background-color: #4285f4;
-  color: white;
-  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
-}
-
-#save-btn:hover {
-  background-color: #357ae8;
-  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
-  transform: translateY(-1px);
-}
-
-/* Fix for the settings page layout */
-.settings-page #app-wrapper,
-.settings-page #popup-container {
-  height: auto;
-  min-height: unset;
-  display: block;
-}
-
-/* Settings page form styles */
-.form-group {
-  margin-bottom: 18px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-  color: #444;
-}
-
-.form-group input[type="text"],
-.form-group input[type="password"],
-.form-group input[type="url"],
-.form-group select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #4285f4;
-  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
-}
-
-.form-group small {
-  display: block;
-  margin-top: 4px;
-  color: #666;
-  font-size: 12px;
-}
-
-/* API Section styling */
-.api-section {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  background-color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.api-section-title {
-  font-weight: 600;
-  margin-bottom: 14px;
-  color: #4285f4;
-  font-size: 15px;
-}
-
-/* API Method Indicator styles */
-.api-method-container {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0 0 8px;
-}
-
-.api-method-indicator {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-}
-
-/* Method-specific styles */
-.api-method-indicator.indicator-openai {
-  background-color: #10a37f; /* OpenAI green */
-}
-
-.api-method-indicator.indicator-lmstudio {
-  background-color: #0C5460; /* LM Studio blue */
-}
-
-.api-method-indicator.indicator-ollama {
-  background-color: #3A3494; /* Ollama purple */
-}
-
-/* Hide the original footer API info */
-.api-info.hidden {
-  display: none;
-}
-
-/* API Method Indicator styles */
-/*
-.api-method-container {
-  position: absolute;
-  top: -25px;   Adjust this value if needed 
-  right: 16px;
-  z-index: 10;
-}
-*/
-
-.api-method-indicator {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-}
-
-/* Method-specific styles */
-.api-method-indicator.indicator-openai {
-  background-color: #10a37f; /* OpenAI green */
-}
-
-.api-method-indicator.indicator-lmstudio {
-  background-color: #0C5460; /* LM Studio blue */
-}
-
-.api-method-indicator.indicator-ollama {
-  background-color: #3A3494; /* Ollama purple */
+  position: sticky;
+  bottom: 0;
 }
 
 /* Update translate option to match the top red rectangle position */
@@ -668,16 +408,59 @@ body.settings-page {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Make the summary container position relative for absolute positioning of the API indicator */
-.summary-container {
-  position: relative;
+/* API Method Indicator styles */
+.api-method-indicator {
+  display: inline-block;
+  padding: 4px 10px; /* Reduced padding from 6px 12px */
+  border-radius: 12px;
+  font-size: 12px; /* Reduced from 13px */
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2; /* Added to control height */
 }
 
-/* Hide the original footer API info */
-.api-info.hidden {
-  display: none;
+/* Method-specific styles */
+.api-method-indicator.indicator-openai {
+  background-color: #10a37f; /* OpenAI green */
 }
 
+.api-method-indicator.indicator-lmstudio {
+  background-color: #0C5460; /* LM Studio blue */
+}
+
+.api-method-indicator.indicator-ollama {
+  background-color: #6e48aa; /* Ollama purple */
+}
+
+/* Chat button styling */
+.chat-button {
+  background-color: #2b7de9;
+  color: white;
+  border-radius: 8px; /* Match the Generate button's curved edges */
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-button:hover {
+  background-color: #1c6fd4;
+}
+
+/* Bottom bar for API indicator and chat button */
+.bottom-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: calc(100% - 8px);
+  padding: 0;
+  margin: 0 4px 4px 4px; /* Very small margin from the bottom */
+}
+
+/* Utility classes */
 .hidden {
   display: none;
 }
