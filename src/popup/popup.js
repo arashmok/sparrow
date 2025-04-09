@@ -36,8 +36,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       // Get the generated text from the summary container
-      const summaryElement = document.querySelector('.summary-content');
-      const generatedText = summaryElement ? summaryElement.textContent : '';
+      // Fix: Use the correct element ID where the summary is displayed
+      const summaryElement = document.getElementById('summary-text');
+      let generatedText = '';
+      
+      // If summary exists, get it from storage instead of from HTML element
+      // This ensures we get the original unformatted text
+      await new Promise(resolve => {
+        chrome.storage.local.get(['latestSummary'], (result) => {
+          if (result.latestSummary) {
+            generatedText = result.latestSummary;
+          }
+          resolve();
+        });
+      });
       
       // Send message to background script to open the chat panel
       chrome.runtime.sendMessage({

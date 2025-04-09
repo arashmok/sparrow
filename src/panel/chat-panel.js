@@ -25,36 +25,53 @@ document.addEventListener('DOMContentLoaded', () => {
       // Listen for messages from the background script
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.action === 'chat-initiate') {
-          const selectedText = message.text || '';
-          const chatAction = message.chatAction || '';
+          const pageContent = message.pageContent || '';
           
-          chrome.storage.local.get('latestSummary', (result) => {
-            const storedSummary = result.latestSummary || message.pageContent || '';
+          // Add the summary as the first assistant message
+          if (pageContent) {
+            addMessage(pageContent, 'assistant');
+            conversationHistory = [
+              {
+                role: 'assistant',
+                content: pageContent
+              }
+            ];
+          }
+          
+          // Handle chat action (ask or explain)
+          if (message.chatAction === 'ask' || message.chatAction === 'explain') {
+            const selectedText = message.text || '';
+            let prompt;
             
-            if (storedSummary) {
-              // Hide the page content container (gray box)
-              pageContentContainer.classList.add('hidden');
-              
-              // Add the summary as the first assistant message only (blue box)
-              addMessage(storedSummary, 'assistant');
-              
-              // Set conversation history with the generated summary
-              conversationHistory = [
-                {
-                  role: 'system',
-                  content: `The following is the generated summary of the current page:\n\n${storedSummary}`
-                },
-                {
-                  role: 'assistant',
-                  content: storedSummary
-                }
-              ];
+            if (message.chatAction === 'ask') {
+              prompt = `The user wants to know more about the following text: "${selectedText}"`;
+            } else {
+              prompt = `The user wants you to explain the following text in simple terms: "${selectedText}"`;
             }
             
-            sendResponse({ success: true });
-          });
+            // Send message to background script for processing
+            chrome.runtime.sendMessage({
+              action: 'chat-message',
+              text: prompt,
+              history: conversationHistory
+            }, (response) => {
+              hideTypingIndicator();
+              
+              if (response && response.reply) {
+                addMessage(response.reply, 'assistant');
+                
+                // Update conversation history
+                conversationHistory.push({
+                  role: 'assistant',
+                  content: response.reply
+                });
+              } else {
+                addMessage('Sorry, I encountered an error processing your message.', 'assistant');
+              }
+            });
+          }
           
-          return true;
+          sendResponse({ success: true });
         }
       });
       
@@ -172,15 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Create message content
       const messageText = document.createElement('div');
-      messageText.className = 'message-content';
       messageText.textContent = text;
       messageDiv.appendChild(messageText);
-      
-      // Add timestamp
-      const timestamp = document.createElement('span');
-      timestamp.className = 'message-time';
-      timestamp.textContent = getFormattedTime();
-      messageDiv.appendChild(timestamp);
       
       // Add to chat and scroll to bottom
       chatMessages.appendChild(messageDiv);

@@ -20,15 +20,38 @@ const MAX_CHUNKS = 5;
 // Open the side panel when requested
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'open-chat-panel') {
-    // Open the chat panel in a new popup window
-    chrome.windows.create({
-      url: chrome.runtime.getURL("src/panel/chat-panel.html"),
-      type: "popup",
-      width: 400,
-      height: 600
-    }, (newWindow) => {
-      sendResponse({ success: true });
+    // Store the generated text for the side panel to access
+    if (request.generatedText) {
+      chrome.storage.local.set({ latestSummary: request.generatedText });
+    }
+    
+    // Open the side panel with the chat interface
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs[0].id;
+      chrome.sidePanel.open({ tabId: tabId }).then(() => {
+        // Set the side panel page to the chat panel HTML
+        chrome.sidePanel.setOptions({
+          path: 'src/panel/chat-panel.html',
+          enabled: true
+        });
+        
+        // Send a message to initialize the chat panel with the generated text
+        setTimeout(() => {
+          chrome.runtime.sendMessage({
+            action: 'chat-initiate',
+            tabId: tabId,
+            pageContent: request.generatedText,
+            chatAction: request.chatAction
+          });
+        }, 500); // Give the side panel time to load
+        
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error("Error opening side panel:", error);
+        sendResponse({ success: false, error: error.message });
+      });
     });
+    
     return true; // Keep the messaging channel open for sendResponse
   }
   // Handle chat messages for API communication
@@ -110,41 +133,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     // Return true to indicate that the response will be sent asynchronously
     return true;
-  }
-});
-
-// Listen for messages from the popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'open-chat-panel') {
-    // Store the generated text for the side panel to access
-    if (request.generatedText) {
-      chrome.storage.local.set({ latestSummary: request.generatedText });
-    }
-    
-    // Open the side panel with the chat interface
-    chrome.sidePanel.open({ tabId: request.tabId }).then(() => {
-      // Set the side panel page to the chat panel HTML
-      chrome.sidePanel.setOptions({
-        path: 'src/panel/chat-panel.html',
-        enabled: true
-      });
-      
-      // Send a message to initialize the chat panel with the generated text
-      setTimeout(() => {
-        chrome.runtime.sendMessage({
-          action: 'chat-initiate',
-          tabId: request.tabId,
-          pageContent: request.generatedText
-        });
-      }, 500); // Give the side panel time to load
-      
-      sendResponse({ success: true });
-    }).catch(error => {
-      console.error("Error opening side panel:", error);
-      sendResponse({ success: false, error: error.message });
-    });
-    
-    return true; // Required for async response
   }
 });
 

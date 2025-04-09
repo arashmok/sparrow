@@ -125,8 +125,9 @@ function initiateChat(action) {
   
   // Send message to background script
   chrome.runtime.sendMessage({
-    action: 'initiate-side-panel',
-    text: selectedText,
+    action: 'open-chat-panel',
+    tabId: null, // This will be handled in background script
+    generatedText: selectedText,
     chatAction: action
   });
   
