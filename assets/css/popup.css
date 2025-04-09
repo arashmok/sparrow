@@ -464,3 +464,9 @@ footer {
 .hidden {
   display: none;
 }
+
+/* Add to popup.css */
+.hidden-during-generation {
+  display: none;
+  transition: opacity 0.2s ease-out;
+}

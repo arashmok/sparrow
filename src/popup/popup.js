@@ -168,6 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update button state
     summarizeBtn.querySelector('span').textContent = "Generating...";
     summarizeBtn.disabled = true;
+
+    // Hide summary format dropdown during generation
+    summaryFormat.classList.add('hidden-during-generation');
     
     // Clear any previous summary
     summaryText.textContent = '';
@@ -201,6 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Reset button state
             summarizeBtn.querySelector('span').textContent = originalButtonText;
             summarizeBtn.disabled = false;
+
+            // Show summary format dropdown after generation
+            summaryFormat.classList.remove('hidden-during-generation');
           }
         }, 200);
       }
@@ -210,6 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset button state
       summarizeBtn.querySelector('span').textContent = originalButtonText;
       summarizeBtn.disabled = false;
+
+      // Show summary format dropdown after generation
+      summaryFormat.classList.remove('hidden-during-generation');
     }
   }
   
@@ -255,6 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset button state
       summarizeBtn.querySelector('span').textContent = "Generate";
       summarizeBtn.disabled = false;
+
+      // Show summary format dropdown after generation
+      summaryFormat.classList.remove('hidden-during-generation');
       return;
     }
     
@@ -281,6 +293,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Always reset button state when we get a response
         summarizeBtn.querySelector('span').textContent = "Generate";
         summarizeBtn.disabled = false;
+
+        // Show summary format dropdown after generation
+        summaryFormat.classList.remove('hidden-during-generation');
         
         // Reset loading message if it exists
         const loadingText = loading.querySelector('span');
@@ -507,6 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset button state
     summarizeBtn.querySelector('span').textContent = "Generate";
     summarizeBtn.disabled = false;
+
+    // Show summary format dropdown after generation
+    summaryFormat.classList.remove('hidden-during-generation');
     
     // Format the error message with an icon and better styling
     summaryText.innerHTML = `
