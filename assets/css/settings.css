@@ -7,7 +7,7 @@ body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    overflow-y: auto; /* Change from hidden to auto */
+    overflow-y: auto;
 }
 
 body.settings-page {
@@ -16,7 +16,8 @@ body.settings-page {
     background-color: #f8f9fb;
     color: #333;
     line-height: 1.5;
-    max-height: 600px; /* Add a reasonable maximum height */
+    min-height: 450px;
+    max-height: none;
 }
 
 header {
@@ -109,19 +110,19 @@ main {
     margin-bottom: 20px;
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    min-height: auto; /* Change from fixed height */
-    max-height: 280px; /* Add max height */
-    overflow-y: auto; /* Add scrolling when needed */
+    min-height: auto;
+    max-height: none;
+    overflow-y: visible;
 }
 
 /* Container to hold all API sections with adjustable height */
 .api-sections-container {
     height: auto;
     min-height: 235px;
-    max-height: 300px; /* Add max height */
+    max-height: 300px;
     position: relative;
     margin-bottom: 20px;
-    overflow-y: visible; /* Allow content to be visible */
+    overflow-y: visible;
 }
 
 /* Input fields and select dropdowns */
@@ -136,6 +137,18 @@ select {
     font-size: 14px;
     transition: all 0.2s ease;
     background-color: #fff;
+}
+
+/* Add API source dropdown styling */
+.api-source-dropdown {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background-color: #fff;
+    margin-bottom: 16px;
 }
 
 /* Select styling with fixes for overflow issues */
@@ -180,11 +193,11 @@ small {
     padding: 12px 20px;
     background-color: #f8f9fb;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
-    position: sticky; /* Make buttons sticky */
-    bottom: 0; /* Stick to bottom */
+    position: sticky;
+    bottom: 0;
     left: 0;
     right: 0;
-    z-index: 10; /* Ensure it stays above other content */
+    z-index: 10;
 }
 
 #cancel-btn {
@@ -308,7 +321,7 @@ small {
     display: flex;
     align-items: center;
     margin-bottom: 5px;
-    max-width: 100%; /* Ensure it doesn't overflow */
+    max-width: 100%;
 }
 
 .select-with-spinner select {
@@ -316,7 +329,7 @@ small {
     width: 100%;
     text-overflow: ellipsis;
     height: auto;
-    max-height: 38px; /* Constrain height */
+    max-height: 38px;
     overflow: hidden !important;
 }
 

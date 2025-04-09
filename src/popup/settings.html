@@ -18,21 +18,12 @@
         <form id="settings-form">
             <!-- API Mode Selection -->
             <div class="form-group">
-                <label>API Source</label>
-                <div class="horizontal-radio-group">
-                    <span class="radio-item">
-                        <input type="radio" id="api-openai" name="api-mode" value="openai" checked>
-                        <label for="api-openai">OpenAI</label>
-                    </span>
-                    <span class="radio-item">
-                        <input type="radio" id="api-lmstudio" name="api-mode" value="lmstudio">
-                        <label for="api-lmstudio">LM Studio</label>
-                    </span>
-                    <span class="radio-item">
-                        <input type="radio" id="api-ollama" name="api-mode" value="ollama">
-                        <label for="api-ollama">Ollama</label>
-                    </span>
-                </div>
+                <label for="api-mode-select">API Source</label>
+                <select id="api-mode-select" class="api-source-dropdown">
+                    <option value="openai">OpenAI</option>
+                    <option value="lmstudio">LM Studio</option>
+                    <option value="ollama">Ollama</option>
+                </select>
             </div>
 
             <!-- API Sections Container -->

@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const settingsForm = document.getElementById('settings-form');
-  const apiModeRadios = document.querySelectorAll('input[name="api-mode"]');
+  const apiModeSelect = document.getElementById('api-mode-select');
   const openaiSection = document.getElementById('openai-section');
   const lmstudioSection = document.getElementById('lmstudio-section');
   const ollamaSection = document.getElementById('ollama-section');
@@ -47,12 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = "popup.html";
   });
   
-  // Toggle between API sections when radio buttons are clicked
-  apiModeRadios.forEach(radio => {
-    radio.addEventListener('change', () => {
-      updateApiSectionVisibility();
-    });
-  });
+  // Add event listener for dropdown change
+  apiModeSelect.addEventListener('change', updateApiSectionVisibility);
   
   // Add event listeners for server URL changes
   lmstudioApiUrlInput.addEventListener('blur', () => {
@@ -76,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Function to update API section visibility based on selected mode
   function updateApiSectionVisibility() {
-    const selectedApiMode = document.querySelector('input[name="api-mode"]:checked').value;
+    const selectedApiMode = apiModeSelect.value;
     
     // Hide all sections first
     openaiSection.classList.add('hidden');
@@ -112,13 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
       'lmstudioModel',
       'ollamaApiUrl',
       'ollamaModel',
-      'defaultFormat' // Use defaultFormat consistently
+      'defaultFormat'
     ], (result) => {
       console.log("Loaded settings:", result);
       
-      // Set API mode
+      // Set API mode in dropdown
       const apiMode = result.apiMode || 'openai';
-      document.querySelector(`input[name="api-mode"][value="${apiMode}"]`).checked = true;
+      apiModeSelect.value = apiMode;
       updateApiSectionVisibility();
       
       // OpenAI settings
@@ -366,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function saveSettings(e) {
     e.preventDefault();
     
-    const apiMode = document.querySelector('input[name="api-mode"]:checked').value;
+    const apiMode = apiModeSelect.value;
     
     const settings = {
       apiMode: apiMode,
