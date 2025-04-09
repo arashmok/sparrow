@@ -6,7 +6,8 @@ body {
     width: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto; /* Change from hidden to auto */
 }
 
 body.settings-page {
@@ -15,6 +16,7 @@ body.settings-page {
     background-color: #f8f9fb;
     color: #333;
     line-height: 1.5;
+    max-height: 600px; /* Add a reasonable maximum height */
 }
 
 header {
@@ -107,22 +109,19 @@ main {
     margin-bottom: 20px;
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    min-height: 200px;
-}
-
-.api-section-title {
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: #4285f4;
-    font-size: 16px;
+    min-height: auto; /* Change from fixed height */
+    max-height: 280px; /* Add max height */
+    overflow-y: auto; /* Add scrolling when needed */
 }
 
 /* Container to hold all API sections with adjustable height */
 .api-sections-container {
     height: auto;
     min-height: 235px;
+    max-height: 300px; /* Add max height */
     position: relative;
     margin-bottom: 20px;
+    overflow-y: visible; /* Allow content to be visible */
 }
 
 /* Input fields and select dropdowns */
@@ -181,8 +180,11 @@ small {
     padding: 12px 20px;
     background-color: #f8f9fb;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.05);
-    margin-top: 20px;
+    position: sticky; /* Make buttons sticky */
+    bottom: 0; /* Stick to bottom */
+    left: 0;
+    right: 0;
+    z-index: 10; /* Ensure it stays above other content */
 }
 
 #cancel-btn {
@@ -306,6 +308,7 @@ small {
     display: flex;
     align-items: center;
     margin-bottom: 5px;
+    max-width: 100%; /* Ensure it doesn't overflow */
 }
 
 .select-with-spinner select {
@@ -313,7 +316,14 @@ small {
     width: 100%;
     text-overflow: ellipsis;
     height: auto;
-    overflow-y: hidden !important;
+    max-height: 38px; /* Constrain height */
+    overflow: hidden !important;
+}
+
+/* Fix for all model selections to prevent overflow issues */
+#lmstudio-model, #ollama-model, #openai-model {
+    max-width: 100%;
+    text-overflow: ellipsis;
 }
 
 /* Fix for LM Studio model selection to prevent scrolling */
