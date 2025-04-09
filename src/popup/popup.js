@@ -35,10 +35,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // Get the active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
+      // Get the generated text from the summary container
+      const summaryElement = document.querySelector('.summary-content');
+      const generatedText = summaryElement ? summaryElement.textContent : '';
+      
       // Send message to background script to open the chat panel
       chrome.runtime.sendMessage({
         action: 'open-chat-panel',
-        tabId: tab.id
+        tabId: tab.id,
+        generatedText: generatedText
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error("Error opening chat panel:", chrome.runtime.lastError);

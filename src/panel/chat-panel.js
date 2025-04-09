@@ -27,44 +27,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (message.action === 'chat-initiate') {
           const selectedText = message.text || '';
           const chatAction = message.chatAction || '';
+          
           chrome.storage.local.get('latestSummary', (result) => {
-            const storedSummary = result.latestSummary || (message.pageContent || selectedText);
+            const storedSummary = result.latestSummary || message.pageContent || '';
             
             if (storedSummary) {
-              pageContentContainer.classList.remove('hidden');
+              // Hide the page content container (gray box)
+              pageContentContainer.classList.add('hidden');
               
-              // Instead of truncating, display the full generated summary.
-              // If the summary includes a title on the first line, display it with a different style.
-              const lines = storedSummary.split('\n');
-              if (lines.length > 1) {
-                pageContentText.innerHTML =
-                  `<div class="generated-title">${lines[0]}</div>` +
-                  `<div class="generated-content">${lines.slice(1).join('\n')}</div>`;
-              } else {
-                pageContentText.textContent = storedSummary;
-              }
+              // Add the summary as the first assistant message only (blue box)
+              addMessage(storedSummary, 'assistant');
               
-              // Set conversation history with the full generated summary as context
-              conversationHistory = [{
-                role: 'system',
-                content: `The following is the generated summary of the current page:\n\n${storedSummary}`
-              }];
-              
-              if (selectedText && chatAction) {
-                let userMessage = '';
-                if (chatAction === 'ask') {
-                  userMessage = `I want to ask about this text: "${selectedText.substring(0, 100)}${selectedText.length > 100 ? '...' : ''}"`;
-                } else if (chatAction === 'explain') {
-                  userMessage = `Please explain this text in simple terms: "${selectedText.substring(0, 100)}${selectedText.length > 100 ? '...' : ''}"`;
+              // Set conversation history with the generated summary
+              conversationHistory = [
+                {
+                  role: 'system',
+                  content: `The following is the generated summary of the current page:\n\n${storedSummary}`
+                },
+                {
+                  role: 'assistant',
+                  content: storedSummary
                 }
-                
-                if (userMessage) {
-                  addMessage(userMessage, 'user');
-                  conversationHistory.push({ role: 'user', content: userMessage });
-                  showTypingIndicator();
-                  processSelectedText(selectedText, chatAction);
-                }
-              }
+              ];
             }
             
             sendResponse({ success: true });
