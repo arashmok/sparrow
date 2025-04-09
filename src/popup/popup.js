@@ -371,14 +371,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const headerHeight = document.querySelector('header').offsetHeight;
       const controlsHeight = document.querySelector('.controls').offsetHeight;
       const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
-      const summaryHeight = summaryResult.offsetHeight;
       const footerHeight = document.querySelector('footer').offsetHeight;
+      
+      // For summary height, use the actual content height, not just the visible container
+      const summaryContentHeight = summaryText.scrollHeight;
+      const summaryContainerHeight = Math.min(350, summaryContentHeight); // Cap at max-height
       
       // Add padding/margins
       const padding = 50; // Extra padding for margins and spacing
       
       // Calculate optimal window height
-      const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryHeight + footerHeight + padding;
+      const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryContainerHeight + footerHeight + padding;
       
       // Limit to reasonable bounds
       const minHeight = 300;

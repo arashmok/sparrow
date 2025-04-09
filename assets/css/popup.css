@@ -18,6 +18,10 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   padding: 16px;
   background-color: #f8f9fb;
@@ -274,13 +278,14 @@ select:focus {
   padding: 16px;
   flex: 1 1 auto;
   min-height: 100px;
+  max-height: 350px; /* Add a reasonable max height */
   height: auto;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.04);
-  margin-bottom: 12px; /* Increased space between summary and footer */
-  overflow: hidden;
+  margin-bottom: 12px;
+  overflow-y: auto; /* Change from hidden to auto */
   max-width: 100%;
 }
 
