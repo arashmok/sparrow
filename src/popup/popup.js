@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiIndicator = document.getElementById('api-indicator');
   const apiMethodIndicator = document.getElementById('api-method-indicator');
   
-  // Initialize popup by loading saved settings
+  // Initialize popup by loading saved settings and IMMEDIATELY check for existing summary
+  checkForExistingSummary();
   initializePopup();
   
   // Event Listeners
@@ -35,13 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Get the active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
-      // Get the generated text from the summary container
-      // Fix: Use the correct element ID where the summary is displayed
-      const summaryElement = document.getElementById('summary-text');
+      // Get the generated text from storage directly rather than from HTML
       let generatedText = '';
       
-      // If summary exists, get it from storage instead of from HTML element
-      // This ensures we get the original unformatted text
       await new Promise(resolve => {
         chrome.storage.local.get(['latestSummary'], (result) => {
           if (result.latestSummary) {
@@ -98,9 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Update API mode indicator
       updateApiModeIndicator(result.apiMode);
-      
-      // Check if we have a saved summary from this session
-      checkForExistingSummary();
     });
   }
 
@@ -143,19 +137,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Function to check for an existing summary
+  // Better URL normalization function
+  function normalizeUrl(urlStr) {
+    try {
+      // Handle empty or invalid URLs
+      if (!urlStr) return '';
+      
+      const urlObj = new URL(urlStr);
+      
+      // Remove hash fragments
+      urlObj.hash = '';
+      
+      // Remove trailing slashes from pathname
+      urlObj.pathname = urlObj.pathname.replace(/\/+$/, '');
+      
+      // Convert to lowercase for consistent comparison
+      let normalized = urlObj.protocol + '//' + urlObj.host.toLowerCase() + urlObj.pathname + urlObj.search;
+      
+      // Remove common tracking parameters (UTM, etc.)
+      const urlParams = new URLSearchParams(urlObj.search);
+      const paramsToRemove = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+      let trackingRemoved = false;
+      
+      paramsToRemove.forEach(param => {
+        if (urlParams.has(param)) {
+          urlParams.delete(param);
+          trackingRemoved = true;
+        }
+      });
+      
+      // If we removed tracking params, rebuild the URL
+      if (trackingRemoved) {
+        const newSearch = urlParams.toString() ? `?${urlParams.toString()}` : '';
+        normalized = urlObj.protocol + '//' + urlObj.host.toLowerCase() + urlObj.pathname + newSearch;
+      }
+      
+      return normalized;
+    } catch (e) {
+      console.error("URL normalization error:", e);
+      return urlStr || '';
+    }
+  }
+
+  // Improved check for existing summary
   function checkForExistingSummary() {
     chrome.storage.local.get(['latestSummary', 'latestUrl'], (result) => {
-      if (result.latestSummary) {
-        // Get the current URL to compare
+      if (result.latestSummary && result.latestUrl) {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          const currentUrl = tabs[0].url;
+          if (!tabs || !tabs[0]) return;
           
-          // Only restore if we're still on the same page
-          if (result.latestUrl === currentUrl) {
-            displaySummary(result.latestSummary);
+          const currentUrl = normalizeUrl(tabs[0].url);
+          const storedUrl = normalizeUrl(result.latestUrl);
+          
+          console.log("Checking summary availability:");
+          console.log("Current URL:", tabs[0].url);
+          console.log("Normalized current URL:", currentUrl);
+          console.log("Stored URL:", result.latestUrl);
+          console.log("Normalized stored URL:", storedUrl);
+          
+          if (currentUrl === storedUrl) {
+            console.log("URLs match! Displaying saved summary");
+            displaySummary(result.latestSummary, result.latestUrl);
+          } else {
+            console.log("URLs don't match. No stored summary for this page.");
           }
         });
+      } else {
+        console.log("No saved summary found in storage");
       }
     });
   }
@@ -336,31 +384,31 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   }
   
-  // Function to display the summary with dynamic sizing
-  function displaySummary(summary, url = null) {
-    loading.classList.add('hidden'); // Hide the loading message
+  // Improved display summary function
+  function displaySummary(summary, storedUrl = null) {
+    loading.classList.add('hidden');
     summaryResult.classList.remove('hidden');
     
-    // Format the summary with better structure
     const formattedSummary = formatSummaryText(summary);
-    
-    // Replace the text content with formatted HTML
     summaryText.innerHTML = formattedSummary;
-    
-    // Adjust the window height based on content
     adjustWindowHeight();
     
-    // Store the latest summary in local storage
-    const storageData = {
-      latestSummary: summary // Store the original unformatted summary
-    };
-    
-    // If URL was provided, store it too
-    if (url) {
-      storageData.latestUrl = url;
-    }
-    
-    chrome.storage.local.set(storageData);
+    // Save the current URL and summary 
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) return;
+      
+      const currentUrl = tabs[0].url;
+      const urlToStore = storedUrl || currentUrl;
+      
+      console.log("Saving summary for URL:", urlToStore);
+      chrome.storage.local.set({
+        latestSummary: summary,
+        latestUrl: urlToStore,
+        lastSaved: Date.now() // Add timestamp for debugging
+      }, () => {
+        console.log("Summary saved successfully to storage");
+      });
+    });
   }
 
   // Function to adjust window height based on content
