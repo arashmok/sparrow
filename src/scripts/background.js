@@ -73,7 +73,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'open-chat-panel') {
     // Store the generated text for the side panel to access
     if (request.generatedText) {
-      chrome.storage.local.set({ latestSummary: request.generatedText });
+      // Preserve and enhance formatting for chat panel
+      const enhancedText = prepareTextForChatPanel(request.generatedText);
+      chrome.storage.local.set({ latestSummary: enhancedText });
     }
     
     // Open the side panel with the chat interface
@@ -1316,4 +1318,31 @@ Highlight the most important aspects while maintaining reasonable brevity:\n\n${
   }
   
   return prompt;
+}
+
+/**
+ * Helper function to prepare text for chat panel
+ * @param {string} text - The text to format
+ * @returns {string} Formatted text
+ */
+function prepareTextForChatPanel(text) {
+  // Ensure code blocks have proper spacing
+  text = text.replace(/```(\w*)\n/g, '```$1\n');
+  
+  // Make sure lists have proper spacing for markdown conversion
+  text = text.replace(/^([\*\-])/gm, '\n$1');
+  
+  // Convert bullet formats to consistent markdown
+  text = text.replace(/^[•]\s*(.*)/gm, '* $1');
+  
+  // Ensure ordered lists are properly formatted
+  text = text.replace(/^(\d+)\.\s*/gm, '$1. ');
+  
+  // Add spacing around headings
+  text = text.replace(/^(#{1,6}\s.*)/gm, '\n$1\n');
+  
+  // Properly format blockquotes
+  text = text.replace(/^>\s*/gm, '> ');
+  
+  return text;
 }

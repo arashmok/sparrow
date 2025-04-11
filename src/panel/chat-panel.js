@@ -48,18 +48,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (message.action === 'chat-initiate') {
           const pageContent = message.pageContent || '';
           
-          // Add the summary as the first assistant message
           if (pageContent) {
-            // Format the content before adding
-            addMessage(pageContent, 'assistant');
+            // Format the content BEFORE adding it to the chat
+            const formattedContent = formatMessageText(pageContent);
             
-            // Store the formatted message in conversation history
+            // Create a properly formatted message div
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message message-assistant';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerHTML = formattedContent;
+            
+            messageDiv.appendChild(messageContent);
+            chatMessages.appendChild(messageDiv);
+            
+            // Store the original markdown in conversation history for API context
             conversationHistory = [
               {
                 role: 'assistant',
                 content: pageContent
               }
             ];
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
           }
           
           // Handle chat action (ask or explain)
@@ -266,51 +278,104 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to format message text with enhanced markdown support
     function formatMessageText(text) {
-      // Handle titles with appropriate heading tags
-      text = text.replace(/^#\s+(.*?)$/gm, '<h1>$1</h1>');
-      text = text.replace(/^##\s+(.*?)$/gm, '<h2>$1</h2>');
-      text = text.replace(/^###\s+(.*?)$/gm, '<h3>$1</h3>');
+      if (!text) return '';
       
-      // Process code blocks with language highlighting support
+      // Handle code blocks with language highlighting
       text = text.replace(/```(\w*)\n([\s\S]*?)```/g, function(match, language, code) {
-        return `<pre class="code-block${language ? ' language-'+language : ''}"><code>${code.trim()}</code></pre>`;
+        const langClass = language ? ` class="language-${language}"` : '';
+        const langLabel = language ? `<div class="code-lang-label">${language}</div>` : '';
+        return `<div class="code-block-wrapper">${langLabel}<pre class="code-block"${langClass}><code>${escapeHtml(code.trim())}</code></pre></div>`;
       });
       
-      // Process inline code (`code`)
-      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // Handle headings (# Heading)
+      text = text.replace(/^(#{1,6})\s+(.+)$/gm, function(match, hashes, content) {
+        const level = hashes.length;
+        return `<h${level} class="message-heading message-heading-${level}">${content}</h${level}>`;
+      });
       
-      // Process blockquotes
-      text = text.replace(/^>\s+(.*?)$/gm, '<blockquote>$1</blockquote>');
-      text = text.replace(/(<blockquote>.*?<\/blockquote>)\s*(<blockquote>)/g, '$1$2');
+      // Handle inline code (`code`)
+      text = text.replace(/`([^`\n]+)`/g, '<code class="inline-code">$1</code>');
       
-      // Process bold (**text** or __text__)
-      text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '<strong>$1$2</strong>');
+      // Handle bold text (**text**)
+      text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       
-      // Process italic (*text* or _text_)
-      text = text.replace(/\*(.*?)\*|_(.*?)_/g, '<em>$1$2</em>');
+      // Handle italic text (*text*)
+      text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
       
-      // Process bullet lists with better nesting support
-      text = text.replace(/^\s*[\*\-]\s+(.*?)$/gm, '<li>$1</li>');
-      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1$2');
-      text = text.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
+      // Handle blockquotes
+      text = text.replace(/^\s*>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
       
-      // Process numbered lists
-      text = text.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<li>$2</li>');
-      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1$2');
-      text = text.replace(/(<li>.*?<\/li>)+/g, '<ol>$&</ol>');
+      // Handle unordered lists
+      let inList = false;
+      text = text.split('\n').map(line => {
+        // Check for list items
+        if (/^\s*[\-\*•]\s+/.test(line)) {
+          const content = line.replace(/^\s*[\-\*•]\s+/, '');
+          if (!inList) {
+            inList = true;
+            return `<ul class="message-list"><li>${content}</li>`;
+          }
+          return `<li>${content}</li>`;
+        } else if (inList && line.trim() !== '') {
+          inList = false;
+          return `</ul>\n${line}`;
+        } else if (inList && line.trim() === '') {
+          inList = false;
+          return '</ul>';
+        }
+        return line;
+      }).join('\n');
       
-      // Add horizontal rules
-      text = text.replace(/^\s*---+\s*$/gm, '<hr>');
+      if (inList) {
+        text += '</ul>';
+      }
       
-      // Process links
-      text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+      // Handle ordered lists
+      inList = false;
+      text = text.split('\n').map(line => {
+        if (/^\s*\d+\.\s+/.test(line)) {
+          const content = line.replace(/^\s*\d+\.\s+/, '');
+          if (!inList) {
+            inList = true;
+            return `<ol class="message-list"><li>${content}</li>`;
+          }
+          return `<li>${content}</li>`;
+        } else if (inList && line.trim() !== '') {
+          inList = false;
+          return `</ol>\n${line}`;
+        } else if (inList && line.trim() === '') {
+          inList = false;
+          return '</ol>';
+        }
+        return line;
+      }).join('\n');
       
-      // Convert line breaks, preserving paragraphs
+      if (inList) {
+        text += '</ol>';
+      }
+      
+      // Handle horizontal rules
+      text = text.replace(/^\s*---+\s*$/gm, '<hr class="message-hr">');
+      
+      // Handle links
+      text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="message-link">$1</a>');
+      
+      // Convert remaining paragraphs
       text = text.split('\n\n').map(para => 
-        para.trim() ? `<p>${para.replace(/\n/g, '<br>')}</p>` : ''
+        para.trim() ? `<p class="message-paragraph">${para.replace(/\n/g, '<br>')}</p>` : ''
       ).join('');
       
       return text;
+    }
+    
+    // Helper function to escape HTML in code blocks
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
     
     // Function to show typing indicator
