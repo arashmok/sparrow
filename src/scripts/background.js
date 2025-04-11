@@ -76,7 +76,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       'lmstudioApiKey',
       'lmstudioModel',
       'ollamaApiUrl',
-      'ollamaModel'
+      'ollamaModel',
+      'openrouterApiKey',
+      'openrouterModel'
     ], async (settings) => {
       try {
         // Determine which API to use
@@ -119,6 +121,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
           
           summary = await generateOllamaSummary(request.text, request.format, ollamaApiUrl, ollamaModel, request.translateToEnglish);
+        } else if (apiMode === 'openrouter') {
+          // Use OpenRouter API
+          const apiKey = settings.openrouterApiKey;
+          const model = settings.openrouterModel;
+          
+          if (!apiKey) {
+            sendResponse({ error: 'No OpenRouter API key found. Please add your API key in the extension settings.' });
+            return;
+          }
+          
+          summary = await generateOpenRouterSummary(request.text, request.format, apiKey, model, request.translateToEnglish);
         } else {
           sendResponse({ error: `Unknown API mode: ${apiMode}` });
           return;
@@ -237,7 +250,9 @@ async function handleChatMessage(request) {
       'lmstudioApiKey',
       'lmstudioModel',
       'ollamaApiUrl',
-      'ollamaModel'
+      'ollamaModel',
+      'openrouterApiKey',
+      'openrouterModel'
     ]);
     
     // Determine which API to use
@@ -287,6 +302,16 @@ async function handleChatMessage(request) {
       }
       
       reply = await generateOllamaChatResponse(userMessage, request.history || [], ollamaApiUrl, ollamaModel);
+    } else if (apiMode === 'openrouter') {
+      // Use OpenRouter API
+      const openRouterApiKey = settings.openrouterApiKey;
+      const openRouterModel = settings.openrouterModel || 'gpt-3.5-turbo';
+      
+      if (!openRouterApiKey) {
+        throw new Error('No OpenRouter API key found. Please add your API key in the extension settings.');
+      }
+      
+      reply = await generateOpenRouterChatResponse(userMessage, request.history || [], openRouterApiKey, openRouterModel);
     } else {
       throw new Error(`Unknown API mode: ${apiMode}`);
     }
@@ -477,6 +502,69 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model) {
     return reply;
   } catch (error) {
     console.error('Error generating Ollama chat response:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a chat response using OpenRouter's API
+ * @param {string} userMessage - The user's message
+ * @param {Array} history - Conversation history
+ * @param {string} apiKey - OpenRouter API key
+ * @param {string} model - Model name
+ * @returns {Promise<string>} The generated chat reply
+ */
+async function generateOpenRouterChatResponse(userMessage, history, apiKey, model) {
+  try {
+    // Prepare conversation messages
+    let messages = [];
+    
+    // System message to set the context
+    messages.push({
+      role: 'system',
+      content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
+    });
+    
+    // Add conversation history if available
+    if (history && history.length > 0) {
+      messages = messages.concat(history);
+    }
+    
+    // Add the current user message if not already in history
+    if (!history || !history.some(msg => msg.role === 'user' && msg.content === userMessage)) {
+      messages.push({
+        role: 'user',
+        content: userMessage
+      });
+    }
+    
+    // Make the API call
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://github.com/yourusername/sparrow', // Replace with your actual repo URL
+        'X-Title': 'Sparrow Extension'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        max_tokens: 500,
+        temperature: 0.7
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || `Failed to generate response (Status: ${response.status})`);
+    }
+    
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+    
+  } catch (error) {
+    console.error('Error generating OpenRouter chat response:', error);
     throw error;
   }
 }
@@ -856,6 +944,94 @@ async function generateOllamaFallbackSummary(text, format, apiUrl, model, transl
     return summary;
   } catch (error) {
     console.error('Error calling Ollama generate API:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generates a summary using the OpenRouter API
+ * @param {string} text - The text to summarize
+ * @param {string} format - The format of the summary (short, detailed, key-points)
+ * @param {string} apiKey - The OpenRouter API key
+ * @param {string} model - The OpenRouter model to use
+ * @param {boolean} translateToEnglish - Whether to translate the text to English
+ * @returns {Promise<string>} The generated summary
+ */
+async function generateOpenRouterSummary(text, format, apiKey, model, translateToEnglish = false) {
+  try {
+    // Check if we need to use chunking
+    if (text.length > MAX_CHUNK_SIZE) {
+      return await processLargeText(
+        text, 
+        format, 
+        translateToEnglish,
+        async (chunk, chunkFormat, isTranslate) => {
+          return await callOpenRouterAPI(chunk, chunkFormat, apiKey, model, isTranslate);
+        }
+      );
+    } else {
+      // For smaller texts, just process in one go
+      return await callOpenRouterAPI(text, format, apiKey, model, translateToEnglish);
+    }
+  } catch (error) {
+    console.error('Error in OpenRouter summarization:', error);
+    throw new Error('Failed to generate summary with OpenRouter. Please check your API key and try again.');
+  }
+}
+
+/**
+ * Makes the actual API call to OpenRouter
+ * @param {string} text - The text to summarize
+ * @param {string} format - The summary format
+ * @param {string} apiKey - The OpenRouter API key
+ * @param {string} model - The model to use
+ * @param {boolean} translateToEnglish - Whether to translate to English
+ * @returns {Promise<string>} The generated summary
+ */
+async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish = false) {
+  // Create the optimized prompt
+  const prompt = createPrompt(text, format, translateToEnglish);
+  
+  try {
+    // Make the API call
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://github.com/yourusername/sparrow', // Replace with your actual repo URL
+        'X-Title': 'Sparrow Extension'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+          },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 500,
+        temperature: 0.5
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || `Failed to generate summary (Status: ${response.status})`);
+    }
+    
+    const data = await response.json();
+    let summary = data.choices[0].message.content.trim();
+    
+    // Add translation prefix if needed
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
+  } catch (error) {
+    console.error('Error calling OpenRouter API:', error);
     throw error;
   }
 }

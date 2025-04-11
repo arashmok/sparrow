@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const openaiSection = document.getElementById('openai-section');
   const lmstudioSection = document.getElementById('lmstudio-section');
   const ollamaSection = document.getElementById('ollama-section');
+  const openrouterSection = document.getElementById('openrouter-section');
   
   // OpenAI elements
   const openaiApiKeyInput = document.getElementById('openai-api-key');
@@ -26,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const ollamaRefreshBtn = document.getElementById('ollama-refresh-btn');
   const ollamaSpinner = document.getElementById('ollama-spinner');
   const ollamaModelMessage = document.getElementById('ollama-model-message');
+  
+  // OpenRouter elements
+  const openrouterApiKeyInput = document.getElementById('openrouter-api-key');
+  const openrouterModelSelect = document.getElementById('openrouter-model');
+  const openrouterSpinner = document.getElementById('openrouter-spinner');
+  const openrouterModelMessage = document.getElementById('openrouter-model-message');
   
   // Shared elements
   const defaultFormatSelect = document.getElementById('default-format');
@@ -78,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openaiSection.classList.add('hidden');
     lmstudioSection.classList.add('hidden');
     ollamaSection.classList.add('hidden');
+    openrouterSection.classList.add('hidden');
     
     // Show only the selected section
     if (selectedApiMode === 'openai') {
@@ -94,6 +102,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ollamaModelSelect.options.length <= 1) {
         fetchOllamaModels();
       }
+    } else if (selectedApiMode === 'openrouter') {
+      openrouterSection.classList.remove('hidden');
+      // Try to fetch OpenRouter models if we haven't already
+      if (openrouterModelSelect.options.length <= 1) {
+        fetchOpenRouterModels();
+      }
     }
   }
   
@@ -108,6 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'lmstudioModel',
       'ollamaApiUrl',
       'ollamaModel',
+      'openrouterApiKey',
+      'openrouterModel',
       'defaultFormat'
     ], (result) => {
       console.log("Loaded settings:", result);
@@ -153,6 +169,17 @@ document.addEventListener('DOMContentLoaded', () => {
         ollamaModelSelect.dataset.selectedModel = result.ollamaModel;
       }
       
+      // OpenRouter settings
+      if (result.openrouterApiKey) {
+        openrouterApiKeyInput.value = '••••••••••••••••••••••••••';
+        openrouterApiKeyInput.dataset.hasKey = 'true';
+      }
+      
+      // Store the current OpenRouter model to select later after fetching
+      if (result.openrouterModel) {
+        openrouterModelSelect.dataset.selectedModel = result.openrouterModel;
+      }
+      
       // Format settings - IMPORTANT: use defaultFormat consistently
       if (result.defaultFormat) {
         console.log("Setting default format to:", result.defaultFormat);
@@ -161,11 +188,13 @@ document.addEventListener('DOMContentLoaded', () => {
         defaultFormatSelect.value = CONFIG.DEFAULT_SUMMARY_FORMAT;
       }
       
-      // If the LM Studio or Ollama sections are visible, fetch models
+      // If the LM Studio, Ollama, or OpenRouter sections are visible, fetch models
       if (apiMode === 'lmstudio') {
         fetchLMStudioModels();
       } else if (apiMode === 'ollama') {
         fetchOllamaModels();
+      } else if (apiMode === 'openrouter') {
+        fetchOpenRouterModels();
       }
     });
   }
@@ -336,6 +365,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  // Function to fetch available models from OpenRouter
+  async function fetchOpenRouterModels(isManualRefresh = false) {
+    const apiKey = openrouterApiKeyInput.value.trim();
+    
+    if (!apiKey && !openrouterApiKeyInput.dataset.hasKey) {
+      updateOpenRouterModelMessage("Please enter a valid API key.", "error");
+      return;
+    }
+    
+    // Only show "Loading models..." when the dropdown is empty or on manual refresh
+    if (openrouterModelSelect.options.length <= 1 || isManualRefresh) {
+      // Clear existing options and add loading option
+      openrouterModelSelect.innerHTML = '<option value="">Loading models...</option>';
+      openrouterModelSelect.disabled = true;
+    }
+    
+    // Show spinner
+    openrouterSpinner.classList.remove('hidden');
+    
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("OpenRouter models response:", data);
+      
+      // Clear existing options
+      openrouterModelSelect.innerHTML = '';
+      
+      if (!data.data || data.data.length === 0) {
+        openrouterModelSelect.innerHTML = '<option value="">No models available</option>';
+        updateOpenRouterModelMessage("No models found.", "error");
+      } else {
+        // Add models to the dropdown
+        data.data.forEach(model => {
+          const option = document.createElement('option');
+          option.value = model.id;
+          option.textContent = model.id;
+          openrouterModelSelect.appendChild(option);
+        });
+        
+        // If we have a previously selected model, try to select it
+        const previouslySelected = openrouterModelSelect.dataset.selectedModel;
+        if (previouslySelected) {
+          // Try to find the option with this value
+          const option = Array.from(openrouterModelSelect.options).find(opt => opt.value === previouslySelected);
+          if (option) {
+            openrouterModelSelect.value = previouslySelected;
+          }
+        }
+        
+        updateOpenRouterModelMessage(`${data.data.length} models loaded successfully.`, "success");
+      }
+    } catch (error) {
+      console.error("Error fetching OpenRouter models:", error);
+      openrouterModelSelect.innerHTML = '<option value="">Could not load models</option>';
+      updateOpenRouterModelMessage(`Error: ${error.message}`, "error");
+    } finally {
+      // Hide spinner and enable select
+      openrouterSpinner.classList.add('hidden');
+      openrouterModelSelect.disabled = false;
+    }
+  }
+  
   // Helper function to update the LM Studio model message
   function updateLMStudioModelMessage(message, type = "") {
     lmstudioModelMessage.textContent = message;
@@ -355,6 +456,17 @@ document.addEventListener('DOMContentLoaded', () => {
       ollamaModelMessage.classList.add("error-text");
     } else if (type === "success") {
       ollamaModelMessage.classList.add("success-text");
+    }
+  }
+  
+  // Helper function to update the OpenRouter model message
+  function updateOpenRouterModelMessage(message, type = "") {
+    if (openrouterModelMessage) {
+      openrouterModelMessage.textContent = message;
+      openrouterModelMessage.className = '';
+      if (type) {
+        openrouterModelMessage.classList.add(type);
+      }
     }
   }
   
@@ -398,6 +510,16 @@ document.addEventListener('DOMContentLoaded', () => {
       settings.ollamaModel = ollamaModelSelect.value;
     }
     
+    // Save OpenRouter settings
+    if (openrouterApiKeyInput.value && openrouterApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      settings.openrouterApiKey = openrouterApiKeyInput.value;
+    }
+    
+    // Save the selected OpenRouter model
+    if (openrouterModelSelect.value) {
+      settings.openrouterModel = openrouterModelSelect.value;
+    }
+    
     // Validation based on selected API mode
     if (apiMode === 'openai' && !openaiApiKeyInput.dataset.hasKey && !openaiApiKeyInput.value) {
       if (!confirm("You are trying to use the OpenAI API without an API key. This won't work. Continue anyway?")) {
@@ -423,6 +545,16 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
       }
+    } else if (apiMode === 'openrouter') {
+      if (!openrouterApiKeyInput.dataset.hasKey && !openrouterApiKeyInput.value) {
+        showMessage('Please provide a valid OpenRouter API key.', 'error');
+        return;
+      }
+      if (!openrouterModelSelect.value) {
+        if (!confirm("No OpenRouter model selected. This may cause issues. Continue anyway?")) {
+          return;
+        }
+      }
     }
     
     // Remove any legacy popup size settings
@@ -440,6 +572,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (settings.lmstudioApiKey) {
         lmstudioApiKeyInput.value = '••••••••••••••••••••••••••';
         lmstudioApiKeyInput.dataset.hasKey = 'true';
+      }
+      
+      if (settings.openrouterApiKey) {
+        openrouterApiKeyInput.value = '••••••••••••••••••••••••••';
+        openrouterApiKeyInput.dataset.hasKey = 'true';
       }
       
       // Delay navigation to allow user to see the success message (2 seconds delay)

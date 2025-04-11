@@ -21,6 +21,7 @@
                 <label for="api-mode-select">API Source</label>
                 <select id="api-mode-select" class="api-source-dropdown">
                     <option value="openai">OpenAI</option>
+                    <option value="openrouter">OpenRouter</option>
                     <option value="lmstudio">LM Studio</option>
                     <option value="ollama">Ollama</option>
                 </select>
@@ -44,6 +45,28 @@
                             <option value="gpt-4">GPT-4</option>
                             <option value="gpt-4-turbo">GPT-4 Turbo</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- OpenRouter API Section -->
+                <div id="openrouter-section" class="api-section hidden">
+                    <div class="api-section-title">OpenRouter Settings</div>
+                    <div class="form-group">
+                        <label for="openrouter-api-key">API Key</label>
+                        <input type="password" id="openrouter-api-key" placeholder="Enter your OpenRouter API key">
+                        <small>Your API key is stored locally on your device.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="openrouter-model">Model</label>
+                        <div class="select-with-spinner">
+                            <select id="openrouter-model">
+                                <option value="">Loading models...</option>
+                            </select>
+                            <div id="openrouter-spinner" class="spinner hidden">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                            </div>
+                        </div>
+                        <small id="openrouter-model-message">Models will load when a valid API key is provided.</small>
                     </div>
                 </div>
 
