@@ -69,10 +69,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   
-  // Initialize popup with saved settings
+  // Function to initialize popup with saved settings
   function initializePopup() {
-    // Load saved preferences
-    chrome.storage.local.get(['translateToEnglish', 'apiMode', 'defaultFormat'], (result) => {
+    // Load saved preferences with ALL model information
+    chrome.storage.local.get([
+      'translateToEnglish', 
+      'apiMode', 
+      'defaultFormat',
+      'openaiModel',
+      'lmstudioModel',
+      'ollamaModel',
+      'openrouterModel'
+    ], (result) => {
       console.log("Loaded settings:", result);
       
       // Set translation preference
@@ -80,21 +88,49 @@ document.addEventListener('DOMContentLoaded', () => {
         translateEnglish.checked = result.translateToEnglish;
       }
       
-      // Set summary format preference - ensure this happens AFTER the DOM is fully loaded
+      // Set summary format preference
       if (result.defaultFormat) {
         console.log("Setting format to saved value:", result.defaultFormat);
-        
-        // Add a small delay to make sure the dropdown is ready
         setTimeout(() => {
           summaryFormat.value = result.defaultFormat;
-          console.log("Format set to:", summaryFormat.value);
         }, 10);
-      } else {
-        console.log("No saved format found");
       }
       
-      // Update API mode indicator
-      updateApiModeIndicator(result.apiMode);
+      // Get the appropriate model name based on the API mode
+      const apiMode = result.apiMode || 'openai';
+      let modelName = '';
+      
+      // Get the model name for the current API mode
+      if (apiMode === 'openai') {
+        modelName = result.openaiModel || '';
+      } else if (apiMode === 'lmstudio') {
+        modelName = result.lmstudioModel || '';
+      } else if (apiMode === 'ollama') {
+        modelName = result.ollamaModel || '';
+      } else if (apiMode === 'openrouter') {
+        modelName = result.openrouterModel || '';
+      }
+      
+      console.log(`Updating indicator with API mode: ${apiMode}, model: ${modelName}`);
+      
+      // Update the indicator in the DOM
+      const apiMethodIndicator = document.querySelector('.api-method-indicator');
+      if (apiMethodIndicator) {
+        // Set the appropriate CSS class for color coding
+        apiMethodIndicator.className = 'api-method-indicator';
+        if (apiMode === 'openai') {
+          apiMethodIndicator.classList.add('indicator-openai');
+        } else if (apiMode === 'lmstudio') {
+          apiMethodIndicator.classList.add('indicator-lmstudio');
+        } else if (apiMode === 'ollama') {
+          apiMethodIndicator.classList.add('indicator-ollama');
+        } else if (apiMode === 'openrouter') {
+          apiMethodIndicator.classList.add('indicator-openrouter');
+        }
+        
+        // Set the text to the model name or API name
+        apiMethodIndicator.textContent = modelName ? truncateModelName(modelName) : apiMode;
+      }
     });
   }
 
