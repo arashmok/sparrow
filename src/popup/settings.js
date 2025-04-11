@@ -212,6 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
           openrouterModelSelect.dataset.selectedModel = result.openrouterModel;
         }
         
+        // Don't show any message until we've tried to fetch models
+        updateOpenRouterModelMessage("Loading models...");
+        
         // Trigger model loading after a short delay to ensure DOM is ready
         setTimeout(() => {
           fetchOpenRouterModels();
@@ -415,7 +418,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (!keyToUse) {
-      updateOpenRouterModelMessage("Please enter a valid API key.", "error");
+      // Don't show an error immediately, just leave the default message
+      if (isManualRefresh) {
+        updateOpenRouterModelMessage("Please enter a valid API key.", "error");
+      }
       return;
     }
     
@@ -428,6 +434,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Show spinner
     openrouterSpinner.classList.remove('hidden');
+    
+    // Clear any error message during loading to prevent flickering
+    if (!isManualRefresh) {
+      updateOpenRouterModelMessage("Loading models...");
+    }
     
     try {
       console.log("Fetching OpenRouter models...");
@@ -511,9 +522,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateOpenRouterModelMessage(message, type = "") {
     if (openrouterModelMessage) {
       openrouterModelMessage.textContent = message;
-      openrouterModelMessage.className = '';
-      if (type) {
-        openrouterModelMessage.classList.add(type);
+      openrouterModelMessage.className = ""; // Clear existing classes
+      if (type === "error") {
+        openrouterModelMessage.classList.add("error-text");
+      } else if (type === "success") {
+        openrouterModelMessage.classList.add("success-text");
       }
     }
   }
