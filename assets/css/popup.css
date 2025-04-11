@@ -437,6 +437,10 @@ footer {
   background-color: #6e48aa; /* Ollama purple */
 }
 
+.api-method-indicator.indicator-openrouter {
+  background-color: #FF6B00; /* OpenRouter orange */
+}
+
 /* Chat button styling */
 .chat-button {
   background-color: #2b7de9;

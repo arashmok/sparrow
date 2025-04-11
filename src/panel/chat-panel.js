@@ -21,6 +21,26 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.storage.local.get(['apiMode'], (result) => {
         updateApiIndicator(result.apiMode || 'openai');
       });
+
+      // Load settings and update indicator
+      chrome.storage.sync.get(['apiMode', 'openaiModel', 'lmstudioModel', 'ollamaModel', 'openrouterModel'], function(result) {
+        const apiMode = result.apiMode || 'openai';
+        let modelName = '';
+        
+        // Get the appropriate model name based on the API mode
+        if (apiMode === 'openai') {
+          modelName = result.openaiModel || '';
+        } else if (apiMode === 'lmstudio') {
+          modelName = result.lmstudioModel || '';
+        } else if (apiMode === 'ollama') {
+          modelName = result.ollamaModel || '';
+        } else if (apiMode === 'openrouter') {
+          modelName = result.openrouterModel || '';
+        }
+        
+        // Update the indicator with the model name
+        updateApiIndicator(apiMode, modelName);
+      });
       
       // Listen for messages from the background script
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -121,23 +141,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Function to update the API indicator
-    function updateApiIndicator(apiMode) {
-      let methodName = '';
-      let statusClass = '';
+    function updateApiIndicator(apiMode, modelName = '') {
+      let displayInfo = { class: '', name: '' };
       
+      // Set color class based on API source
       if (apiMode === 'lmstudio') {
-        methodName = 'LM Studio';
-        statusClass = 'indicator-lmstudio';
+        displayInfo.class = 'indicator-lmstudio';
       } else if (apiMode === 'ollama') {
-        methodName = 'Ollama';
-        statusClass = 'indicator-ollama';
+        displayInfo.class = 'indicator-ollama';
+      } else if (apiMode === 'openrouter') {
+        displayInfo.class = 'indicator-openrouter';
       } else {
-        methodName = 'OpenAI';
-        statusClass = 'indicator-openai';
+        displayInfo.class = 'indicator-openai';
       }
       
-      apiIndicator.textContent = methodName;
-      apiIndicator.className = 'api-method-indicator ' + statusClass;
+      // Use model name if provided, otherwise use API name
+      if (modelName) {
+        displayInfo.name = truncateModelName(modelName);
+      } else {
+        if (apiMode === 'lmstudio') displayInfo.name = 'LM Studio';
+        else if (apiMode === 'ollama') displayInfo.name = 'Ollama';
+        else if (apiMode === 'openrouter') displayInfo.name = 'OpenRouter';
+        else displayInfo.name = 'OpenAI';
+      }
+      
+      // Update the indicator
+      const apiIndicator = document.getElementById('api-indicator');
+      if (apiIndicator) {
+        apiIndicator.textContent = displayInfo.name;
+        apiIndicator.className = 'api-method-indicator ' + displayInfo.class;
+      }
+    }
+    
+    // Helper function to truncate model name to reasonable length
+    function truncateModelName(modelName) {
+      if (!modelName) {
+        return '';
+      }
+      
+      // Get last part of model name if it contains slashes
+      if (modelName.includes('/')) {
+        modelName = modelName.split('/').pop();
+      }
+      
+      // Truncate if too long
+      if (modelName.length > 15) {
+        return modelName.substring(0, 12) + '...';
+      }
+      return modelName;
     }
     
     // Function to send a user message

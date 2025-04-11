@@ -150,6 +150,10 @@
   .indicator-ollama {
     background-color: #3A3494;
   }
+
+  .indicator-openrouter {
+    background-color: #FF6B00; /* OpenRouter orange */
+  }
   
   /* Chat input area */
   .chat-input-container {

@@ -99,42 +99,63 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Function to update the API mode indicator
-  function updateApiModeIndicator(apiMode) {
-    // Determine the API method name based on mode
-    let methodName = '';
-    let statusClass = '';
+  function updateApiModeIndicator(apiMode, modelName = '') {
+    const apiMethodIndicator = document.getElementById('api-method-indicator');
+    if (!apiMethodIndicator) return;
     
+    let displayInfo = { class: '', name: '' };
+    
+    // Set color class based on API source
     if (apiMode === 'lmstudio') {
-      // LM Studio mode
-      methodName = 'LM Studio';
-      statusClass = 'indicator-lmstudio';
+      displayInfo.class = 'indicator-lmstudio';
     } else if (apiMode === 'ollama') {
-      // Ollama mode
-      methodName = 'Ollama';
-      statusClass = 'indicator-ollama';
+      displayInfo.class = 'indicator-ollama';
+    } else if (apiMode === 'openrouter') {
+      displayInfo.class = 'indicator-openrouter';
     } else {
-      // OpenAI mode
-      methodName = 'OpenAI';
-      statusClass = 'indicator-openai';
+      displayInfo.class = 'indicator-openai';
     }
     
-    // Update the method indicator
-    apiMethodIndicator.textContent = methodName;
+    // Use model name if provided, otherwise use API name
+    if (modelName) {
+      displayInfo.name = truncateModelName(modelName);
+    } else {
+      if (apiMode === 'lmstudio') displayInfo.name = 'LM Studio';
+      else if (apiMode === 'ollama') displayInfo.name = 'Ollama';
+      else if (apiMode === 'openrouter') displayInfo.name = 'OpenRouter';
+      else displayInfo.name = 'OpenAI';
+    }
     
-    // Remove any existing indicator classes
-    apiMethodIndicator.className = 'api-method-indicator';
-    // Add the appropriate class
-    apiMethodIndicator.classList.add(statusClass);
+    // Update the indicator
+    apiMethodIndicator.textContent = displayInfo.name;
+    apiMethodIndicator.className = 'api-method-indicator ' + displayInfo.class;
     
-    // Also update the original footer elements (keeping this for compatibility)
+    // Update provider text if it exists
+    const apiProviderText = document.getElementById('api-provider-text');
     if (apiProviderText) {
-      apiProviderText.textContent = `Powered by ${methodName}`;
+      let providerName = apiMode === 'lmstudio' ? 'LM Studio' : 
+                        apiMode === 'ollama' ? 'Ollama' : 
+                        apiMode === 'openrouter' ? 'OpenRouter' : 'OpenAI';
+      apiProviderText.textContent = `Powered by ${providerName}`;
     }
-    if (apiIndicator) {
-      apiIndicator.textContent = apiMode === 'openai' ? 'OPENAI' : 'LOCAL';
-      apiIndicator.className = 'api-indicator';
-      apiIndicator.classList.add(statusClass);
+  }
+
+  // Helper function to truncate model name to reasonable length
+  function truncateModelName(modelName) {
+    if (!modelName) {
+      return '';
     }
+    
+    // Get last part of model name if it contains slashes
+    if (modelName.includes('/')) {
+      modelName = modelName.split('/').pop();
+    }
+    
+    // Truncate if too long
+    if (modelName.length > 15) {
+      return modelName.substring(0, 12) + '...';
+    }
+    return modelName;
   }
 
   // Better URL normalization function

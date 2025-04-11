@@ -562,6 +562,24 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     
     const apiMode = apiModeSelect.value;
+    let modelName = '';
+    
+    // Get the appropriate model name based on the selected API mode
+    if (apiMode === 'openai') {
+      modelName = openaiModelSelect.value;
+    } else if (apiMode === 'lmstudio') {
+      modelName = lmstudioModelSelect.value;
+    } else if (apiMode === 'ollama') {
+      modelName = ollamaModelSelect.value;
+    } else if (apiMode === 'openrouter') {
+      modelName = openrouterModelSelect.value;
+    }
+    
+    // Update the model name in the indicator
+    // This assumes updateApiModeIndicator is defined in popup.js and accessible
+    if (typeof updateApiModeIndicator === 'function') {
+      updateApiModeIndicator(apiMode, modelName);
+    }
     
     const settings = {
       apiMode: apiMode,

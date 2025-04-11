@@ -15,6 +15,57 @@ const MAX_CHUNK_SIZE = 3500;
 // Maximum number of chunks to process (to avoid excessive API calls)
 const MAX_CHUNKS = 5;
 
+/**
+ * Gets model display information
+ * @param {string} apiMode - The API mode (openai, lmstudio, ollama, openrouter)
+ * @param {string} modelName - The full model name
+ * @returns {Object} Object containing display class and shortened model name
+ */
+function getModelDisplayInfo(apiMode, modelName) {
+  let statusClass = '';
+  
+  // Set color class based on API source
+  if (apiMode === 'lmstudio') {
+    statusClass = 'indicator-lmstudio';
+  } else if (apiMode === 'ollama') {
+    statusClass = 'indicator-ollama';
+  } else if (apiMode === 'openrouter') {
+    statusClass = 'indicator-openrouter';
+  } else {
+    statusClass = 'indicator-openai';
+  }
+  
+  // Truncate model name for display
+  let displayName = truncateModelName(modelName);
+  
+  return {
+    class: statusClass,
+    name: displayName
+  };
+}
+
+/**
+ * Truncates model name for display
+ * @param {string} modelName - The full model name
+ * @returns {string} Truncated model name
+ */
+function truncateModelName(modelName) {
+  if (!modelName) {
+    return '';
+  }
+  
+  // Get last part of model name if it contains slashes
+  if (modelName.includes('/')) {
+    modelName = modelName.split('/').pop();
+  }
+  
+  // Truncate if too long
+  if (modelName.length > 15) {
+    return modelName.substring(0, 12) + '...';
+  }
+  return modelName;
+}
+
 // Handle side panel functionality
 
 // Open the side panel when requested
