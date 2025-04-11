@@ -998,9 +998,7 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://github.com/yourusername/sparrow', // Replace with your actual repo URL
-        'X-Title': 'Sparrow Extension'
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: model,

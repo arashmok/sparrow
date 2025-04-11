@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // OpenRouter refresh button
-  console.log("Setting up OpenRouter refresh button");
   const openrouterRefreshButton = document.getElementById('openrouter-refresh');
   if (openrouterRefreshButton) {
     openrouterRefreshButton.addEventListener('click', function() {
@@ -93,6 +92,22 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchOpenRouterModels();
     }
   }, 500)); // Debounce to avoid too many requests while typing
+
+  // Handle clearing the masked bullets when the field gets focus
+  openrouterApiKeyInput.addEventListener('focus', function() {
+    if (/^•+$/.test(this.value)) {
+      // Clear the bullet characters when focused
+      this.value = '';
+    }
+  });
+
+  // When the field loses focus and is empty but we had a key before
+  openrouterApiKeyInput.addEventListener('blur', function() {
+    if (this.value === '' && this.dataset.hasKey === 'true') {
+      // Restore bullets if no new input was provided
+      this.value = '••••••••••••••••••••••••••';
+    }
+  });
   
   // Function to update API section visibility based on selected mode
   function updateApiSectionVisibility() {
@@ -190,12 +205,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.openrouterApiKey) {
         openrouterApiKeyInput.value = '••••••••••••••••••••••••••';
         openrouterApiKeyInput.dataset.hasKey = 'true';
-        openrouterApiKeyInput.dataset.key = result.openrouterApiKey; // Store the actual key
-      }
-      
-      // Store the current OpenRouter model to select later after fetching
-      if (result.openrouterModel) {
-        openrouterModelSelect.dataset.selectedModel = result.openrouterModel;
+        openrouterApiKeyInput.dataset.key = result.openrouterApiKey;
+        
+        // Also set the selected model if available
+        if (result.openrouterModel) {
+          openrouterModelSelect.dataset.selectedModel = result.openrouterModel;
+        }
+        
+        // Trigger model loading after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          fetchOpenRouterModels();
+        }, 300);
       }
       
       // Format settings - IMPORTANT: use defaultFormat consistently
@@ -385,10 +405,14 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Function to fetch available models from OpenRouter
   async function fetchOpenRouterModels(isManualRefresh = false) {
-    const apiKey = openrouterApiKeyInput.value.trim();
+    // Check for visible API key or stored key
+    let keyToUse = openrouterApiKeyInput.value.trim();
     
-    // Use the stored key if input is empty but we have a stored key
-    const keyToUse = apiKey || (openrouterApiKeyInput.dataset.hasKey ? openrouterApiKeyInput.dataset.key : '');
+    // If the input shows bullets and we have a stored key, use that instead
+    if ((/^•+$/.test(keyToUse) || keyToUse === '') && openrouterApiKeyInput.dataset.hasKey === 'true') {
+      keyToUse = openrouterApiKeyInput.dataset.key || '';
+      console.log("Using stored OpenRouter API key");
+    }
     
     if (!keyToUse) {
       updateOpenRouterModelMessage("Please enter a valid API key.", "error");
@@ -408,43 +432,30 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       console.log("Fetching OpenRouter models...");
       
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', 'https://openrouter.ai/api/v1/models');
-      xhr.setRequestHeader('Authorization', `Bearer ${keyToUse}`);
-      xhr.setRequestHeader('HTTP-Referer', 'https://github.com/sparrow-extension');
-      xhr.setRequestHeader('X-Title', 'Sparrow');
-      
-      const response = await new Promise((resolve, reject) => {
-        xhr.onload = function() {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch (e) {
-              reject(new Error("Invalid JSON response"));
-            }
-          } else {
-            reject(new Error(`Server returned ${xhr.status}: ${xhr.statusText}`));
-          }
-        };
-        
-        xhr.onerror = function() {
-          reject(new Error("Network error"));
-        };
-        
-        xhr.send();
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${keyToUse}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      console.log("OpenRouter models response:", response);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("OpenRouter models response:", data);
       
       // Clear existing options
       openrouterModelSelect.innerHTML = '';
       
-      if (!response.data || response.data.length === 0) {
+      if (!data.data || data.data.length === 0) {
         openrouterModelSelect.innerHTML = '<option value="">No models available</option>';
         updateOpenRouterModelMessage("No models found.", "error");
       } else {
         // Add models to the dropdown
-        response.data.forEach(model => {
+        data.data.forEach(model => {
           const option = document.createElement('option');
           option.value = model.id;
           option.textContent = model.id;
@@ -461,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
         
-        updateOpenRouterModelMessage(`${response.data.length} models loaded successfully.`, "success");
+        updateOpenRouterModelMessage(`${data.data.length} models loaded successfully.`, "success");
       }
     } catch (error) {
       console.error("Error fetching OpenRouter models:", error);
