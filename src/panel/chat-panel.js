@@ -246,14 +246,49 @@ document.addEventListener('DOMContentLoaded', () => {
       const messageDiv = document.createElement('div');
       messageDiv.className = `message message-${role}`;
       
-      // Create message content
+      // Create message content with formatting support
       const messageText = document.createElement('div');
-      messageText.textContent = text;
+      messageText.className = 'message-content';
+      
+      // Convert markdown to HTML for proper rendering
+      const formattedText = formatMessageText(text);
+      messageText.innerHTML = formattedText;
+      
       messageDiv.appendChild(messageText);
       
       // Add to chat and scroll to bottom
       chatMessages.appendChild(messageDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Function to format message text with markdown support
+    function formatMessageText(text) {
+      // Process code blocks (```code```)
+      text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+      
+      // Process inline code (`code`)
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+      
+      // Process bold (**text** or __text__)
+      text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '<strong>$1$2</strong>');
+      
+      // Process italic (*text* or _text_)
+      text = text.replace(/\*(.*?)\*|_(.*?)_/g, '<em>$1$2</em>');
+      
+      // Process bullet lists
+      text = text.replace(/^\s*[\*\-]\s+(.*?)$/gm, '<li>$1</li>');
+      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1<$2');
+      text = text.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
+      
+      // Process numbered lists
+      text = text.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<li>$2</li>');
+      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1<$2');
+      text = text.replace(/(<li>.*?<\/li>)+/g, '<ol>$&</ol>');
+      
+      // Convert line breaks
+      text = text.replace(/\n/g, '<br>');
+      
+      return text;
     }
     
     // Function to show typing indicator

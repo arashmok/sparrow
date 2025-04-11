@@ -121,6 +121,53 @@
     display: block;
   }
   
+  /* Message content formatting */
+  .message-content {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  .message-content code {
+    font-family: monospace;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .message-content pre {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+
+  .message-content pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+    display: block;
+  }
+
+  .message-content ul, 
+  .message-content ol {
+    margin: 8px 0;
+    padding-left: 24px;
+  }
+
+  .message-content li {
+    margin-bottom: 4px;
+  }
+
+  .message-content strong {
+    font-weight: bold;
+  }
+
+  .message-content em {
+    font-style: italic;
+  }
+  
   /* API indicator */
   .api-indicator-container {
     padding: 12px 16px;
