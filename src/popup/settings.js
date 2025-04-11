@@ -593,7 +593,12 @@ document.addEventListener('DOMContentLoaded', () => {
       settings.openrouterModel = openrouterModelSelect.value;
     }
     
-    // Save API keys if changed (rest of your existing code...)
+    // Save OpenRouter API key if changed
+    if (openrouterApiKeyInput.value && openrouterApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      settings.openrouterApiKey = openrouterApiKeyInput.value;
+    } else if (openrouterApiKeyInput.dataset.key) {
+      settings.openrouterApiKey = openrouterApiKeyInput.dataset.key;
+    }
     
     // Save settings and redirect
     chrome.storage.local.set(settings, () => {
