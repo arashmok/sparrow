@@ -76,6 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     fetchOllamaModels(true);
   });
+
+  // OpenRouter refresh button
+  const openrouterRefreshButton = document.getElementById('openrouter-refresh');
+  if (openrouterRefreshButton) {
+    openrouterRefreshButton.addEventListener('click', function() {
+      fetchOpenRouterModels(true); // Pass true to indicate manual refresh
+    });
+  }
   
   // Function to update API section visibility based on selected mode
   function updateApiSectionVisibility() {

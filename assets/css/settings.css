@@ -315,9 +315,22 @@ small {
     transform: scale(0.95);
 }
 
+/* Refresh button styling */
+.refresh-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    margin-left: 5px;
+    color: #666;
+}
+
+.refresh-button:hover {
+    color: #000;
+}
+
 /* Select with spinner */
 .select-with-spinner {
-    position: relative;
     display: flex;
     align-items: center;
     margin-bottom: 5px;
