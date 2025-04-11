@@ -579,6 +579,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add title at the top if we found one
     if (title) {
       formattedHtml += `<div class="summary-title">${title}</div>`;
+      
+      // Also add a title in markdown format for transfer to chat panel
+      processedText = `# ${title}\n\n${processedText}`;
     }
     
     // Add regular content

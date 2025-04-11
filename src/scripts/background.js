@@ -367,6 +367,14 @@ async function handleChatMessage(request) {
       throw new Error(`Unknown API mode: ${apiMode}`);
     }
     
+    if (reply && reply.text) {
+      // Ensure code blocks have proper spacing
+      reply.text = reply.text.replace(/```(\w*)\n/g, '```$1\n');
+      
+      // Make sure lists have proper spacing for markdown conversion
+      reply.text = reply.text.replace(/^([*-])/gm, '\n$1');
+    }
+    
     return { reply };
   } catch (error) {
     console.error('Error handling chat message:', error);

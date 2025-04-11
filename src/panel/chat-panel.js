@@ -50,7 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
           
           // Add the summary as the first assistant message
           if (pageContent) {
+            // Format the content before adding
             addMessage(pageContent, 'assistant');
+            
+            // Store the formatted message in conversation history
             conversationHistory = [
               {
                 role: 'assistant',
@@ -261,13 +264,24 @@ document.addEventListener('DOMContentLoaded', () => {
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
-    // Function to format message text with markdown support
+    // Function to format message text with enhanced markdown support
     function formatMessageText(text) {
-      // Process code blocks (```code```)
-      text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+      // Handle titles with appropriate heading tags
+      text = text.replace(/^#\s+(.*?)$/gm, '<h1>$1</h1>');
+      text = text.replace(/^##\s+(.*?)$/gm, '<h2>$1</h2>');
+      text = text.replace(/^###\s+(.*?)$/gm, '<h3>$1</h3>');
+      
+      // Process code blocks with language highlighting support
+      text = text.replace(/```(\w*)\n([\s\S]*?)```/g, function(match, language, code) {
+        return `<pre class="code-block${language ? ' language-'+language : ''}"><code>${code.trim()}</code></pre>`;
+      });
       
       // Process inline code (`code`)
       text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+      
+      // Process blockquotes
+      text = text.replace(/^>\s+(.*?)$/gm, '<blockquote>$1</blockquote>');
+      text = text.replace(/(<blockquote>.*?<\/blockquote>)\s*(<blockquote>)/g, '$1$2');
       
       // Process bold (**text** or __text__)
       text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '<strong>$1$2</strong>');
@@ -275,18 +289,26 @@ document.addEventListener('DOMContentLoaded', () => {
       // Process italic (*text* or _text_)
       text = text.replace(/\*(.*?)\*|_(.*?)_/g, '<em>$1$2</em>');
       
-      // Process bullet lists
+      // Process bullet lists with better nesting support
       text = text.replace(/^\s*[\*\-]\s+(.*?)$/gm, '<li>$1</li>');
-      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1<$2');
+      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1$2');
       text = text.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
       
       // Process numbered lists
       text = text.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<li>$2</li>');
-      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1<$2');
+      text = text.replace(/(<li>.*?<\/li>)\s*(<li>)/g, '$1$2');
       text = text.replace(/(<li>.*?<\/li>)+/g, '<ol>$&</ol>');
       
-      // Convert line breaks
-      text = text.replace(/\n/g, '<br>');
+      // Add horizontal rules
+      text = text.replace(/^\s*---+\s*$/gm, '<hr>');
+      
+      // Process links
+      text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+      
+      // Convert line breaks, preserving paragraphs
+      text = text.split('\n\n').map(para => 
+        para.trim() ? `<p>${para.replace(/\n/g, '<br>')}</p>` : ''
+      ).join('');
       
       return text;
     }
