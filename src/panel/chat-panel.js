@@ -17,13 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to initialize the panel
     async function initializePanel() {
-      // Load API mode to display the correct indicator
-      chrome.storage.local.get(['apiMode'], (result) => {
-        updateApiIndicator(result.apiMode || 'openai');
-      });
-
-      // Load settings and update indicator
-      chrome.storage.sync.get(['apiMode', 'openaiModel', 'lmstudioModel', 'ollamaModel', 'openrouterModel'], function(result) {
+      // Load settings from local storage (not sync storage)
+      chrome.storage.local.get([
+        'apiMode', 
+        'openaiModel', 
+        'lmstudioModel', 
+        'ollamaModel', 
+        'openrouterModel'
+      ], function(result) {
         const apiMode = result.apiMode || 'openai';
         let modelName = '';
         
@@ -175,20 +176,27 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Helper function to truncate model name to reasonable length
     function truncateModelName(modelName) {
-      if (!modelName) {
-        return '';
+      if (!modelName) return '';
+      
+      // Remove common prefixes
+      let displayName = modelName
+        .replace('gpt-3.5-turbo', 'GPT-3.5')
+        .replace('gpt-4-turbo', 'GPT-4 Turbo')
+        .replace('gpt-4-0', 'GPT-4')
+        .replace('gpt-4o', 'GPT-4o');
+      
+      // Remove organization prefixes for OpenRouter models
+      const slashIndex = displayName.indexOf('/');
+      if (slashIndex > 0) {
+        displayName = displayName.substring(slashIndex + 1);
       }
       
-      // Get last part of model name if it contains slashes
-      if (modelName.includes('/')) {
-        modelName = modelName.split('/').pop();
+      // If still too long, truncate
+      if (displayName.length > 15) {
+        displayName = displayName.substring(0, 12) + '...';
       }
       
-      // Truncate if too long
-      if (modelName.length > 15) {
-        return modelName.substring(0, 12) + '...';
-      }
-      return modelName;
+      return displayName;
     }
     
     // Function to send a user message
