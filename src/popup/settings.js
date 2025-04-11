@@ -86,12 +86,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Listen for changes to the OpenRouter API key
-  openrouterApiKeyInput.addEventListener('input', debounce(function() {
-    if (this.value.trim().length > 0) {
-      fetchOpenRouterModels();
+  // Update the OpenRouter API key input event listener
+  openrouterApiKeyInput.addEventListener('input', function() {
+    const newKey = this.value.trim();
+    
+    // Immediately clear models and set message when key changes
+    if (this.dataset.lastCheckedKey !== newKey) {
+      // Reset the dropdown immediately
+      openrouterModelSelect.innerHTML = '<option value="">Enter valid API key to load models</option>';
+      updateOpenRouterModelMessage("Waiting for valid API key...");
+      
+      // Clear any previously stored validation state
+      delete this.dataset.key;
+      delete this.dataset.lastCheckedKey;
+      
+      // Cancel any pending validation
+      if (this._validationTimeout) {
+        clearTimeout(this._validationTimeout);
+      }
+      
+      // Only validate if the key is reasonably long (to avoid unnecessary API calls)
+      if (newKey.length > 20) {
+        // Set a timeout to validate the key (debounce)
+        this._validationTimeout = setTimeout(() => {
+          console.log("Validating new OpenRouter API key");
+          this.dataset.lastCheckedKey = newKey;
+          fetchOpenRouterModels(true); // Force refresh with the new key
+        }, 500);
+      }
     }
-  }, 500)); // Debounce to avoid too many requests while typing
+  });
 
   // Handle clearing the masked bullets when the field gets focus
   openrouterApiKeyInput.addEventListener('focus', function() {
@@ -418,30 +442,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (!keyToUse) {
-      // Don't show an error immediately, just leave the default message
-      if (isManualRefresh) {
-        updateOpenRouterModelMessage("Please enter a valid API key.", "error");
-      }
+      // Clear dropdown and show message
+      openrouterModelSelect.innerHTML = '<option value="">No API key provided</option>';
+      updateOpenRouterModelMessage("Please enter a valid API key.", "error");
       return;
     }
     
-    // Only show "Loading models..." when the dropdown is empty or on manual refresh
-    if (openrouterModelSelect.options.length <= 1 || isManualRefresh) {
-      // Clear existing options and add loading option
-      openrouterModelSelect.innerHTML = '<option value="">Loading models...</option>';
-      openrouterModelSelect.disabled = true;
-    }
+    // Always clear existing options when validating a key
+    openrouterModelSelect.innerHTML = '<option value="">Validating API key...</option>';
+    openrouterModelSelect.disabled = true;
     
     // Show spinner
     openrouterSpinner.classList.remove('hidden');
     
-    // Clear any error message during loading to prevent flickering
-    if (!isManualRefresh) {
-      updateOpenRouterModelMessage("Loading models...");
-    }
+    // Clear any existing error message during loading
+    updateOpenRouterModelMessage("Validating API key...");
     
     try {
-      console.log("Fetching OpenRouter models...");
+      console.log("Fetching OpenRouter models with key:", keyToUse.substring(0, 4) + "...");
       
       const response = await fetch('https://openrouter.ai/api/v1/models', {
         method: 'GET',
@@ -452,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -484,11 +502,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         updateOpenRouterModelMessage(`${data.data.length} models loaded successfully.`, "success");
+        
+        // Update the stored key as valid
+        openrouterApiKeyInput.dataset.key = keyToUse;
       }
     } catch (error) {
       console.error("Error fetching OpenRouter models:", error);
+      // Clear the dropdown completely on error
       openrouterModelSelect.innerHTML = '<option value="">Could not load models</option>';
       updateOpenRouterModelMessage(`Error: ${error.message}`, "error");
+      
+      // Always clear the stored key on any validation error to force revalidation
+      delete openrouterApiKeyInput.dataset.key;
+      delete openrouterApiKeyInput.dataset.lastCheckedKey;
     } finally {
       // Hide spinner and enable select
       openrouterSpinner.classList.add('hidden');
@@ -607,10 +633,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } else if (apiMode === 'openrouter') {
+      // Check if we have a valid API key
       if (!openrouterApiKeyInput.dataset.hasKey && !openrouterApiKeyInput.value) {
         showMessage('Please provide a valid OpenRouter API key.', 'error');
         return;
       }
+      
+      // If we entered a new key but it hasn't been validated successfully
+      if (openrouterApiKeyInput.value && 
+          !(/^•+$/.test(openrouterApiKeyInput.value)) && 
+          openrouterModelSelect.options.length <= 1) {
+        if (!confirm("OpenRouter API key hasn't been validated. Continue anyway?")) {
+          return;
+        }
+      }
+      
       if (!openrouterModelSelect.value) {
         if (!confirm("No OpenRouter model selected. This may cause issues. Continue anyway?")) {
           return;
