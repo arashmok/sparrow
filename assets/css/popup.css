@@ -277,7 +277,7 @@ select:focus {
   border-radius: 12px;
   padding: 16px;
   flex: 1 1 auto;
-  min-height: 100px;
+  min-height: 200px; /* Updated from 150px */
   max-height: 350px; /* Add a reasonable max height */
   height: auto;
   display: flex;
@@ -392,6 +392,46 @@ select:focus {
   margin-bottom: 10px;
   border-left: 4px solid #d32f2f;
   font-size: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 70px;
+}
+
+.error i {
+  margin-top: 2px;
+}
+
+/* Improved error styling that doesn't affect window size */
+.error-container {
+  display: flex;
+  background-color: #ffebee;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border-left: 4px solid #d32f2f;
+  overflow: visible;
+  min-height: auto;
+  padding: 0;
+}
+
+.error-icon {
+  padding: 16px 0 0 12px;
+  color: #d32f2f;
+  font-size: 16px;
+}
+
+.error-content {
+  padding: 14px 12px;
+  color: #d32f2f;
+  font-size: 14px;
+  flex: 1;
+}
+
+.error-help {
+  color: #666;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: normal;
 }
 
 /* Footer positioning at the bottom */

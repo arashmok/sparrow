@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Function to adjust window height based on content
-  function adjustWindowHeight() {
+  function adjustWindowHeight(isError = false) {
     // Delay to ensure DOM is updated
     setTimeout(() => {
       // Get the heights of each major section
@@ -478,28 +478,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
       const footerHeight = document.querySelector('footer').offsetHeight;
       
-      // For summary height, use the actual content height, not just the visible container
+      // For summary height, ensure minimum height for errors
       const summaryContentHeight = summaryText.scrollHeight;
-      const summaryContainerHeight = Math.min(350, summaryContentHeight); // Cap at max-height
+      const summaryContainerHeight = isError 
+        ? Math.max(150, Math.min(350, summaryContentHeight)) // Minimum 150px for errors
+        : Math.min(350, summaryContentHeight);
       
-      // Add padding/margins
-      const padding = 50; // Extra padding for margins and spacing
+      // Add padding/margins (more for errors)
+      const padding = isError ? 70 : 50;
       
       // Calculate optimal window height
       const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryContainerHeight + footerHeight + padding;
       
       // Limit to reasonable bounds
-      const minHeight = 300;
-      const maxHeight = 600; // Chrome has limitations on maximum popup height
+      const minHeight = isError ? 400 : 300; // Higher minimum for errors
+      const maxHeight = 600;
       
       // Set height with constraints
       const finalHeight = Math.max(minHeight, Math.min(maxHeight, optimalHeight));
       
       // Apply the height to body to let Chrome resize the popup window
       document.body.style.height = `${finalHeight}px`;
-      
-      console.log(`Resized to ${finalHeight}px based on content height`);
-    }, 100); // Small delay to ensure DOM is fully updated
+    }, 100);
   }
   
   // Helper function to format summary text with better structure
@@ -622,9 +622,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return formattedHtml;
   }
   
-  // Function to show error with dynamic sizing
+  // Function to show error with consistent sizing
   function showError(message) {
-    loading.classList.add('hidden'); // Make sure to hide the loading indicator
+    loading.classList.add('hidden');
     summaryResult.classList.remove('hidden');
     
     // Reset button state
@@ -634,17 +634,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show summary format dropdown after generation
     summaryFormat.classList.remove('hidden-during-generation');
     
-    // Format the error message with an icon and better styling
+    // Format the error message with better styling
     summaryText.innerHTML = `
-      <div class="error">
-        <strong>Error:</strong> ${message}
-      </div>
-      <div class="summary-paragraph">
-        Try refreshing the page or checking your settings.
+      <div class="error-container">
+        <div class="error-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+        <div class="error-content">
+          <strong>Error:</strong> ${message}
+          <div class="error-help">Try refreshing the page or checking your settings.</div>
+        </div>
       </div>
     `;
     
-    // Adjust the window height
-    adjustWindowHeight();
+    // Don't attempt to resize the popup window
+    // This maintains consistent size between normal and error states
   }
 });
