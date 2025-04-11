@@ -83,9 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
     ], (result) => {
       console.log("Loaded settings:", result);
       
-      // Set translation preference
-      if (result.translateToEnglish !== undefined) {
-        translateEnglish.checked = result.translateToEnglish;
+      // Set translation preference with explicit default to false
+      translateEnglish.checked = result.translateToEnglish === true;
+      
+      // Ensure the preference is explicitly set in storage if undefined
+      if (result.translateToEnglish === undefined) {
+        chrome.storage.local.set({ translateToEnglish: false });
       }
       
       // Set summary format preference

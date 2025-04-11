@@ -426,8 +426,14 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
     }
     
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    let summary = data.choices[0].message.content.trim();
     
+    // Add translation prefix if needed - ONLY if requested
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
   } catch (error) {
     console.error('Error generating OpenAI chat response:', error);
     throw error;
@@ -487,7 +493,14 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     }
     
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    let summary = data.choices[0].message.content.trim();
+    
+    // Add translation prefix if needed - ONLY if requested
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
   } catch (error) {
     console.error('Error generating LM Studio chat response:', error);
     throw error;
@@ -548,6 +561,11 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model) {
       reply = data.response.trim();
     } else {
       throw new Error('Unexpected response format from Ollama API');
+    }
+    
+    // Add translation prefix if needed - ONLY if requested
+    if (translateToEnglish) {
+      reply = "[Translated to English] " + reply;
     }
     
     return reply;
@@ -612,8 +630,14 @@ async function generateOpenRouterChatResponse(userMessage, history, apiKey, mode
     }
     
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    let summary = data.choices[0].message.content.trim();
     
+    // Add translation prefix if needed - ONLY if requested
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
+    }
+    
+    return summary;
   } catch (error) {
     console.error('Error generating OpenRouter chat response:', error);
     throw error;
@@ -694,7 +718,7 @@ async function callOpenAIAPI(text, format, apiKey, model, translateToEnglish = f
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
-    // Add translation prefix if needed
+    // Add translation prefix if needed - ONLY if requested
     if (translateToEnglish) {
       summary = "[Translated to English] " + summary;
     }
@@ -808,7 +832,7 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
-    // Add translation prefix if needed
+    // Add translation prefix if needed - ONLY if requested
     if (translateToEnglish) {
       summary = "[Translated to English] " + summary;
     }
@@ -914,7 +938,7 @@ async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = f
       throw new Error('Unexpected response format from Ollama API');
     }
     
-    // Add translation prefix if needed
+    // Add translation prefix if needed - ONLY if requested
     if (translateToEnglish) {
       summary = "[Translated to English] " + summary;
     }
@@ -987,7 +1011,7 @@ async function generateOllamaFallbackSummary(text, format, apiUrl, model, transl
       throw new Error('Unexpected response format from Ollama API');
     }
     
-    // Add translation prefix if needed
+    // Add translation prefix if needed - ONLY if requested
     if (translateToEnglish) {
       summary = "[Translated to English] " + summary;
     }
@@ -1073,7 +1097,7 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
-    // Add translation prefix if needed
+    // Add translation prefix if needed - ONLY if requested
     if (translateToEnglish) {
       summary = "[Translated to English] " + summary;
     }
@@ -1242,8 +1266,10 @@ Please provide a ${format} summary that covers all the important points from all
  * @returns {string} The formatted prompt
  */
 function createPrompt(text, format, translateToEnglish = false) {
-  // Add translation instruction if needed
-  const translationPrefix = translateToEnglish ? "Translate the following content to English and then " : "";
+  // Add translation instruction ONLY if explicitly requested
+  const translationPrefix = translateToEnglish 
+    ? "Translate the following content to English and then " 
+    : "Summarize in the original language. DO NOT translate to English. ";
   
   let prompt;
   
