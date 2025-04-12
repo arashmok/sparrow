@@ -4,19 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sparrow</title>
+  <!-- Main stylesheet -->
   <link rel="stylesheet" href="../../assets/css/popup.css">
+  <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <!-- Settings icon in the top right -->
+  <!-- Settings icon (top right corner) -->
   <div class="settings-icon-container">
     <a href="settings.html" title="Settings" class="settings-icon-link">
       <i class="fa-solid fa-gear"></i>
     </a>
   </div>
   
+  <!-- Main application wrapper -->
   <div id="app-wrapper">
     <div id="popup-container">
+      <!-- Header section with logo and title -->
       <header>
         <div class="logo-container">
           <img src="../../assets/icons/icon48.png" alt="Sparrow logo" class="logo-img">
@@ -27,7 +31,9 @@
         </div>
       </header>
       
+      <!-- Main content area -->
       <main>
+        <!-- Control buttons and summary format dropdown -->
         <div class="controls">
           <button id="summarize-btn" class="primary-btn">
             <i class="fa-solid fa-bolt btn-icon"></i>
@@ -40,7 +46,7 @@
           </select>
         </div>
         
-        <!-- Translate option -->
+        <!-- Translation option checkbox -->
         <div class="checkbox-option translate-option">
           <input type="checkbox" id="translate-english" />
           <label for="translate-english">
@@ -49,13 +55,16 @@
           </label>
         </div>
         
+        <!-- Summary results container -->
         <div class="summary-container">
+          <!-- Loading spinner (hidden by default) -->
           <div id="loading" class="hidden">
             <div class="spinner">
               <i class="fa-solid fa-circle-notch fa-spin"></i>
             </div>
             <span>Generating summary...</span>
           </div>
+          <!-- Summary content area -->
           <div id="summary-result">
             <div id="summary-text">
               <div class="empty-state">
@@ -67,6 +76,7 @@
         </div>
       </main>
       
+      <!-- Footer with API info and chat button -->
       <footer>
         <div class="bottom-actions">
           <span id="api-method-indicator" class="api-method-indicator">Loading...</span>
@@ -79,6 +89,7 @@
     </div>
   </div>
   
+  <!-- JavaScript for popup functionality -->
   <script src="popup.js"></script>
 </body>
 </html>

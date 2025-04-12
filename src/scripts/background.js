@@ -725,7 +725,7 @@ async function generateOpenRouterChatResponse(userMessage, history, apiKey, mode
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://github.com/yourusername/sparrow', // Replace with your actual repo URL
+        'HTTP-Referer': 'https://github.com/arashmok/sparrow', // Replace with your actual repo URL
         'X-Title': 'Sparrow Extension'
       },
       body: JSON.stringify({

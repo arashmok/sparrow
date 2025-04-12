@@ -1,9 +1,19 @@
-// Settings.js - Handles the settings page functionality
+/**
+ * Settings.js - Handles the settings page functionality
+ * Manages user preferences for API configurations, model selection,
+ * and other settings for the Sparrow extension.
+ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements
+  // =====================================================================
+  // DOM Element References
+  // =====================================================================
+  
+  // Form elements
   const settingsForm = document.getElementById('settings-form');
   const apiModeSelect = document.getElementById('api-mode-select');
+  
+  // API section containers
   const openaiSection = document.getElementById('openai-section');
   const lmstudioSection = document.getElementById('lmstudio-section');
   const ollamaSection = document.getElementById('ollama-section');
@@ -31,143 +41,150 @@ document.addEventListener('DOMContentLoaded', () => {
   // OpenRouter elements
   const openrouterApiKeyInput = document.getElementById('openrouter-api-key');
   const openrouterModelSelect = document.getElementById('openrouter-model');
+  const openrouterRefreshBtn = document.getElementById('openrouter-refresh');
   const openrouterSpinner = document.getElementById('openrouter-spinner');
   const openrouterModelMessage = document.getElementById('openrouter-model-message');
   
   // Shared elements
   const defaultFormatSelect = document.getElementById('default-format');
   const cancelBtn = document.getElementById('cancel-btn');
-  const messageDiv = document.getElementById('message');
+  const saveBtn = document.getElementById('save-btn');
+  const statusMessage = document.getElementById('status-message');
   
-  // Load saved settings
-  loadSettings();
+  // =====================================================================
+  // Initialization
+  // =====================================================================
   
-  // Event Listeners
-  settingsForm.addEventListener('submit', saveSettings);
-  document.getElementById('save-btn').addEventListener('click', function(e) {
-    // Prevent the default button behavior
-    e.preventDefault();
-    // Manually trigger the form submission
-    settingsForm.dispatchEvent(new Event('submit'));
-  });
-  cancelBtn.addEventListener('click', () => {
-    window.location.href = "popup.html";
-  });
+  /**
+   * Initialize the settings page
+   * Loads saved settings and sets up event listeners
+   */
+  function init() {
+    // Load saved settings from storage
+    loadSettings();
+    
+    // Set up event listeners
+    setupEventListeners();
+  }
   
-  // Add event listener for dropdown change
-  apiModeSelect.addEventListener('change', updateApiSectionVisibility);
+  // Run initialization
+  init();
   
-  // Add event listeners for server URL changes
-  lmstudioApiUrlInput.addEventListener('blur', () => {
-    fetchLMStudioModels();
-  });
+  // =====================================================================
+  // Event Listeners Setup
+  // =====================================================================
   
-  ollamaApiUrlInput.addEventListener('blur', () => {
-    fetchOllamaModels();
-  });
+  /**
+   * Set up all event listeners for the settings page
+   */
+  function setupEventListeners() {
+    // Form submission
+    settingsForm.addEventListener('submit', saveSettings);
+    
+    // Save button click (triggers form submission)
+    saveBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      settingsForm.dispatchEvent(new Event('submit'));
+    });
+    
+    // Cancel button returns to popup
+    cancelBtn.addEventListener('click', () => {
+      window.location.href = "popup.html";
+    });
+    
+    // API mode dropdown changes which section is visible
+    apiModeSelect.addEventListener('change', updateApiSectionVisibility);
+    
+    // Server URL changes trigger model fetching
+    lmstudioApiUrlInput.addEventListener('blur', () => {
+      fetchLMStudioModels();
+    });
+    
+    ollamaApiUrlInput.addEventListener('blur', () => {
+      fetchOllamaModels();
+    });
+    
+    // Refresh buttons for model lists
+    lmstudioRefreshBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      fetchLMStudioModels(true);
+    });
+    
+    ollamaRefreshBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      fetchOllamaModels(true);
+    });
+    
+    if (openrouterRefreshBtn) {
+      openrouterRefreshBtn.addEventListener('click', function() {
+        console.log("OpenRouter refresh button clicked");
+        fetchOpenRouterModels(true); // Pass true to indicate manual refresh
+      });
+    }
+    
+    // OpenRouter API key input events
+    setupOpenRouterKeyEvents();
+  }
   
-  // Add event listeners for refresh buttons
-  lmstudioRefreshBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    fetchLMStudioModels(true);
-  });
-  
-  ollamaRefreshBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    fetchOllamaModels(true);
-  });
+  /**
+   * Set up special event handling for OpenRouter API key input
+   */
+  function setupOpenRouterKeyEvents() {
+    // Handle input changes with debouncing
+    openrouterApiKeyInput.addEventListener('input', function() {
+      const newKey = this.value.trim();
+      
+      // Immediately clear models and set message when key changes
+      if (this.dataset.lastCheckedKey !== newKey) {
+        // Reset the dropdown immediately
+        openrouterModelSelect.innerHTML = '<option value="">Enter valid API key to load models</option>';
+        updateOpenRouterModelMessage("Waiting for valid API key...");
+        
+        // Clear any previously stored validation state
+        delete this.dataset.key;
+        delete this.dataset.lastCheckedKey;
+        
+        // Cancel any pending validation
+        if (this._validationTimeout) {
+          clearTimeout(this._validationTimeout);
+        }
+        
+        // Only validate if the key is reasonably long (to avoid unnecessary API calls)
+        if (newKey.length > 20) {
+          // Set a timeout to validate the key (debounce)
+          this._validationTimeout = setTimeout(() => {
+            console.log("Validating new OpenRouter API key");
+            this.dataset.lastCheckedKey = newKey;
+            fetchOpenRouterModels(true); // Force refresh with the new key
+          }, 500);
+        }
+      }
+    });
 
-  // OpenRouter refresh button
-  const openrouterRefreshButton = document.getElementById('openrouter-refresh');
-  if (openrouterRefreshButton) {
-    openrouterRefreshButton.addEventListener('click', function() {
-      console.log("OpenRouter refresh button clicked");
-      fetchOpenRouterModels(true); // Pass true to indicate manual refresh
+    // Handle clearing the masked bullets when the field gets focus
+    openrouterApiKeyInput.addEventListener('focus', function() {
+      if (/^•+$/.test(this.value)) {
+        // Clear the bullet characters when focused
+        this.value = '';
+      }
+    });
+
+    // When the field loses focus and is empty but we had a key before
+    openrouterApiKeyInput.addEventListener('blur', function() {
+      if (this.value === '' && this.dataset.hasKey === 'true') {
+        // Restore bullets if no new input was provided
+        this.value = '••••••••••••••••••••••••••';
+      }
     });
   }
-
-  // Update the OpenRouter API key input event listener
-  openrouterApiKeyInput.addEventListener('input', function() {
-    const newKey = this.value.trim();
-    
-    // Immediately clear models and set message when key changes
-    if (this.dataset.lastCheckedKey !== newKey) {
-      // Reset the dropdown immediately
-      openrouterModelSelect.innerHTML = '<option value="">Enter valid API key to load models</option>';
-      updateOpenRouterModelMessage("Waiting for valid API key...");
-      
-      // Clear any previously stored validation state
-      delete this.dataset.key;
-      delete this.dataset.lastCheckedKey;
-      
-      // Cancel any pending validation
-      if (this._validationTimeout) {
-        clearTimeout(this._validationTimeout);
-      }
-      
-      // Only validate if the key is reasonably long (to avoid unnecessary API calls)
-      if (newKey.length > 20) {
-        // Set a timeout to validate the key (debounce)
-        this._validationTimeout = setTimeout(() => {
-          console.log("Validating new OpenRouter API key");
-          this.dataset.lastCheckedKey = newKey;
-          fetchOpenRouterModels(true); // Force refresh with the new key
-        }, 500);
-      }
-    }
-  });
-
-  // Handle clearing the masked bullets when the field gets focus
-  openrouterApiKeyInput.addEventListener('focus', function() {
-    if (/^•+$/.test(this.value)) {
-      // Clear the bullet characters when focused
-      this.value = '';
-    }
-  });
-
-  // When the field loses focus and is empty but we had a key before
-  openrouterApiKeyInput.addEventListener('blur', function() {
-    if (this.value === '' && this.dataset.hasKey === 'true') {
-      // Restore bullets if no new input was provided
-      this.value = '••••••••••••••••••••••••••';
-    }
-  });
   
-  // Function to update API section visibility based on selected mode
-  function updateApiSectionVisibility() {
-    const selectedApiMode = apiModeSelect.value;
-    
-    // Hide all sections first
-    openaiSection.classList.add('hidden');
-    lmstudioSection.classList.add('hidden');
-    ollamaSection.classList.add('hidden');
-    openrouterSection.classList.add('hidden');
-    
-    // Show only the selected section
-    if (selectedApiMode === 'openai') {
-      openaiSection.classList.remove('hidden');
-    } else if (selectedApiMode === 'lmstudio') {
-      lmstudioSection.classList.remove('hidden');
-      // Try to fetch LM Studio models if we haven't already
-      if (lmstudioModelSelect.options.length <= 1) {
-        fetchLMStudioModels();
-      }
-    } else if (selectedApiMode === 'ollama') {
-      ollamaSection.classList.remove('hidden');
-      // Try to fetch Ollama models if we haven't already
-      if (ollamaModelSelect.options.length <= 1) {
-        fetchOllamaModels();
-      }
-    } else if (selectedApiMode === 'openrouter') {
-      openrouterSection.classList.remove('hidden');
-      // Try to fetch OpenRouter models if we haven't already
-      if (openrouterModelSelect.options.length <= 1) {
-        fetchOpenRouterModels();
-      }
-    }
-  }
+  // =====================================================================
+  // Settings Management Functions
+  // =====================================================================
   
-  // Function to load settings from storage
+  /**
+   * Load all settings from Chrome storage
+   */
   function loadSettings() {
     chrome.storage.local.get([
       'apiMode',
@@ -264,7 +281,197 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Function to fetch available models from LM Studio
+  /**
+   * Save settings to Chrome storage
+   * Triggered on form submission
+   * 
+   * @param {Event} e - Form submission event
+   */
+  function saveSettings(e) {
+    e.preventDefault();
+    
+    const apiMode = apiModeSelect.value;
+    
+    // Build settings object with all required data
+    const settings = {
+      apiMode: apiMode,
+      defaultFormat: defaultFormatSelect.value,
+      openaiModel: openaiModelSelect.value
+    };
+    
+    // Ensure we save all the API URLs regardless of current mode
+    if (lmstudioApiUrlInput.value) {
+      settings.lmstudioApiUrl = lmstudioApiUrlInput.value;
+    }
+    
+    if (ollamaApiUrlInput.value) {
+      settings.ollamaApiUrl = ollamaApiUrlInput.value;
+    }
+    
+    // Handle the OpenAI API key
+    if (openaiApiKeyInput.value && openaiApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      settings.apiKey = openaiApiKeyInput.value;
+    } else if (openaiApiKeyInput.dataset.hasKey === 'true') {
+      // Keep the existing key
+    }
+    
+    // Save the models for each service regardless of current mode
+    if (lmstudioModelSelect.value) {
+      settings.lmstudioModel = lmstudioModelSelect.value;
+    }
+    
+    if (ollamaModelSelect.value) {
+      settings.ollamaModel = ollamaModelSelect.value;
+    }
+    
+    if (openrouterModelSelect.value) {
+      settings.openrouterModel = openrouterModelSelect.value;
+    }
+    
+    // Improved OpenRouter API key handling
+    if (openrouterApiKeyInput.value && openrouterApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      settings.openrouterApiKey = openrouterApiKeyInput.value;
+    } else if (openrouterApiKeyInput.dataset.key) {
+      settings.openrouterApiKey = openrouterApiKeyInput.dataset.key;
+    }
+    
+    // Use chrome.storage.local.get first to preserve any settings not explicitly set
+    chrome.storage.local.get(null, (existingSettings) => {
+      // Merge the new settings with existing ones
+      const mergedSettings = {...existingSettings, ...settings};
+      
+      // Save the merged settings
+      chrome.storage.local.set(mergedSettings, () => {
+        showMessage('Settings saved successfully!', 'success');
+        
+        // Increase the timeout slightly to ensure the message is seen
+        setTimeout(() => {
+          window.location.href = "popup.html";
+        }, 1000);
+      });
+    });
+  }
+  
+  // =====================================================================
+  // UI Update Functions
+  // =====================================================================
+  
+  /**
+   * Update which API section is visible based on selected mode
+   */
+  function updateApiSectionVisibility() {
+    const selectedApiMode = apiModeSelect.value;
+    
+    // Hide all sections first
+    openaiSection.classList.add('hidden');
+    lmstudioSection.classList.add('hidden');
+    ollamaSection.classList.add('hidden');
+    openrouterSection.classList.add('hidden');
+    
+    // Show only the selected section
+    if (selectedApiMode === 'openai') {
+      openaiSection.classList.remove('hidden');
+    } else if (selectedApiMode === 'lmstudio') {
+      lmstudioSection.classList.remove('hidden');
+      // Try to fetch LM Studio models if we haven't already
+      if (lmstudioModelSelect.options.length <= 1) {
+        fetchLMStudioModels();
+      }
+    } else if (selectedApiMode === 'ollama') {
+      ollamaSection.classList.remove('hidden');
+      // Try to fetch Ollama models if we haven't already
+      if (ollamaModelSelect.options.length <= 1) {
+        fetchOllamaModels();
+      }
+    } else if (selectedApiMode === 'openrouter') {
+      openrouterSection.classList.remove('hidden');
+      // Try to fetch OpenRouter models if we haven't already
+      if (openrouterModelSelect.options.length <= 1) {
+        fetchOpenRouterModels();
+      }
+    }
+  }
+  
+  /**
+   * Display a status message to the user
+   * 
+   * @param {string} text - Message to display
+   * @param {string} type - Message type ('success' or 'error')
+   */
+  function showMessage(text, type) {
+    // Set the message text
+    statusMessage.textContent = text;
+    
+    // Set color based on message type
+    if (type === 'success') {
+      statusMessage.style.color = '#388e3c';
+    } else if (type === 'error') {
+      statusMessage.style.color = '#d32f2f';
+    }
+    
+    // Show the message
+    statusMessage.classList.add('visible');
+  }
+  
+  /**
+   * Update the LM Studio model message display
+   * 
+   * @param {string} message - Message to display
+   * @param {string} type - Message type ('error' or 'success')
+   */
+  function updateLMStudioModelMessage(message, type = "") {
+    lmstudioModelMessage.textContent = message;
+    lmstudioModelMessage.className = ""; // Clear existing classes
+    if (type === "error") {
+      lmstudioModelMessage.classList.add("error-text");
+    } else if (type === "success") {
+      lmstudioModelMessage.classList.add("success-text");
+    }
+  }
+  
+  /**
+   * Update the Ollama model message display
+   * 
+   * @param {string} message - Message to display
+   * @param {string} type - Message type ('error' or 'success')
+   */
+  function updateOllamaModelMessage(message, type = "") {
+    ollamaModelMessage.textContent = message;
+    ollamaModelMessage.className = ""; // Clear existing classes
+    if (type === "error") {
+      ollamaModelMessage.classList.add("error-text");
+    } else if (type === "success") {
+      ollamaModelMessage.classList.add("success-text");
+    }
+  }
+  
+  /**
+   * Update the OpenRouter model message display
+   * 
+   * @param {string} message - Message to display
+   * @param {string} type - Message type ('error' or 'success')
+   */
+  function updateOpenRouterModelMessage(message, type = "") {
+    if (openrouterModelMessage) {
+      openrouterModelMessage.textContent = message;
+      openrouterModelMessage.className = ""; // Clear existing classes
+      if (type === "error") {
+        openrouterModelMessage.classList.add("error-text");
+      } else if (type === "success") {
+        openrouterModelMessage.classList.add("success-text");
+      }
+    }
+  }
+  
+  // =====================================================================
+  // Model Fetching Functions
+  // =====================================================================
+  
+  /**
+   * Fetch available models from LM Studio
+   * 
+   * @param {boolean} isManualRefresh - Whether this is a manual refresh (true) or automatic (false)
+   */
   async function fetchLMStudioModels(isManualRefresh = false) {
     const serverUrl = lmstudioApiUrlInput.value.trim();
     
@@ -322,14 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           
           // If we have a previously selected model, try to select it
-          const previouslySelected = lmstudioModelSelect.dataset.selectedModel;
-          if (previouslySelected) {
-            // Try to find the option with this value
-            const option = Array.from(lmstudioModelSelect.options).find(opt => opt.value === previouslySelected);
-            if (option) {
-              lmstudioModelSelect.value = previouslySelected;
-            }
-          }
+          selectPreviousModel(lmstudioModelSelect);
           
           updateLMStudioModelMessage(`${data.data.length} models loaded successfully.`, "success");
         }
@@ -347,7 +547,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // Function to fetch available models from Ollama
+  /**
+   * Fetch available models from Ollama
+   * 
+   * @param {boolean} isManualRefresh - Whether this is a manual refresh (true) or automatic (false)
+   */
   async function fetchOllamaModels(isManualRefresh = false) {
     const serverUrl = ollamaApiUrlInput.value.trim();
     
@@ -405,14 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           
           // If we have a previously selected model, try to select it
-          const previouslySelected = ollamaModelSelect.dataset.selectedModel;
-          if (previouslySelected) {
-            // Try to find the option with this value
-            const option = Array.from(ollamaModelSelect.options).find(opt => opt.value === previouslySelected);
-            if (option) {
-              ollamaModelSelect.value = previouslySelected;
-            }
-          }
+          selectPreviousModel(ollamaModelSelect);
           
           updateOllamaModelMessage(`${data.models.length} models loaded successfully.`, "success");
         }
@@ -430,7 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // Function to fetch available models from OpenRouter
+  /**
+   * Fetch available models from OpenRouter
+   * 
+   * @param {boolean} isManualRefresh - Whether this is a manual refresh (true) or automatic (false)
+   */
   async function fetchOpenRouterModels(isManualRefresh = false) {
     // Add this line to store the current key in the dataset
     const apiKey = openrouterApiKeyInput.value.trim();
@@ -498,14 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // If we have a previously selected model, try to select it
-        const previouslySelected = openrouterModelSelect.dataset.selectedModel;
-        if (previouslySelected) {
-          // Try to find the option with this value
-          const option = Array.from(openrouterModelSelect.options).find(opt => opt.value === previouslySelected);
-          if (option) {
-            openrouterModelSelect.value = previouslySelected;
-          }
-        }
+        selectPreviousModel(openrouterModelSelect);
         
         updateOpenRouterModelMessage(`${data.data.length} models loaded successfully.`, "success");
         
@@ -527,130 +721,31 @@ document.addEventListener('DOMContentLoaded', () => {
       openrouterModelSelect.disabled = false;
     }
   }
-  
-  // Helper function to update the LM Studio model message
-  function updateLMStudioModelMessage(message, type = "") {
-    lmstudioModelMessage.textContent = message;
-    lmstudioModelMessage.className = ""; // Clear existing classes
-    if (type === "error") {
-      lmstudioModelMessage.classList.add("error-text");
-    } else if (type === "success") {
-      lmstudioModelMessage.classList.add("success-text");
-    }
-  }
-  
-  // Helper function to update the Ollama model message
-  function updateOllamaModelMessage(message, type = "") {
-    ollamaModelMessage.textContent = message;
-    ollamaModelMessage.className = ""; // Clear existing classes
-    if (type === "error") {
-      ollamaModelMessage.classList.add("error-text");
-    } else if (type === "success") {
-      ollamaModelMessage.classList.add("success-text");
-    }
-  }
-  
-  // Helper function to update the OpenRouter model message
-  function updateOpenRouterModelMessage(message, type = "") {
-    if (openrouterModelMessage) {
-      openrouterModelMessage.textContent = message;
-      openrouterModelMessage.className = ""; // Clear existing classes
-      if (type === "error") {
-        openrouterModelMessage.classList.add("error-text");
-      } else if (type === "success") {
-        openrouterModelMessage.classList.add("success-text");
+
+  /**
+   * Helper function to select a previously chosen model in a dropdown
+   * 
+   * @param {HTMLSelectElement} selectElement - The select element to update
+   */
+  function selectPreviousModel(selectElement) {
+    const previouslySelected = selectElement.dataset.selectedModel;
+    if (previouslySelected) {
+      // Try to find the option with this value
+      const option = Array.from(selectElement.options).find(opt => opt.value === previouslySelected);
+      if (option) {
+        selectElement.value = previouslySelected;
       }
     }
   }
   
-  // Function to save settings to storage
-  function saveSettings(e) {
-    e.preventDefault();
-    
-    const apiMode = apiModeSelect.value;
-    
-    // Build settings object with all required data
-    const settings = {
-      apiMode: apiMode,
-      defaultFormat: defaultFormatSelect.value,
-      openaiModel: openaiModelSelect.value
-    };
-    
-    // Ensure we save all the API URLs regardless of current mode
-    if (lmstudioApiUrlInput.value) {
-      settings.lmstudioApiUrl = lmstudioApiUrlInput.value;
-    }
-    
-    if (ollamaApiUrlInput.value) {
-      settings.ollamaApiUrl = ollamaApiUrlInput.value;
-    }
-    
-    // Handle the OpenAI API key
-    if (openaiApiKeyInput.value && openaiApiKeyInput.value !== '••••••••••••••••••••••••••') {
-      settings.apiKey = openaiApiKeyInput.value;
-    } else if (openaiApiKeyInput.dataset.hasKey === 'true') {
-      // Keep the existing key
-    }
-    
-    // Save the models for each service regardless of current mode
-    if (lmstudioModelSelect.value) {
-      settings.lmstudioModel = lmstudioModelSelect.value;
-    }
-    
-    if (ollamaModelSelect.value) {
-      settings.ollamaModel = ollamaModelSelect.value;
-    }
-    
-    if (openrouterModelSelect.value) {
-      settings.openrouterModel = openrouterModelSelect.value;
-    }
-    
-    // Improved OpenRouter API key handling
-    if (openrouterApiKeyInput.value && openrouterApiKeyInput.value !== '••••••••••••••••••••••••••') {
-      settings.openrouterApiKey = openrouterApiKeyInput.value;
-    } else if (openrouterApiKeyInput.dataset.key) {
-      settings.openrouterApiKey = openrouterApiKeyInput.dataset.key;
-    }
-    
-    // Use chrome.storage.local.get first to preserve any settings not explicitly set
-    chrome.storage.local.get(null, (existingSettings) => {
-      // Merge the new settings with existing ones
-      const mergedSettings = {...existingSettings, ...settings};
-      
-      // Save the merged settings
-      chrome.storage.local.set(mergedSettings, () => {
-        showMessage('Settings saved successfully!', 'success');
-        
-        // Increase the timeout slightly to ensure the message is seen
-        setTimeout(() => {
-          window.location.href = "popup.html";
-        }, 1000);
-      });
-    });
-  }
-  
-  // Function to show a message
-  function showMessage(text, type) {
-    // Get the status message element
-    const statusMessage = document.getElementById('status-message');
-    
-    // Set the message text
-    statusMessage.textContent = text;
-    
-    // Set color based on message type
-    if (type === 'success') {
-      statusMessage.style.color = '#388e3c';
-    } else if (type === 'error') {
-      statusMessage.style.color = '#d32f2f';
-    }
-    
-    // Show the message
-    statusMessage.classList.add('visible');
-    
-    // No need to hide the message with timeout since we'll be redirecting
-  }
-  
-  // Debounce helper function
+  /**
+   * Debounce helper function
+   * Limits how often a function can be called
+   * 
+   * @param {Function} func - Function to debounce
+   * @param {number} wait - Wait time in milliseconds
+   * @returns {Function} Debounced function
+   */
   function debounce(func, wait) {
     let timeout;
     return function(...args) {

@@ -1,7 +1,13 @@
-// Popup.js - Handles the extension popup UI interactions
+/**
+ * Popup.js - Handles the extension popup UI interactions
+ * Responsible for extracting text from webpages, communicating with AI APIs via
+ * the background script, and displaying formatted summaries to the user.
+ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements
+  // =====================================================================
+  // DOM Element References
+  // =====================================================================
   const summarizeBtn = document.getElementById('summarize-btn');
   const summaryFormat = document.getElementById('summary-format');
   const translateEnglish = document.getElementById('translate-english');
@@ -11,12 +17,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiProviderText = document.getElementById('api-provider-text');
   const apiIndicator = document.getElementById('api-indicator');
   const apiMethodIndicator = document.getElementById('api-method-indicator');
+  const chatBtn = document.getElementById('chat-btn');
   
-  // Initialize popup by loading saved settings and IMMEDIATELY check for existing summary
-  checkForExistingSummary();
-  initializePopup();
+  // =====================================================================
+  // Initialization
+  // =====================================================================
   
+  /**
+   * Initialize the popup by checking for existing content and loading settings
+   */
+  function init() {
+    // Check if we have a saved summary for this page
+    checkForExistingSummary();
+    
+    // Load user preferences and set up the UI
+    initializePopup();
+  }
+  
+  // Run initialization on load
+  init();
+  
+  // =====================================================================
   // Event Listeners
+  // =====================================================================
+  
+  // Generate summary button
   summarizeBtn.addEventListener('click', summarizeCurrentPage);
   
   // Save translation preference when changed
@@ -31,7 +56,99 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Chat button functionality
-  document.getElementById('chat-btn').addEventListener('click', async () => {
+  chatBtn.addEventListener('click', handleChatButtonClick);
+
+  // =====================================================================
+  // Core Functions
+  // =====================================================================
+  
+  /**
+   * Initialize popup with saved settings
+   * Loads user preferences and sets up the UI accordingly
+   */
+  function initializePopup() {
+    // Load saved preferences with all model information
+    chrome.storage.local.get([
+      'translateToEnglish', 
+      'apiMode', 
+      'defaultFormat',
+      'openaiModel',
+      'lmstudioModel',
+      'ollamaModel',
+      'openrouterModel'
+    ], (result) => {
+      console.log("Loaded settings:", result);
+      
+      // Set translation preference with explicit default to false
+      translateEnglish.checked = result.translateToEnglish === true;
+      
+      // Ensure the preference is explicitly set in storage if undefined
+      if (result.translateToEnglish === undefined) {
+        chrome.storage.local.set({ translateToEnglish: false });
+      }
+      
+      // Set summary format preference
+      if (result.defaultFormat) {
+        console.log("Setting format to saved value:", result.defaultFormat);
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          summaryFormat.value = result.defaultFormat;
+        }, 10);
+      }
+      
+      // Get the appropriate model name based on the API mode
+      const apiMode = result.apiMode || 'openai';
+      let modelName = '';
+      
+      // Get the model name for the current API mode
+      if (apiMode === 'openai') {
+        modelName = result.openaiModel || '';
+      } else if (apiMode === 'lmstudio') {
+        modelName = result.lmstudioModel || '';
+      } else if (apiMode === 'ollama') {
+        modelName = result.ollamaModel || '';
+      } else if (apiMode === 'openrouter') {
+        modelName = result.openrouterModel || '';
+      }
+      
+      console.log(`Updating indicator with API mode: ${apiMode}, model: ${modelName}`);
+      
+      // Update the indicator in the DOM
+      updateApiIndicator(apiMode, modelName);
+    });
+  }
+
+  /**
+   * Update the API indicator in the UI with appropriate styling
+   * 
+   * @param {string} apiMode - Current API mode (openai, lmstudio, ollama, openrouter)
+   * @param {string} modelName - The model name to display (optional)
+   */
+  function updateApiIndicator(apiMode, modelName = '') {
+    const apiMethodIndicator = document.querySelector('.api-method-indicator');
+    if (!apiMethodIndicator) return;
+    
+    // Set the appropriate CSS class for color coding
+    apiMethodIndicator.className = 'api-method-indicator';
+    if (apiMode === 'openai') {
+      apiMethodIndicator.classList.add('indicator-openai');
+    } else if (apiMode === 'lmstudio') {
+      apiMethodIndicator.classList.add('indicator-lmstudio');
+    } else if (apiMode === 'ollama') {
+      apiMethodIndicator.classList.add('indicator-ollama');
+    } else if (apiMode === 'openrouter') {
+      apiMethodIndicator.classList.add('indicator-openrouter');
+    }
+    
+    // Set the text to the model name or API name
+    apiMethodIndicator.textContent = modelName ? truncateModelName(modelName) : apiMode;
+  }
+
+  /**
+   * Handles the Chat button click event
+   * Opens a chat panel with the latest summary as context
+   */
+  async function handleChatButtonClick() {
     try {
       // Get the active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -67,119 +184,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       console.error("Error handling chat button click:", error);
     }
-  });
-  
-  // Function to initialize popup with saved settings
-  function initializePopup() {
-    // Load saved preferences with ALL model information
-    chrome.storage.local.get([
-      'translateToEnglish', 
-      'apiMode', 
-      'defaultFormat',
-      'openaiModel',
-      'lmstudioModel',
-      'ollamaModel',
-      'openrouterModel'
-    ], (result) => {
-      console.log("Loaded settings:", result);
-      
-      // Set translation preference with explicit default to false
-      translateEnglish.checked = result.translateToEnglish === true;
-      
-      // Ensure the preference is explicitly set in storage if undefined
-      if (result.translateToEnglish === undefined) {
-        chrome.storage.local.set({ translateToEnglish: false });
-      }
-      
-      // Set summary format preference
-      if (result.defaultFormat) {
-        console.log("Setting format to saved value:", result.defaultFormat);
-        setTimeout(() => {
-          summaryFormat.value = result.defaultFormat;
-        }, 10);
-      }
-      
-      // Get the appropriate model name based on the API mode
-      const apiMode = result.apiMode || 'openai';
-      let modelName = '';
-      
-      // Get the model name for the current API mode
-      if (apiMode === 'openai') {
-        modelName = result.openaiModel || '';
-      } else if (apiMode === 'lmstudio') {
-        modelName = result.lmstudioModel || '';
-      } else if (apiMode === 'ollama') {
-        modelName = result.ollamaModel || '';
-      } else if (apiMode === 'openrouter') {
-        modelName = result.openrouterModel || '';
-      }
-      
-      console.log(`Updating indicator with API mode: ${apiMode}, model: ${modelName}`);
-      
-      // Update the indicator in the DOM
-      const apiMethodIndicator = document.querySelector('.api-method-indicator');
-      if (apiMethodIndicator) {
-        // Set the appropriate CSS class for color coding
-        apiMethodIndicator.className = 'api-method-indicator';
-        if (apiMode === 'openai') {
-          apiMethodIndicator.classList.add('indicator-openai');
-        } else if (apiMode === 'lmstudio') {
-          apiMethodIndicator.classList.add('indicator-lmstudio');
-        } else if (apiMode === 'ollama') {
-          apiMethodIndicator.classList.add('indicator-ollama');
-        } else if (apiMode === 'openrouter') {
-          apiMethodIndicator.classList.add('indicator-openrouter');
-        }
-        
-        // Set the text to the model name or API name
-        apiMethodIndicator.textContent = modelName ? truncateModelName(modelName) : apiMode;
-      }
-    });
   }
 
-  // Function to update the API mode indicator
-  function updateApiModeIndicator(apiMode, modelName = '') {
-    const apiMethodIndicator = document.getElementById('api-method-indicator');
-    if (!apiMethodIndicator) return;
-    
-    let displayInfo = { class: '', name: '' };
-    
-    // Set color class based on API source
-    if (apiMode === 'lmstudio') {
-      displayInfo.class = 'indicator-lmstudio';
-    } else if (apiMode === 'ollama') {
-      displayInfo.class = 'indicator-ollama';
-    } else if (apiMode === 'openrouter') {
-      displayInfo.class = 'indicator-openrouter';
-    } else {
-      displayInfo.class = 'indicator-openai';
-    }
-    
-    // Use model name if provided, otherwise use API name
-    if (modelName) {
-      displayInfo.name = truncateModelName(modelName);
-    } else {
-      if (apiMode === 'lmstudio') displayInfo.name = 'LM Studio';
-      else if (apiMode === 'ollama') displayInfo.name = 'Ollama';
-      else if (apiMode === 'openrouter') displayInfo.name = 'OpenRouter';
-      else displayInfo.name = 'OpenAI';
-    }
-    
-    // Update the indicator
-    apiMethodIndicator.textContent = displayInfo.name;
-    apiMethodIndicator.className = 'api-method-indicator ' + displayInfo.class;
-    
-    // Update provider text if it exists
-    const apiProviderText = document.getElementById('api-provider-text');
-    if (apiProviderText) {
-      let providerName = apiMode === 'lmstudio' ? 'LM Studio' : 
-                        apiMode === 'ollama' ? 'Ollama' : 
-                        apiMode === 'openrouter' ? 'OpenRouter' : 'OpenAI';
-      apiProviderText.textContent = `Powered by ${providerName}`;
-    }
-  }
-
-  // Helper function to truncate model name to reasonable length
+  /**
+   * Truncate model name to a reasonable length for display
+   * Handles models with slashes and long names
+   * 
+   * @param {string} modelName - Full model name
+   * @returns {string} Truncated model name
+   */
   function truncateModelName(modelName) {
     if (!modelName) {
       return '';
@@ -197,7 +210,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return modelName;
   }
 
-  // Better URL normalization function
+  /**
+   * Normalize URL to ensure consistent comparison
+   * Handles common variations in URLs that refer to the same page
+   * 
+   * @param {string} urlStr - URL to normalize
+   * @returns {string} Normalized URL
+   */
   function normalizeUrl(urlStr) {
     try {
       // Handle empty or invalid URLs
@@ -239,7 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Improved check for existing summary
+  /**
+   * Check for an existing summary for the current page
+   * Compares the current URL with the stored URL and displays the summary if they match
+   */
   function checkForExistingSummary() {
     chrome.storage.local.get(['latestSummary', 'latestUrl'], (result) => {
       if (result.latestSummary && result.latestUrl) {
@@ -268,24 +290,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Function to summarize the current page
+  /**
+   * Summarize the content of the current page
+   * Extracts text from the page and sends it to the background script for summarization
+   */
   async function summarizeCurrentPage() {
     // Store original button text
     const originalButtonText = summarizeBtn.querySelector('span').textContent;
     
-    // Update button state
-    summarizeBtn.querySelector('span').textContent = "Generating...";
-    summarizeBtn.disabled = true;
-
-    // Hide summary format dropdown during generation
-    summaryFormat.classList.add('hidden-during-generation');
-    
-    // Clear any previous summary
-    summaryText.textContent = '';
-    
-    // Show loading state, hide result state
-    loading.classList.remove('hidden');
-    summaryResult.classList.add('hidden');
+    // Update UI to show we're generating
+    updateUIForGenerating();
     
     try {
       // Get the active tab
@@ -309,28 +323,56 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch (error) {
             showError("Could not extract text from the page. Please refresh the page and try again.");
             console.error("Error after injection:", error);
-            // Reset button state
-            summarizeBtn.querySelector('span').textContent = originalButtonText;
-            summarizeBtn.disabled = false;
-
-            // Show summary format dropdown after generation
-            summaryFormat.classList.remove('hidden-during-generation');
+            // Reset UI
+            resetUIAfterGeneration(originalButtonText);
           }
         }, 200);
       }
     } catch (error) {
       showError("An error occurred: " + error.message);
       console.error("General error:", error);
-      // Reset button state
-      summarizeBtn.querySelector('span').textContent = originalButtonText;
-      summarizeBtn.disabled = false;
-
-      // Show summary format dropdown after generation
-      summaryFormat.classList.remove('hidden-during-generation');
+      // Reset UI
+      resetUIAfterGeneration(originalButtonText);
     }
   }
   
-  // Helper function to send a message to the content script with a Promise interface
+  /**
+   * Update UI elements to show generation is in progress
+   */
+  function updateUIForGenerating() {
+    // Update button state
+    summarizeBtn.querySelector('span').textContent = "Generating...";
+    summarizeBtn.disabled = true;
+
+    // Hide summary format dropdown during generation
+    summaryFormat.classList.add('hidden-during-generation');
+    
+    // Clear any previous summary
+    summaryText.textContent = '';
+    
+    // Show loading state, hide result state
+    loading.classList.remove('hidden');
+    summaryResult.classList.add('hidden');
+  }
+  
+  /**
+   * Reset UI elements after generation completes or fails
+   * 
+   * @param {string} buttonText - Text to set on the button
+   */
+  function resetUIAfterGeneration(buttonText) {
+    summarizeBtn.querySelector('span').textContent = buttonText;
+    summarizeBtn.disabled = false;
+    summaryFormat.classList.remove('hidden-during-generation');
+  }
+  
+  /**
+   * Send a message to the content script with Promise interface
+   * 
+   * @param {number} tabId - Chrome tab ID
+   * @param {object} message - Message to send to content script
+   * @returns {Promise} Promise that resolves with the response
+   */
   function sendMessageToContentScript(tabId, message) {
     return new Promise((resolve, reject) => {
       chrome.tabs.sendMessage(tabId, message, response => {
@@ -349,7 +391,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Helper function to inject the content script
+  /**
+   * Inject the content script into the current tab
+   * 
+   * @param {number} tabId - Chrome tab ID
+   * @returns {Promise} Promise that resolves when injection is complete
+   */
   function injectContentScript(tabId) {
     return new Promise((resolve, reject) => {
       chrome.scripting.executeScript({
@@ -365,22 +412,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Function to process the summarization after text extraction
+  /**
+   * Process the summarization after text extraction
+   * Sends extracted text to background script and handles response
+   * 
+   * @param {object} response - Response from content script containing extracted text
+   * @param {string} url - URL of the current page
+   */
   function processSummarization(response, url) {
     if (!response || !response.text) {
       showError("No content found to summarize.");
       // Reset button state
-      summarizeBtn.querySelector('span').textContent = "Generate";
-      summarizeBtn.disabled = false;
-
-      // Show summary format dropdown after generation
-      summaryFormat.classList.remove('hidden-during-generation');
+      resetUIAfterGeneration("Generate");
       return;
     }
     
     console.log("Sending text to background script for summarization");
     
-    // Send extracted text to background script for API call
+    // Get user preferences for summary
     const format = summaryFormat.value;
     const translateToEnglish = translateEnglish.checked;
     
@@ -390,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Translation to English:", translateToEnglish ? "Enabled" : "Disabled");
     console.log("Using summary format:", format);
     
+    // Send to background script for processing
     chrome.runtime.sendMessage(
       { 
         action: "summarize", 
@@ -397,63 +447,88 @@ document.addEventListener('DOMContentLoaded', () => {
         format: format,
         translateToEnglish: translateToEnglish
       }, 
-      (result) => {
-        // Always reset button state when we get a response
-        summarizeBtn.querySelector('span').textContent = "Generate";
-        summarizeBtn.disabled = false;
-
-        // Show summary format dropdown after generation
-        summaryFormat.classList.remove('hidden-during-generation');
-        
-        // Reset loading message if it exists
-        const loadingText = loading.querySelector('span');
-        if (loadingText) {
-          loadingText.textContent = "Generating summary...";
-        }
-        
-        // Check for runtime errors first
-        if (chrome.runtime.lastError) {
-          showError("Background script error: " + chrome.runtime.lastError.message);
-          console.error("Background script error:", chrome.runtime.lastError);
-          return;
-        }
-        
-        // Check if we got a response at all
-        if (!result) {
-          showError("No response received from background script.");
-          return;
-        }
-        
-        console.log("Received response from background:", result);
-        
-        // Check for error in the response
-        if (result.error) {
-          showError(result.error);
-          return;
-        }
-        
-        // Check if summary exists
-        if (!result.summary) {
-          showError("No summary was generated. Please try again.");
-          return;
-        }
-        
-        // Display the summary
-        displaySummary(result.summary, url);
-      }
+      handleSummarizationResponse(url)
     );
   }
   
-  // Improved display summary function
+  /**
+   * Create a handler for summarization response
+   * 
+   * @param {string} url - The URL of the page being summarized
+   * @returns {function} Callback function to handle the response
+   */
+  function handleSummarizationResponse(url) {
+    return (result) => {
+      // Always reset button state when we get a response
+      resetUIAfterGeneration("Generate");
+      
+      // Reset loading message if it exists
+      const loadingText = loading.querySelector('span');
+      if (loadingText) {
+        loadingText.textContent = "Generating summary...";
+      }
+      
+      // Check for runtime errors first
+      if (chrome.runtime.lastError) {
+        showError("Background script error: " + chrome.runtime.lastError.message);
+        console.error("Background script error:", chrome.runtime.lastError);
+        return;
+      }
+      
+      // Check if we got a response at all
+      if (!result) {
+        showError("No response received from background script.");
+        return;
+      }
+      
+      console.log("Received response from background:", result);
+      
+      // Check for error in the response
+      if (result.error) {
+        showError(result.error);
+        return;
+      }
+      
+      // Check if summary exists
+      if (!result.summary) {
+        showError("No summary was generated. Please try again.");
+        return;
+      }
+      
+      // Display the summary
+      displaySummary(result.summary, url);
+    };
+  }
+  
+  /**
+   * Display the summary in the popup UI
+   * 
+   * @param {string} summary - Summary text to display
+   * @param {string} storedUrl - URL to associate with the summary
+   */
   function displaySummary(summary, storedUrl = null) {
+    // Hide loading spinner, show results
     loading.classList.add('hidden');
     summaryResult.classList.remove('hidden');
     
+    // Format and display the summary
     const formattedSummary = formatSummaryText(summary);
     summaryText.innerHTML = formattedSummary;
+    
+    // Adjust window height to fit content
     adjustWindowHeight();
     
-    // Save the current URL and summary 
+    // Save the current URL and summary for future use
+    saveCurrentSummary(summary, storedUrl);
+  }
+
+  /**
+   * Save the current summary and URL to storage
+   * 
+   * @param {string} summary - Summary text to save
+   * @param {string} storedUrl - URL associated with the summary (if provided)
+   */
+  function saveCurrentSummary(summary, storedUrl = null) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs || !tabs[0]) return;
       
@@ -471,7 +546,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Function to adjust window height based on content
+  /**
+   * Adjust the popup window height based on content
+   * Ensures optimal size for different content lengths
+   * 
+   * @param {boolean} isError - Whether we're showing an error message
+   */
   function adjustWindowHeight(isError = false) {
     // Delay to ensure DOM is updated
     setTimeout(() => {
@@ -505,7 +585,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
   }
   
-  // Helper function to format summary text with better structure
+  /**
+   * Format the summary text with better structure
+   * Detects titles, paragraphs, and bullet points for improved readability
+   * 
+   * @param {string} text - Raw summary text
+   * @returns {string} HTML-formatted summary
+   */
   function formatSummaryText(text) {
     // Check if this is a translated summary
     const isTranslated = text.includes("[Translated to English]");
@@ -522,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let bulletPoints = [];
     let foundTitle = false;
     
-    // First pass - identify if first line is a title with markdown formatting in a bullet
+    // First pass - identify if first line is a title
     if (allLines.length > 0) {
       const firstLine = allLines[0];
       
@@ -628,17 +714,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return formattedHtml;
   }
   
-  // Function to show error with consistent sizing
+  /**
+   * Show an error message in the popup
+   * 
+   * @param {string} message - Error message to display
+   */
   function showError(message) {
+    // Hide loading indicator, show results container
     loading.classList.add('hidden');
     summaryResult.classList.remove('hidden');
     
     // Reset button state
-    summarizeBtn.querySelector('span').textContent = "Generate";
-    summarizeBtn.disabled = false;
-
-    // Show summary format dropdown after generation
-    summaryFormat.classList.remove('hidden-during-generation');
+    resetUIAfterGeneration("Generate");
     
     // Format the error message with better styling
     summaryText.innerHTML = `
@@ -651,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     
-    // Don't attempt to resize the popup window
+    // Don't resize the popup window for error messages
     // This maintains consistent size between normal and error states
   }
 });

@@ -4,19 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sparrow Settings</title>
+    <!-- Main stylesheets -->
     <link rel="stylesheet" href="../../assets/css/popup.css">
     <link rel="stylesheet" href="../../assets/css/settings.css">
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="settings-page">
+    <!-- Header section -->
     <header>
         <h1>Settings</h1>
-        <!-- Removed subtitle text -->
     </header>
 
+    <!-- Main content section -->
     <main>
         <form id="settings-form">
-            <!-- API Mode Selection -->
+            <!-- API Mode Selection dropdown -->
             <div class="form-group">
                 <label for="api-mode-select">API Source</label>
                 <select id="api-mode-select" class="api-source-dropdown">
@@ -27,16 +30,18 @@
                 </select>
             </div>
 
-            <!-- API Sections Container -->
+            <!-- Container for all API-specific settings sections -->
             <div class="api-sections-container">
                 <!-- OpenAI API Section -->
                 <div id="openai-section" class="api-section">
                     <div class="api-section-title">OpenAI Settings</div>
+                    <!-- API Key input -->
                     <div class="form-group">
                         <label for="openai-api-key">API Key</label>
                         <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key">
                         <small>Your API key is stored locally on your device.</small>
                     </div>
+                    <!-- Model selection -->
                     <div class="form-group">
                         <label for="openai-model">Model</label>
                         <select id="openai-model">
@@ -48,14 +53,16 @@
                     </div>
                 </div>
 
-                <!-- OpenRouter API Section -->
+                <!-- OpenRouter API Section (initially hidden) -->
                 <div id="openrouter-section" class="api-section hidden">
                     <div class="api-section-title">OpenRouter Settings</div>
+                    <!-- API Key input -->
                     <div class="form-group">
                         <label for="openrouter-api-key">API Key</label>
                         <input type="password" id="openrouter-api-key" placeholder="Enter your OpenRouter API key">
                         <small>Your API key is stored locally on your device.</small>
                     </div>
+                    <!-- Model selection with refresh button -->
                     <div class="form-group">
                         <label for="openrouter-model">Model</label>
                         <div class="input-with-button">
@@ -73,9 +80,10 @@
                     </div>
                 </div>
 
-                <!-- LM Studio Section -->
+                <!-- LM Studio Section (initially hidden) -->
                 <div id="lmstudio-section" class="api-section hidden">
                     <div class="api-section-title">LM Studio Settings</div>
+                    <!-- Server URL input with refresh button -->
                     <div class="form-group">
                         <label for="lmstudio-api-url">Server URL</label>
                         <div class="input-with-button">
@@ -85,10 +93,12 @@
                             </button>
                         </div>
                     </div>
+                    <!-- Optional API Key input -->
                     <div class="form-group">
                         <label for="lmstudio-api-key">API Key (Optional)</label>
                         <input type="password" id="lmstudio-api-key" placeholder="Usually not required for local LM Studio">
                     </div>
+                    <!-- Model selection with loading spinner -->
                     <div class="form-group">
                         <label for="lmstudio-model">Model</label>
                         <div class="select-with-spinner">
@@ -103,9 +113,10 @@
                     </div>
                 </div>
 
-                <!-- Ollama Section -->
+                <!-- Ollama Section (initially hidden) -->
                 <div id="ollama-section" class="api-section hidden">
                     <div class="api-section-title">Ollama Settings</div>
+                    <!-- Server URL input with refresh button -->
                     <div class="form-group">
                         <label for="ollama-api-url">Server URL</label>
                         <div class="input-with-button">
@@ -115,6 +126,7 @@
                             </button>
                         </div>
                     </div>
+                    <!-- Model selection with loading spinner -->
                     <div class="form-group">
                         <label for="ollama-model">Model</label>
                         <div class="select-with-spinner">
@@ -130,7 +142,7 @@
                 </div>
             </div>
 
-            <!-- Shared Settings -->
+            <!-- Shared Settings (across all API modes) -->
             <div class="form-group">
                 <label for="default-format">Default Summary Format</label>
                 <select id="default-format">
@@ -142,14 +154,17 @@
         </form>
     </main>
 
+    <!-- Footer with action buttons -->
     <footer>
         <div class="bottom-actions">
             <button type="button" id="cancel-btn">Cancel</button>
             <button type="submit" id="save-btn" class="primary-btn">Save</button>
         </div>
+        <!-- Status message container (for success/error messages) -->
         <div id="status-message" class="status-message"></div>
     </footer>
 
+    <!-- JavaScript for settings functionality -->
     <script src="settings.js"></script>
 </body>
 </html>
