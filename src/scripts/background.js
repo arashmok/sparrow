@@ -1,23 +1,39 @@
-// Background.js - Handles API calls and background processes
+/**
+ * background.js - Handles API calls and background processes for the Sparrow extension
+ * 
+ * This script manages:
+ * - API communication with various LLM providers (OpenAI, LM Studio, Ollama, OpenRouter)
+ * - Text summarization processing
+ * - Chat functionality
+ * - Side panel operations
+ */
 
-// OpenAI API endpoint
+// ==========================================================================================
+// CONSTANTS AND CONFIGURATION
+// ==========================================================================================
+
+// OpenAI API endpoint for chat completions
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Default configuration
+// Default configuration for API calls
 let CONFIG = {
   API_MODE: 'openai',  // Default API mode
-  MAX_TOKENS: 500,
-  TEMPERATURE: 0.5
+  MAX_TOKENS: 500,     // Maximum tokens in response
+  TEMPERATURE: 0.5     // Creativity level (higher = more creative)
 };
 
-// Maximum size for a single text chunk (in characters)
-const MAX_CHUNK_SIZE = 3500;
-// Maximum number of chunks to process (to avoid excessive API calls)
-const MAX_CHUNKS = 5;
+// Text processing limits
+const MAX_CHUNK_SIZE = 3500;  // Maximum size for a single text chunk (in characters)
+const MAX_CHUNKS = 5;         // Maximum number of chunks to process (prevents excessive API calls)
+
+// ==========================================================================================
+// MODEL AND DISPLAY UTILITIES
+// ==========================================================================================
 
 /**
- * Gets model display information
- * @param {string} apiMode - The API mode (openai, lmstudio, ollama, openrouter)
+ * Gets model display information based on API provider and model name
+ * 
+ * @param {string} apiMode - The API provider (openai, lmstudio, ollama, openrouter)
  * @param {string} modelName - The full model name
  * @returns {Object} Object containing display class and shortened model name
  */
@@ -25,17 +41,21 @@ function getModelDisplayInfo(apiMode, modelName) {
   let statusClass = '';
   
   // Set color class based on API source
-  if (apiMode === 'lmstudio') {
-    statusClass = 'indicator-lmstudio';
-  } else if (apiMode === 'ollama') {
-    statusClass = 'indicator-ollama';
-  } else if (apiMode === 'openrouter') {
-    statusClass = 'indicator-openrouter';
-  } else {
-    statusClass = 'indicator-openai';
+  switch (apiMode) {
+    case 'lmstudio':
+      statusClass = 'indicator-lmstudio';
+      break;
+    case 'ollama':
+      statusClass = 'indicator-ollama';
+      break;
+    case 'openrouter':
+      statusClass = 'indicator-openrouter';
+      break;
+    default: // Default to OpenAI
+      statusClass = 'indicator-openai';
   }
   
-  // Truncate model name for display
+  // Get shortened model name for display
   let displayName = truncateModelName(modelName);
   
   return {
@@ -45,7 +65,8 @@ function getModelDisplayInfo(apiMode, modelName) {
 }
 
 /**
- * Truncates model name for display
+ * Truncates model name for display purposes
+ * 
  * @param {string} modelName - The full model name
  * @returns {string} Truncated model name
  */
@@ -54,22 +75,28 @@ function truncateModelName(modelName) {
     return '';
   }
   
-  // Get last part of model name if it contains slashes
+  // Get last part of model name if it contains slashes (e.g., "organization/model-name")
   if (modelName.includes('/')) {
     modelName = modelName.split('/').pop();
   }
   
-  // Truncate if too long
+  // Truncate if too long for UI display
   if (modelName.length > 15) {
     return modelName.substring(0, 12) + '...';
   }
   return modelName;
 }
 
-// Handle side panel functionality
+// ==========================================================================================
+// SIDE PANEL AND MESSAGING HANDLERS
+// ==========================================================================================
 
-// Open the side panel when requested
+/**
+ * Message listener for handling various extension actions
+ * Processes side panel operations and chat functionality
+ */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle side panel opening requests
   if (request.action === 'open-chat-panel') {
     // Store the generated text for the side panel to access
     if (request.generatedText) {
@@ -105,22 +132,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     });
     
-    return true; // Keep the messaging channel open for sendResponse
+    return true; // Keep the messaging channel open for asynchronous sendResponse
   }
-  // Handle chat messages for API communication
+  
+  // Handle chat message requests (for API communication)
   if (request.action === 'chat-message') {
     handleChatMessage(request)
       .then(response => sendResponse(response))
       .catch(error => sendResponse({ error: error.message }));
     
-    return true; // Async response
+    return true; // Indicate asynchronous response
   }
 });
 
-// Listen for messages from the popup
+/**
+ * Message listener for popup requests
+ * Handles summarization requests from the popup
+ */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "summarize") {
-    // Get settings from storage
+    // Get current settings from storage
     chrome.storage.local.get([
       'apiMode', 
       'apiKey', 
@@ -134,62 +165,73 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       'openrouterModel'
     ], async (settings) => {
       try {
-        // Determine which API to use
+        // Determine which API to use based on settings
         const apiMode = settings.apiMode || 'openai';
         console.log("Using API mode:", apiMode);
         
         let summary;
         
-        if (apiMode === 'openai') {
-          // Use OpenAI API
-          const apiKey = settings.apiKey;
-          const model = settings.openaiModel || 'gpt-3.5-turbo';
-          
-          if (!apiKey) {
-            sendResponse({ error: 'No OpenAI API key found. Please add your API key in the extension settings.' });
+        // Route to the appropriate API handler based on selected mode
+        switch (apiMode) {
+          case 'openai':
+            // Use OpenAI API
+            const apiKey = settings.apiKey;
+            const model = settings.openaiModel || 'gpt-3.5-turbo';
+            
+            if (!apiKey) {
+              sendResponse({ error: 'No OpenAI API key found. Please add your API key in the extension settings.' });
+              return;
+            }
+            
+            summary = await generateOpenAISummary(request.text, request.format, apiKey, model, request.translateToEnglish);
+            break;
+            
+          case 'lmstudio':
+            // Use LM Studio API
+            const lmStudioUrl = settings.lmstudioApiUrl || 'http://localhost:1234/v1';
+            const lmStudioKey = settings.lmstudioApiKey || '';
+            const lmStudioModel = settings.lmstudioModel || '';
+            
+            if (!lmStudioUrl) {
+              sendResponse({ error: 'No LM Studio server URL found. Please check your settings.' });
+              return;
+            }
+            
+            summary = await generateLMStudioSummary(request.text, request.format, lmStudioUrl, lmStudioKey, request.translateToEnglish, lmStudioModel);
+            break;
+            
+          case 'ollama':
+            // Use Ollama API
+            const ollamaApiUrl = settings.ollamaApiUrl || 'http://localhost:11434/api';
+            const ollamaModel = settings.ollamaModel || 'llama2';
+            
+            if (!ollamaApiUrl) {
+              sendResponse({ error: 'No Ollama server URL found. Please check your settings.' });
+              return;
+            }
+            
+            summary = await generateOllamaSummary(request.text, request.format, ollamaApiUrl, ollamaModel, request.translateToEnglish);
+            break;
+            
+          case 'openrouter':
+            // Use OpenRouter API
+            const openRouterKey = settings.openrouterApiKey;
+            const openRouterModel = settings.openrouterModel;
+            
+            if (!openRouterKey) {
+              sendResponse({ error: 'No OpenRouter API key found. Please add your API key in the extension settings.' });
+              return;
+            }
+            
+            summary = await generateOpenRouterSummary(request.text, request.format, openRouterKey, openRouterModel, request.translateToEnglish);
+            break;
+            
+          default:
+            sendResponse({ error: `Unknown API mode: ${apiMode}` });
             return;
-          }
-          
-          summary = await generateOpenAISummary(request.text, request.format, apiKey, model, request.translateToEnglish);
-        } else if (apiMode === 'lmstudio') {
-          // Use LM Studio API
-          const lmStudioUrl = settings.lmstudioApiUrl || 'http://localhost:1234/v1';
-          const lmStudioKey = settings.lmstudioApiKey || '';
-          const lmStudioModel = settings.lmstudioModel || '';
-          
-          if (!lmStudioUrl) {
-            sendResponse({ error: 'No LM Studio server URL found. Please check your settings.' });
-            return;
-          }
-          
-          summary = await generateLMStudioSummary(request.text, request.format, lmStudioUrl, lmStudioKey, request.translateToEnglish, lmStudioModel);
-        } else if (apiMode === 'ollama') {
-          // Use Ollama API
-          const ollamaApiUrl = settings.ollamaApiUrl || 'http://localhost:11434/api';
-          const ollamaModel = settings.ollamaModel || 'llama2';
-          
-          if (!ollamaApiUrl) {
-            sendResponse({ error: 'No Ollama server URL found. Please check your settings.' });
-            return;
-          }
-          
-          summary = await generateOllamaSummary(request.text, request.format, ollamaApiUrl, ollamaModel, request.translateToEnglish);
-        } else if (apiMode === 'openrouter') {
-          // Use OpenRouter API
-          const apiKey = settings.openrouterApiKey;
-          const model = settings.openrouterModel;
-          
-          if (!apiKey) {
-            sendResponse({ error: 'No OpenRouter API key found. Please add your API key in the extension settings.' });
-            return;
-          }
-          
-          summary = await generateOpenRouterSummary(request.text, request.format, apiKey, model, request.translateToEnglish);
-        } else {
-          sendResponse({ error: `Unknown API mode: ${apiMode}` });
-          return;
         }
         
+        // Return the summary to the popup
         sendResponse({ summary: summary });
       } catch (error) {
         console.error('Error generating summary:', error);
@@ -202,7 +244,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Function to extract page content
+// ==========================================================================================
+// CONTENT EXTRACTION FUNCTIONS
+// ==========================================================================================
+
+/**
+ * Extracts content from the current page
+ * Note: This function runs in the context of web pages through the content script
+ * 
+ * @returns {string} The extracted content with page metadata
+ */
 function extractPageContent() {
   try {
     // Get page metadata
@@ -212,7 +263,7 @@ function extractPageContent() {
     // Extract main content using similar logic to your existing content.js
     let mainContent = '';
     
-    // Try to find the main content container
+    // Try to find the main content container using common selectors
     const contentSelectors = [
       'article',
       '[role="main"]',
@@ -291,7 +342,16 @@ function extractPageContent() {
   }
 }
 
-// Handle chat messages and API communication
+// ==========================================================================================
+// CHAT HANDLING FUNCTIONS
+// ==========================================================================================
+
+/**
+ * Handles chat messages and routes to appropriate API provider
+ * 
+ * @param {Object} request - The message request containing text and history
+ * @returns {Promise<Object>} The chat response
+ */
 async function handleChatMessage(request) {
   try {
     // Get the settings from storage
@@ -318,57 +378,66 @@ async function handleChatMessage(request) {
     // Generate response based on API mode
     let reply;
     
-    if (apiMode === 'openai') {
-      // Use OpenAI API
-      const apiKey = settings.apiKey;
-      const model = settings.openaiModel || 'gpt-3.5-turbo';
-      
-      if (!apiKey) {
-        throw new Error('No OpenAI API key found. Please add your API key in the extension settings.');
-      }
-      
-      reply = await generateOpenAIChatResponse(userMessage, request.history || [], apiKey, model);
-      
-    } else if (apiMode === 'lmstudio') {
-      // Use LM Studio API
-      const lmStudioUrl = settings.lmstudioApiUrl || 'http://localhost:1234/v1';
-      const lmStudioKey = settings.lmstudioApiKey || '';
-      const lmStudioModel = settings.lmstudioModel || '';
-      
-      if (!lmStudioUrl) {
-        throw new Error('No LM Studio server URL found. Please check your settings.');
-      }
-      
-      reply = await generateLMStudioChatResponse(userMessage, request.history || [], lmStudioUrl, lmStudioKey, lmStudioModel);
-      
-    } else if (apiMode === 'ollama') {
-      // Use Ollama API
-      const ollamaApiUrl = settings.ollamaApiUrl || 'http://localhost:11434/api';
-      const ollamaModel = settings.ollamaModel || 'llama2';
-      
-      if (!ollamaApiUrl) {
-        throw new Error('No Ollama server URL found. Please check your settings.');
-      }
-      
-      if (!ollamaModel) {
-        throw new Error('No Ollama model specified. Please check your settings.');
-      }
-      
-      reply = await generateOllamaChatResponse(userMessage, request.history || [], ollamaApiUrl, ollamaModel);
-    } else if (apiMode === 'openrouter') {
-      // Use OpenRouter API
-      const openRouterApiKey = settings.openrouterApiKey;
-      const openRouterModel = settings.openrouterModel || 'gpt-3.5-turbo';
-      
-      if (!openRouterApiKey) {
-        throw new Error('No OpenRouter API key found. Please add your API key in the extension settings.');
-      }
-      
-      reply = await generateOpenRouterChatResponse(userMessage, request.history || [], openRouterApiKey, openRouterModel);
-    } else {
-      throw new Error(`Unknown API mode: ${apiMode}`);
+    // Route to appropriate API handler
+    switch (apiMode) {
+      case 'openai':
+        // Use OpenAI API
+        const apiKey = settings.apiKey;
+        const model = settings.openaiModel || 'gpt-3.5-turbo';
+        
+        if (!apiKey) {
+          throw new Error('No OpenAI API key found. Please add your API key in the extension settings.');
+        }
+        
+        reply = await generateOpenAIChatResponse(userMessage, request.history || [], apiKey, model);
+        break;
+        
+      case 'lmstudio':
+        // Use LM Studio API
+        const lmStudioUrl = settings.lmstudioApiUrl || 'http://localhost:1234/v1';
+        const lmStudioKey = settings.lmstudioApiKey || '';
+        const lmStudioModel = settings.lmstudioModel || '';
+        
+        if (!lmStudioUrl) {
+          throw new Error('No LM Studio server URL found. Please check your settings.');
+        }
+        
+        reply = await generateLMStudioChatResponse(userMessage, request.history || [], lmStudioUrl, lmStudioKey, lmStudioModel);
+        break;
+        
+      case 'ollama':
+        // Use Ollama API
+        const ollamaApiUrl = settings.ollamaApiUrl || 'http://localhost:11434/api';
+        const ollamaModel = settings.ollamaModel || 'llama2';
+        
+        if (!ollamaApiUrl) {
+          throw new Error('No Ollama server URL found. Please check your settings.');
+        }
+        
+        if (!ollamaModel) {
+          throw new Error('No Ollama model specified. Please check your settings.');
+        }
+        
+        reply = await generateOllamaChatResponse(userMessage, request.history || [], ollamaApiUrl, ollamaModel);
+        break;
+        
+      case 'openrouter':
+        // Use OpenRouter API
+        const openRouterApiKey = settings.openrouterApiKey;
+        const openRouterModel = settings.openrouterModel || 'gpt-3.5-turbo';
+        
+        if (!openRouterApiKey) {
+          throw new Error('No OpenRouter API key found. Please add your API key in the extension settings.');
+        }
+        
+        reply = await generateOpenRouterChatResponse(userMessage, request.history || [], openRouterApiKey, openRouterModel);
+        break;
+        
+      default:
+        throw new Error(`Unknown API mode: ${apiMode}`);
     }
     
+    // Format the response for display
     if (reply && reply.text) {
       // Ensure code blocks have proper spacing
       reply.text = reply.text.replace(/```(\w*)\n/g, '```$1\n');
@@ -384,12 +453,18 @@ async function handleChatMessage(request) {
   }
 }
 
+// ==========================================================================================
+// CHAT API FUNCTIONS
+// ==========================================================================================
+
 /**
  * Generate a chat response using OpenAI's API
+ * 
  * @param {string} userMessage - The user's message
  * @param {Array} history - Conversation history
  * @param {string} apiKey - OpenAI API key
  * @param {string} model - Model name
+ * @returns {Promise<string>} The generated response
  */
 async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
   try {
@@ -430,11 +505,13 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
       })
     });
     
+    // Handle API errors
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error?.message || `Failed to generate response (Status: ${response.status})`);
     }
     
+    // Process the response
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
@@ -452,6 +529,7 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
 
 /**
  * Generate a chat response using LM Studio's API
+ * 
  * @param {string} userMessage - The user's message
  * @param {Array} history - Conversation history
  * @param {string} apiUrl - LM Studio API URL
@@ -466,6 +544,7 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
   }];
   
+  // Add conversation history if available
   if (history && history.length > 0) {
     messages = messages.concat(history);
   }
@@ -478,14 +557,17 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     });
   }
 
-  // Build the LM Studio API endpoint URL. Assuming the endpoint for chat completions.
+  // Build the LM Studio API endpoint URL
   const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
   const headers = { 'Content-Type': 'application/json' };
+  
+  // Add API key if provided
   if (apiKey) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
   
   try {
+    // Make the API request
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: headers,
@@ -497,11 +579,13 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
       })
     });
     
+    // Handle API errors
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error?.message || `Failed to generate response (Status: ${response.status})`);
     }
     
+    // Process the response
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
@@ -519,6 +603,7 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
 
 /**
  * Generate a chat response using Ollama's API
+ * 
  * @param {string} userMessage - The user's message
  * @param {Array} history - Conversation history
  * @param {string} apiUrl - Ollama API base URL
@@ -533,6 +618,7 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
     content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
   }];
   
+  // Add conversation history if available
   if (history && history.length > 0) {
     messages = messages.concat(history);
   }
@@ -547,8 +633,11 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
   
   // Build the Ollama API chat endpoint
   const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat`;
+  
   try {
     console.log("Sending Ollama chat request:", { endpoint, model, messageCount: messages.length });
+    
+    // Make the API request
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -560,6 +649,7 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
       })
     });
     
+    // Handle API errors
     if (!response.ok) {
       let errorMessage = `Status: ${response.status}`;
       try {
@@ -571,8 +661,11 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
       throw new Error(`Failed to generate response: ${errorMessage}`);
     }
     
+    // Process the response
     const data = await response.json();
     let reply = '';
+    
+    // Handle different response formats from Ollama
     if (data.message && data.message.content) {
       reply = data.message.content.trim();
     } else if (data.response) {
@@ -595,6 +688,7 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
 
 /**
  * Generate a chat response using OpenRouter's API
+ * 
  * @param {string} userMessage - The user's message
  * @param {Array} history - Conversation history
  * @param {string} apiKey - OpenRouter API key
@@ -642,11 +736,13 @@ async function generateOpenRouterChatResponse(userMessage, history, apiKey, mode
       })
     });
     
+    // Handle API errors
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error?.message || `Failed to generate response (Status: ${response.status})`);
     }
     
+    // Process the response
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
@@ -662,8 +758,13 @@ async function generateOpenRouterChatResponse(userMessage, history, apiKey, mode
   }
 }
 
+// ==========================================================================================
+// SUMMARIZATION API FUNCTIONS
+// ==========================================================================================
+
 /**
  * Generates a summary using OpenAI's API
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The format of the summary (short, detailed, key-points)
  * @param {string} apiKey - The OpenAI API key
@@ -695,6 +796,7 @@ async function generateOpenAISummary(text, format, apiKey, model, translateToEng
 
 /**
  * Makes the actual API call to OpenAI
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The summary format
  * @param {string} apiKey - The OpenAI API key
@@ -728,11 +830,13 @@ async function callOpenAIAPI(text, format, apiKey, model, translateToEnglish = f
       })
     });
     
+    // Handle API errors
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error?.message || `Failed to generate summary (Status: ${response.status})`);
     }
     
+    // Process the response
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
@@ -750,6 +854,7 @@ async function callOpenAIAPI(text, format, apiKey, model, translateToEnglish = f
 
 /**
  * Generates a summary using the LM Studio API
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The format of the summary (short, detailed, key-points)
  * @param {string} apiUrl - The LM Studio API URL
@@ -782,6 +887,7 @@ async function generateLMStudioSummary(text, format, apiUrl, apiKey = '', transl
 
 /**
  * Makes the actual API call to LM Studio
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The summary format
  * @param {string} apiUrl - The LM Studio API URL
@@ -836,6 +942,7 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
       body: JSON.stringify(requestBody)
     });
     
+    // Handle API errors
     if (!response.ok) {
       let errorMessage = `Status: ${response.status}`;
       try {
@@ -847,6 +954,7 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
       throw new Error(`Failed to generate summary: ${errorMessage}`);
     }
     
+    // Process the response
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
@@ -864,6 +972,7 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
 
 /**
  * Generates a summary using the Ollama API
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The format of the summary (short, detailed, key-points)
  * @param {string} apiUrl - The Ollama API URL (base URL)
@@ -895,6 +1004,7 @@ async function generateOllamaSummary(text, format, apiUrl, model, translateToEng
 
 /**
  * Makes the actual API call to Ollama
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The summary format
  * @param {string} apiUrl - The Ollama API URL
@@ -938,11 +1048,13 @@ async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = f
       })
     });
     
+    // Try fallback if the chat endpoint fails
     if (!response.ok) {
       // Try a fallback to the older Ollama API format if the chat endpoint fails
       return await generateOllamaFallbackSummary(text, format, apiUrl, model, translateToEnglish);
     }
     
+    // Process the response
     const data = await response.json();
     
     // Ollama might have a slightly different response format than OpenAI
@@ -970,6 +1082,7 @@ async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = f
 
 /**
  * Fallback for older Ollama API versions that use the /api/generate endpoint
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The format of the summary (short, detailed, key-points)
  * @param {string} apiUrl - The Ollama API URL (base URL)
@@ -1008,6 +1121,7 @@ async function generateOllamaFallbackSummary(text, format, apiUrl, model, transl
       })
     });
     
+    // Handle API errors
     if (!response.ok) {
       let errorMessage = `Status: ${response.status}`;
       try {
@@ -1019,6 +1133,7 @@ async function generateOllamaFallbackSummary(text, format, apiUrl, model, transl
       throw new Error(`Failed to generate summary: ${errorMessage}`);
     }
     
+    // Process the response
     const data = await response.json();
     
     // Extract the response from Ollama
@@ -1043,6 +1158,7 @@ async function generateOllamaFallbackSummary(text, format, apiUrl, model, transl
 
 /**
  * Generates a summary using the OpenRouter API
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The format of the summary (short, detailed, key-points)
  * @param {string} apiKey - The OpenRouter API key
@@ -1074,6 +1190,7 @@ async function generateOpenRouterSummary(text, format, apiKey, model, translateT
 
 /**
  * Makes the actual API call to OpenRouter
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The summary format
  * @param {string} apiKey - The OpenRouter API key
@@ -1107,11 +1224,13 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
       })
     });
     
+    // Handle API errors
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error?.message || `Failed to generate summary (Status: ${response.status})`);
     }
     
+    // Process the response
     const data = await response.json();
     let summary = data.choices[0].message.content.trim();
     
@@ -1127,9 +1246,14 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
   }
 }
 
+// ==========================================================================================
+// TEXT PROCESSING UTILITIES
+// ==========================================================================================
+
 /**
  * Process large text by splitting it into chunks, summarizing each chunk,
  * and then creating a final summary of all the chunk summaries.
+ * 
  * @param {string} text - The full text to summarize
  * @param {string} format - The desired summary format
  * @param {boolean} translateToEnglish - Whether to translate to English
@@ -1201,6 +1325,7 @@ async function processLargeText(text, format, translateToEnglish, apiCallFn) {
 
 /**
  * Splits text into manageable chunks, trying to preserve paragraphs
+ * 
  * @param {string} text - The text to split
  * @param {number} maxChunkSize - Maximum size for each chunk
  * @returns {Array<string>} Array of text chunks
@@ -1211,6 +1336,7 @@ function splitTextIntoChunks(text, maxChunkSize) {
   const chunks = [];
   let currentChunk = "";
   
+  // First pass: combine paragraphs into chunks without exceeding maxChunkSize
   for (const paragraph of paragraphs) {
     // If adding this paragraph would exceed the chunk size
     if (currentChunk.length + paragraph.length > maxChunkSize && currentChunk.length > 0) {
@@ -1231,7 +1357,7 @@ function splitTextIntoChunks(text, maxChunkSize) {
     chunks.push(currentChunk);
   }
   
-  // Handle the case where a single paragraph is larger than maxChunkSize
+  // Second pass: handle the case where a single paragraph is larger than maxChunkSize
   const finalChunks = [];
   for (const chunk of chunks) {
     if (chunk.length <= maxChunkSize) {
@@ -1261,6 +1387,7 @@ function splitTextIntoChunks(text, maxChunkSize) {
 
 /**
  * Creates a prompt for the final summarization of multiple chunk summaries
+ * 
  * @param {string} combinedSummaries - The combined summaries from all chunks
  * @param {string} format - The desired format for the final summary
  * @param {number} totalChunks - The total number of chunks processed
@@ -1278,6 +1405,7 @@ Please provide a ${format} summary that covers all the important points from all
 
 /**
  * Creates an optimized prompt for the summary based on format and translation preference
+ * 
  * @param {string} text - The text to summarize
  * @param {string} format - The summary format
  * @param {boolean} translateToEnglish - Whether to translate to English
@@ -1291,6 +1419,7 @@ function createPrompt(text, format, translateToEnglish = false) {
   
   let prompt;
   
+  // Create prompt based on requested format
   switch (format) {
     case 'short':
       prompt = `${translationPrefix}You must create an EXTREMELY concise summary (maximum 2-3 sentences, no more) of the following text. 
@@ -1329,7 +1458,9 @@ Highlight the most important aspects while maintaining reasonable brevity:\n\n${
 }
 
 /**
- * Helper function to prepare text for chat panel
+ * Helper function to prepare text for chat panel display
+ * Enhances formatting for better markdown rendering
+ * 
  * @param {string} text - The text to format
  * @returns {string} Formatted text
  */
