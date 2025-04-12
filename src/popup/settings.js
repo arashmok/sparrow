@@ -432,6 +432,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Function to fetch available models from OpenRouter
   async function fetchOpenRouterModels(isManualRefresh = false) {
+    // Add this line to store the current key in the dataset
+    const apiKey = openrouterApiKeyInput.value.trim();
+    if (apiKey && apiKey !== '••••••••••••••••••••••••••') {
+      openrouterApiKeyInput.dataset.key = apiKey;
+    }
+
     // Check for visible API key or stored key
     let keyToUse = openrouterApiKeyInput.value.trim();
     
@@ -562,18 +568,6 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     
     const apiMode = apiModeSelect.value;
-    let modelName = '';
-    
-    // Get the appropriate model name based on the selected API mode
-    if (apiMode === 'openai') {
-      modelName = openaiModelSelect.value;
-    } else if (apiMode === 'lmstudio') {
-      modelName = lmstudioModelSelect.value;
-    } else if (apiMode === 'ollama') {
-      modelName = ollamaModelSelect.value;
-    } else if (apiMode === 'openrouter') {
-      modelName = openrouterModelSelect.value;
-    }
     
     // Build settings object with all required data
     const settings = {
@@ -582,32 +576,56 @@ document.addEventListener('DOMContentLoaded', () => {
       openaiModel: openaiModelSelect.value
     };
     
-    // Add the selected model based on API mode
-    if (apiMode === 'lmstudio' && lmstudioModelSelect.value) {
+    // Ensure we save all the API URLs regardless of current mode
+    if (lmstudioApiUrlInput.value) {
+      settings.lmstudioApiUrl = lmstudioApiUrlInput.value;
+    }
+    
+    if (ollamaApiUrlInput.value) {
+      settings.ollamaApiUrl = ollamaApiUrlInput.value;
+    }
+    
+    // Handle the OpenAI API key
+    if (openaiApiKeyInput.value && openaiApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      settings.apiKey = openaiApiKeyInput.value;
+    } else if (openaiApiKeyInput.dataset.hasKey === 'true') {
+      // Keep the existing key
+    }
+    
+    // Save the models for each service regardless of current mode
+    if (lmstudioModelSelect.value) {
       settings.lmstudioModel = lmstudioModelSelect.value;
     }
-    if (apiMode === 'ollama' && ollamaModelSelect.value) {
+    
+    if (ollamaModelSelect.value) {
       settings.ollamaModel = ollamaModelSelect.value;
     }
-    if (apiMode === 'openrouter' && openrouterModelSelect.value) {
+    
+    if (openrouterModelSelect.value) {
       settings.openrouterModel = openrouterModelSelect.value;
     }
     
-    // Save OpenRouter API key if changed
+    // Improved OpenRouter API key handling
     if (openrouterApiKeyInput.value && openrouterApiKeyInput.value !== '••••••••••••••••••••••••••') {
       settings.openrouterApiKey = openrouterApiKeyInput.value;
     } else if (openrouterApiKeyInput.dataset.key) {
       settings.openrouterApiKey = openrouterApiKeyInput.dataset.key;
     }
     
-    // Save settings and redirect
-    chrome.storage.local.set(settings, () => {
-      showMessage('Settings saved successfully!', 'success');
+    // Use chrome.storage.local.get first to preserve any settings not explicitly set
+    chrome.storage.local.get(null, (existingSettings) => {
+      // Merge the new settings with existing ones
+      const mergedSettings = {...existingSettings, ...settings};
       
-      // Increase the timeout slightly to ensure the message is seen
-      setTimeout(() => {
-        window.location.href = "popup.html";
-      }, 1000);
+      // Save the merged settings
+      chrome.storage.local.set(mergedSettings, () => {
+        showMessage('Settings saved successfully!', 'success');
+        
+        // Increase the timeout slightly to ensure the message is seen
+        setTimeout(() => {
+          window.location.href = "popup.html";
+        }, 1000);
+      });
     });
   }
   
