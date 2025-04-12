@@ -422,3 +422,19 @@ footer {
 .form-group:last-of-type {
     margin-bottom: 4px; /* Reduce bottom margin of last element */
 }
+
+/* Status message in footer */
+.status-message {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 0;
+    color: #388e3c;
+    min-height: 25px;
+    transition: opacity 0.2s ease;
+    opacity: 0;
+}
+
+.status-message.visible {
+    opacity: 1;
+}

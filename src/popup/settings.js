@@ -604,26 +604,32 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set(settings, () => {
       showMessage('Settings saved successfully!', 'success');
       
-      // Mask API keys in the UI (your existing code...)
-      
-      // Force a reload of the popup after redirect to ensure it gets fresh data
-      // Wait 1.5 seconds to ensure storage is updated and message is seen
+      // Increase the timeout slightly to ensure the message is seen
       setTimeout(() => {
         window.location.href = "popup.html";
-      }, 1500);
+      }, 1000);
     });
   }
   
   // Function to show a message
   function showMessage(text, type) {
-    messageDiv.textContent = text;
-    messageDiv.className = `message ${type}`;
-    messageDiv.classList.remove('hidden');
+    // Get the status message element
+    const statusMessage = document.getElementById('status-message');
     
-    // Hide the message after 3 seconds
-    setTimeout(() => {
-      messageDiv.className = 'message hidden';
-    }, 3000);
+    // Set the message text
+    statusMessage.textContent = text;
+    
+    // Set color based on message type
+    if (type === 'success') {
+      statusMessage.style.color = '#388e3c';
+    } else if (type === 'error') {
+      statusMessage.style.color = '#d32f2f';
+    }
+    
+    // Show the message
+    statusMessage.classList.add('visible');
+    
+    // No need to hide the message with timeout since we'll be redirecting
   }
   
   // Debounce helper function
