@@ -18,6 +18,9 @@ body.settings-page {
     line-height: 1.5;
     min-height: 450px;
     max-height: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 header {
@@ -44,7 +47,10 @@ h1 {
 
 /* Main content area */
 main {
-    padding-bottom: 40px;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0; /* Remove bottom padding that's causing gap */
 }
 
 /* Form elements */
@@ -121,7 +127,7 @@ main {
     min-height: 235px;
     max-height: 300px;
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 12px; /* Ensure consistent spacing */
     overflow-y: visible;
 }
 
@@ -187,17 +193,7 @@ small {
 
 /* Bottom action buttons */
 .actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 12px 20px;
-    background-color: #f8f9fb;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
+    display: none;
 }
 
 #cancel-btn {
@@ -205,8 +201,8 @@ small {
     background-color: #fff;
     color: #444;
     border: 1px solid #ddd;
-    padding: 10px 0;
-    border-radius: 6px;
+    padding: 10px 16px;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -223,8 +219,8 @@ small {
     background-color: #4285f4;
     color: #fff;
     border: none;
-    padding: 10px 0;
-    border-radius: 6px;
+    padding: 10px 16px;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -250,6 +246,7 @@ small {
     border-radius: 6px;
     font-size: 14px;
     animation: fadeIn 0.3s;
+    margin-bottom: 10px; /* Add consistent margin below the message */
 }
 
 @keyframes fadeIn {
@@ -393,5 +390,35 @@ select:disabled {
 
 /* Form padding */
 #settings-form {
-    padding-bottom: 20px;
+    padding-bottom: 10px; /* Reduced padding at bottom of form */
+}
+
+/* Footer styling to match popup.css */
+footer {
+    margin-top: 12px; /* Consistent small margin above footer */
+    padding: 0;
+    border-top: none;
+    flex-shrink: 0;
+    width: 100%;
+    position: sticky;
+    bottom: 0;
+    background-color: #f8f9fb;
+    z-index: 10;
+    padding-bottom: 4px; /* Small padding at bottom */
+}
+
+/* Bottom actions container */
+.bottom-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: calc(100% - 8px);
+    padding: 12px 20px;
+    margin: 0 4px 4px 4px;
+    gap: 12px;
+}
+
+/* Last form group before footer */
+.form-group:last-of-type {
+    margin-bottom: 4px; /* Reduce bottom margin of last element */
 }
