@@ -5,16 +5,17 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 ## Features
 
 - **One-Click Summarization**: Generate AI-powered summaries of webpages with a single click
-- **Multiple AI Providers**: Choose between OpenAI API or locally running LM Studio models
+- **Multiple AI Providers**: Choose between OpenAI, OpenRouter, LM Studio, or Ollama
 - **Customizable Summaries**: Choose between different summary formats (short, detailed, key takeaways)
+- **Translation Support**: Option to translate content to English before summarizing
+- **Interactive Chat**: Discuss the summarized content with AI through the side panel
 - **Clean Interface**: Intuitive and lightweight UI within Chrome
 - **Smart Content Extraction**: Efficiently extracts relevant content while ignoring ads and sidebars
 - **Copy & Save Options**: Easily copy the summary or save it for later reference
-- **Offline Capabilities**: Use with LM Studio for completely offline summarization
+- **Offline Capabilities**: Use with LM Studio or Ollama for completely offline summarization
 
 ## Coming Soon
 
-- Multi-language support
 - History & Bookmarking for past summaries
 
 ## Installation
@@ -52,12 +53,18 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 
 ## AI Providers
 
-Sparrow supports three AI providers for generating summaries:
+Sparrow supports four AI providers for generating summaries:
 
 #### OpenAI API
 
 - Requires an API key from OpenAI
 - Provides high-quality summarizations using OpenAI models
+- Requires an Internet connection
+
+#### OpenRouter API
+
+- Requires an API key from OpenRouter
+- Provides an alternative online summarization solution
 - Requires an Internet connection
 
 #### LM Studio (Local)
@@ -134,3 +141,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - OpenAI for providing the ChatGPT API
 - LM Studio for making local AI models accessible
+- Ollama for providing local AI summarization solutions
+- OpenRouter for offering an alternative online summarization API
