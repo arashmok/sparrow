@@ -28,12 +28,7 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
    cd sparrow
    ```
 
-2. Install dependencies:
-   ```
-   npm install
-   ```
-
-3. Load the extension in Chrome:
+2. Load the extension in Chrome:
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable "Developer mode" by clicking the toggle in the top-right corner
    - Click "Load unpacked" and select the project directory
@@ -47,7 +42,7 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 
 1. Navigate to any webpage you want to summarize
 2. Click the Sparrow extension icon in your browser toolbar
-3. Click the "Summarize" button
+3. Click the "Generate" button
 4. Select your preferred summary format
 5. View, copy, or save the generated summary
 
@@ -81,11 +76,7 @@ Sparrow supports four AI providers for generating summaries:
 - Works offline
 - Requires [Ollama](https://ollama.ai/) to be installed and configured
 
-## Development
-
-### Project Structure
-
-### Project Structure
+## Project Structure
 
 ```
 sparrow/
@@ -115,19 +106,6 @@ sparrow/
 └── .gitignore                # Git ignore file
 ```
 
-### Building and Testing
-
-```
-# Run development build with auto-reload
-npm run dev
-
-# Run tests
-npm test
-
-# Build for production
-npm run build
-```
-
 ## Technical Details
 
 ### Architecture
@@ -141,7 +119,7 @@ Sparrow consists of the following key components:
 ### Workflow
 
 1. User clicks on the extension icon → Opens the popup
-2. User clicks "Summarize" → Content script extracts text from the active webpage
+2. User clicks "Generate" → Content script extracts text from the active webpage
 3. Text is sent to the background script → API call is made to the selected AI provider
 4. AI returns summarized text → Displayed in the popup UI
 5. User can copy or save the summary for later use
