@@ -24,7 +24,7 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/sparrow.git
+   git clone https://github.com/arashmok/sparrow.git
    cd sparrow
    ```
 
