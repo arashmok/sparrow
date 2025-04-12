@@ -523,9 +523,10 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
  * @param {Array} history - Conversation history
  * @param {string} apiUrl - Ollama API base URL
  * @param {string} model - Ollama model to use
+ * @param {boolean} translateToEnglish - Whether to translate the text to English
  * @returns {Promise<string>} The generated chat reply
  */
-async function generateOllamaChatResponse(userMessage, history, apiUrl, model) {
+async function generateOllamaChatResponse(userMessage, history, apiUrl, model, translateToEnglish = false) {
   // Prepare conversation messages similar to OpenAI
   let messages = [{
     role: 'system',
@@ -547,6 +548,7 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model) {
   // Build the Ollama API chat endpoint
   const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat`;
   try {
+    console.log("Sending Ollama chat request:", { endpoint, model, messageCount: messages.length });
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -559,8 +561,14 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model) {
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to generate response (Status: ${response.status})`);
+      let errorMessage = `Status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        // If JSON parsing fails
+      }
+      throw new Error(`Failed to generate response: ${errorMessage}`);
     }
     
     const data = await response.json();
