@@ -1,6 +1,6 @@
 # Sparrow - AI-Powered Webpage Summarizer
 
-Sparrow is a Chrome extension that provides quick and concise summaries of webpages using AI. With a single click, users can extract and summarize the main content of any webpage, improving efficiency in reading and research.
+Sparrow is a Chrome extension that provides quick and concise summaries of webpages using AI. With a single click, users can extract and summarize the main content of any webpage, improving efficiency in reading and research. The integrated chat feature lets users have interactive conversations about webpage content, ask follow-up questions, or request explanations—allowing for deeper engagement with online material.
 
 ## Features
 
