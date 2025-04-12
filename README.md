@@ -85,17 +85,34 @@ Sparrow supports four AI providers for generating summaries:
 
 ### Project Structure
 
+### Project Structure
+
 ```
 sparrow/
 ├── manifest.json             # Extension configuration
-├── assets/                  # Static assets (CSS, icons)
-├── src/                     # Source code
-│   ├── popup/               # Popup UI and settings pages ([popup.html](src/popup/popup.html), [settings.html](src/popup/settings.html))
-│   └── scripts/             # Background and content scripts ([background.js](src/scripts/background.js), [content.js](src/scripts/content.js))
-├── config.template.js       # Template configuration file
-├── README.md                # Project documentation
-├── LICENSE                  # Project license
-└── ...
+├── assets/                   # Static assets
+│   ├── css/                  # CSS stylesheets
+│   │   ├── popup.css         # Main popup styling
+│   │   ├── settings.css      # Settings page styling
+│   │   └── selection-menu.css # Text selection menu styling
+│   └── icons/                # Extension icons
+├── src/                      # Source code
+│   ├── popup/                # Popup UI
+│   │   ├── popup.html        # Main popup interface
+│   │   ├── popup.js          # Popup functionality
+│   │   ├── settings.html     # Settings page
+│   │   └── settings.js       # Settings functionality
+│   ├── panel/                # Side panel
+│   │   ├── chat-panel.html   # Chat panel interface
+│   │   ├── chat-panel.js     # Chat panel functionality
+│   │   └── chat-panel.css    # Chat panel styling
+│   └── scripts/              # Background and content scripts
+│       ├── background.js     # Background service worker
+│       ├── content.js        # Content script
+│       └── selection-menu.js # Text selection menu script
+├── LICENSE                   # MIT License
+├── README.md                 # Project documentation
+└── .gitignore                # Git ignore file
 ```
 
 ### Building and Testing
