@@ -1,5 +1,11 @@
-/* Settings-specific styles */
+/* 
+ * Sparrow Extension - Settings Page Styles
+ * This stylesheet controls the appearance of the settings page
+ * where users can configure API connections and preferences.
+ */
 
+/* ========== BASE LAYOUT ========== */
+/* Base document sizing */
 html,
 body {
     height: auto;
@@ -7,12 +13,14 @@ body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: auto; /* Allow vertical scrolling on settings page */
 }
 
+/* Settings page specific body styling */
 body.settings-page {
     padding: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
+                 Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     background-color: #f8f9fb;
     color: #333;
     line-height: 1.5;
@@ -20,9 +28,11 @@ body.settings-page {
     max-height: none;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 100vh; /* Full viewport height */
 }
 
+/* ========== HEADER STYLING ========== */
+/* Header with title and subtitle */
 header {
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     padding-bottom: 8px;
@@ -31,33 +41,38 @@ header {
     align-items: baseline;
 }
 
+/* Page title */
 h1 {
     font-size: 22px;
     font-weight: 600;
-    color: #4285f4;
+    color: #4285f4; /* Primary brand color */
     margin: 0;
     margin-right: 8px;
 }
 
+/* Subtitle text */
 .subtitle {
     font-size: 14px;
     color: #666;
     margin: 0;
 }
 
-/* Main content area */
+/* ========== MAIN CONTENT AREA ========== */
+/* Main content container */
 main {
     flex: 1 0 auto;
     display: flex;
     flex-direction: column;
-    padding-bottom: 0; /* Remove bottom padding that's causing gap */
+    padding-bottom: 0; /* Remove bottom padding to prevent unwanted gap */
 }
 
-/* Form elements */
+/* ========== FORM ELEMENTS ========== */
+/* Form group container */
 .form-group {
     margin-bottom: 10px;
 }
 
+/* Form labels */
 .form-group label {
     display: block;
     margin-bottom: 5px;
@@ -66,7 +81,8 @@ main {
     color: #444;
 }
 
-/* Horizontal radio button group */
+/* ========== RADIO BUTTON GROUPS ========== */
+/* Horizontal container for radio options */
 .horizontal-radio-group {
     display: flex;
     align-items: center;
@@ -76,13 +92,15 @@ main {
     white-space: nowrap;
 }
 
+/* Individual radio option container */
 .radio-item {
     display: inline-block;
     margin-right: 20px;
 }
 
+/* Custom radio button styling */
 .radio-item input[type="radio"] {
-    appearance: none;
+    appearance: none; /* Remove default browser styling */
     width: 16px;
     height: 16px;
     border: 1px solid #bbb;
@@ -94,11 +112,13 @@ main {
     vertical-align: middle;
 }
 
+/* Checked state for radio buttons */
 .radio-item input[type="radio"]:checked {
     border-color: #4285f4;
-    border-width: 5px;
+    border-width: 5px; /* Creates filled circle effect */
 }
 
+/* Radio button labels */
 .radio-item label {
     display: inline;
     font-size: 14px;
@@ -108,7 +128,8 @@ main {
     white-space: nowrap;
 }
 
-/* API Section */
+/* ========== API SECTION STYLING ========== */
+/* Container for API configuration section */
 .api-section {
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 10px;
@@ -121,17 +142,18 @@ main {
     overflow-y: visible;
 }
 
-/* Container to hold all API sections with adjustable height */
+/* Container for all API sections */
 .api-sections-container {
     height: auto;
     min-height: 235px;
     max-height: 300px;
     position: relative;
-    margin-bottom: 12px; /* Ensure consistent spacing */
+    margin-bottom: 12px;
     overflow-y: visible;
 }
 
-/* Input fields and select dropdowns */
+/* ========== FORM INPUT STYLING ========== */
+/* Base styling for text inputs and selects */
 input[type="text"],
 input[type="password"],
 input[type="url"],
@@ -145,7 +167,7 @@ select {
     background-color: #fff;
 }
 
-/* Add API source dropdown styling */
+/* API source dropdown specific styling */
 .api-source-dropdown {
     width: 100%;
     padding: 10px 12px;
@@ -157,11 +179,12 @@ select {
     margin-bottom: 16px;
 }
 
-/* Select styling with fixes for overflow issues */
+/* Custom styling for select dropdowns */
 select {
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; /* Handle text overflow gracefully */
     max-width: 100%;
-    appearance: none;
+    appearance: none; /* Remove default browser styling */
+    /* Custom dropdown arrow */
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
@@ -169,6 +192,7 @@ select {
     padding-right: 28px;
 }
 
+/* Styling for options within select dropdown */
 select option {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -176,6 +200,7 @@ select option {
     padding: 5px;
 }
 
+/* Focus state for inputs and selects */
 input:focus,
 select:focus {
     outline: none;
@@ -183,6 +208,7 @@ select:focus {
     box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
 }
 
+/* Help text / descriptions for form fields */
 small {
     display: block;
     margin-top: 6px;
@@ -191,11 +217,13 @@ small {
     font-size: 12px;
 }
 
-/* Bottom action buttons */
+/* ========== ACTION BUTTONS ========== */
+/* Container for action buttons (hidden by default) */
 .actions {
     display: none;
 }
 
+/* Cancel button styling */
 #cancel-btn {
     flex: 1;
     background-color: #fff;
@@ -209,14 +237,16 @@ small {
     font-size: 14px;
 }
 
+/* Hover state for cancel button */
 #cancel-btn:hover {
     background-color: #f2f2f2;
     border-color: #ccc;
 }
 
+/* Save button styling */
 #save-btn {
-    flex: 2;
-    background-color: #4285f4;
+    flex: 2; /* Take more space than cancel button */
+    background-color: #4285f4; /* Primary brand color */
     color: #fff;
     border: none;
     padding: 10px 16px;
@@ -228,12 +258,14 @@ small {
     font-size: 14px;
 }
 
+/* Hover state for save button */
 #save-btn:hover {
     background-color: #357ae8;
     box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
 }
 
-/* Notification message */
+/* ========== NOTIFICATION MESSAGES ========== */
+/* Notification message container */
 #message {
     position: fixed;
     bottom: 70px;
@@ -246,9 +278,10 @@ small {
     border-radius: 6px;
     font-size: 14px;
     animation: fadeIn 0.3s;
-    margin-bottom: 10px; /* Add consistent margin below the message */
+    margin-bottom: 10px;
 }
 
+/* Animation for message appearance */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -260,24 +293,28 @@ small {
     }
 }
 
+/* Success message styling */
 .success {
     background-color: #d4edda;
     color: #155724;
     border-left: 4px solid #155724;
 }
 
+/* Error message styling */
 .error {
     background-color: #f8d7da;
     color: #721c24;
     border-left: 4px solid #721c24;
 }
 
-/* Utility classes */
+/* ========== UTILITY CLASSES ========== */
+/* Hide elements */
 .hidden {
     display: none;
 }
 
-/* Input with refresh button */
+/* ========== INPUT WITH BUTTON ========== */
+/* Container for input with adjacent button */
 .input-with-button {
     display: flex;
     gap: 8px;
@@ -285,10 +322,12 @@ small {
     margin-bottom: 10px;
 }
 
+/* Input within button combo */
 .input-with-button input {
     flex: 1;
 }
 
+/* Refresh button styling */
 .refresh-btn {
     background-color: #f0f0f0;
     border: 1px solid #ddd;
@@ -303,16 +342,18 @@ small {
     justify-content: center;
 }
 
+/* Hover state for refresh button */
 .refresh-btn:hover {
     background-color: #e0e0e0;
     color: #4285f4;
 }
 
+/* Active/pressed state for refresh button */
 .refresh-btn:active {
     transform: scale(0.95);
 }
 
-/* Refresh button styling */
+/* Alternative refresh button styling */
 .refresh-button {
     background: none;
     border: none;
@@ -322,11 +363,13 @@ small {
     color: #666;
 }
 
+/* Hover state for alternative refresh button */
 .refresh-button:hover {
     color: #000;
 }
 
-/* Select with spinner */
+/* ========== SELECT WITH SPINNER ========== */
+/* Container for select with loading spinner */
 .select-with-spinner {
     display: flex;
     align-items: center;
@@ -334,6 +377,7 @@ small {
     max-width: 100%;
 }
 
+/* Select dropdown within spinner container */
 .select-with-spinner select {
     flex: 1;
     width: 100%;
@@ -343,13 +387,16 @@ small {
     overflow: hidden !important;
 }
 
-/* Fix for all model selections to prevent overflow issues */
-#lmstudio-model, #ollama-model, #openai-model {
+/* ========== MODEL SELECTION FIXES ========== */
+/* Fix for all model selection dropdowns */
+#lmstudio-model, 
+#ollama-model, 
+#openai-model {
     max-width: 100%;
     text-overflow: ellipsis;
 }
 
-/* Fix for LM Studio model selection to prevent scrolling */
+/* Specific fix for LM Studio model selection dropdown */
 #lmstudio-section .select-with-spinner select {
     height: auto !important;
     max-height: none !important;
@@ -358,6 +405,8 @@ small {
     padding-right: 35px !important;
 }
 
+/* ========== LOADING SPINNER ========== */
+/* Loading spinner styling */
 .spinner {
     display: flex;
     align-items: center;
@@ -368,34 +417,40 @@ small {
     font-size: 14px;
 }
 
+/* Hide spinner when not needed */
 .spinner.hidden {
     display: none;
 }
 
-/* Error and success messages for model loading */
+/* ========== STATUS MESSAGES ========== */
+/* Error text message */
 small.error-text {
     color: #d32f2f;
 }
 
+/* Success text message */
 small.success-text {
     color: #388e3c;
 }
 
-/* Disabled state for selects */
+/* ========== DISABLED STATES ========== */
+/* Disabled state for select dropdowns */
 select:disabled {
     background-color: #f5f5f5;
     cursor: not-allowed;
     opacity: 0.7;
 }
 
-/* Form padding */
+/* ========== FORM PADDING ========== */
+/* Form element padding */
 #settings-form {
-    padding-bottom: 10px; /* Reduced padding at bottom of form */
+    padding-bottom: 10px;
 }
 
-/* Footer styling to match popup.css */
+/* ========== FOOTER STYLING ========== */
+/* Footer positioning and styling */
 footer {
-    margin-top: 12px; /* Consistent small margin above footer */
+    margin-top: 12px;
     padding: 0;
     border-top: none;
     flex-shrink: 0;
@@ -404,10 +459,11 @@ footer {
     bottom: 0;
     background-color: #f8f9fb;
     z-index: 10;
-    padding-bottom: 4px; /* Small padding at bottom */
+    padding-bottom: 4px;
 }
 
-/* Bottom actions container */
+/* ========== BOTTOM ACTIONS ========== */
+/* Container for bottom action buttons */
 .bottom-actions {
     display: flex;
     justify-content: space-between;
@@ -418,11 +474,12 @@ footer {
     gap: 12px;
 }
 
-/* Last form group before footer */
+/* Last form group spacing adjustment */
 .form-group:last-of-type {
-    margin-bottom: 4px; /* Reduce bottom margin of last element */
+    margin-bottom: 4px;
 }
 
+/* ========== STATUS MESSAGE ========== */
 /* Status message in footer */
 .status-message {
     text-align: center;
@@ -435,6 +492,7 @@ footer {
     opacity: 0;
 }
 
+/* Visible state for status message */
 .status-message.visible {
     opacity: 1;
 }

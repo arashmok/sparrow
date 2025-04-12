@@ -1,27 +1,37 @@
-/* General styles */
+/* 
+ * Sparrow Extension - Popup Styles
+ * This stylesheet controls the appearance of the main popup interface
+ * that appears when users click the extension icon.
+ */
+
+/* ========== RESET & BASE STYLES ========== */
+/* Reset default browser styling */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Make body and html expandable */
+/* Base HTML/Body configuration */
 html, body {
   width: 100%;
-  height: auto; /* Allow height to adjust to content */
+  height: auto; /* Allow height to adjust based on content */
   margin: 0;
   padding: 0;
   min-width: 320px;
   max-width: 100%;
   overflow-x: hidden; /* Prevent horizontal scrolling */
   overflow-y: hidden; /* Prevent vertical scrolling by default */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
+               Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
+/* Enable smooth scrolling behavior */
 html {
   scroll-behavior: smooth;
 }
 
+/* Base body styling and positioning */
 body {
   padding: 16px;
   background-color: #f8f9fb;
@@ -31,7 +41,8 @@ body {
   position: relative;
 }
 
-/* Create a flex container for the whole popup */
+/* ========== LAYOUT STRUCTURE ========== */
+/* Main flex container for the entire popup */
 #app-wrapper {
   display: flex;
   flex-direction: column;
@@ -41,7 +52,7 @@ body {
   overflow: hidden;
 }
 
-/* Make the popup container fit content */
+/* Container for popup content with proper overflow handling */
 #popup-container {
   position: relative;
   width: 100%;
@@ -51,7 +62,56 @@ body {
   overflow: hidden;
 }
 
-/* Update settings icon container */
+/* ========== HEADER STYLES ========== */
+/* Header section with logo and title */
+header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+/* Logo container dimensions and spacing */
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-right: 14px;
+}
+
+/* Logo image sizing */
+.logo-img {
+  width: 36px;
+  height: 36px;
+}
+
+/* Text container within header */
+.header-text {
+  flex: 1;
+}
+
+/* Main title styling */
+h1 {
+  font-size: 24px;
+  color: #2980b9; /* Primary brand color */
+  font-weight: 600;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+/* Subtitle/description in header */
+header p {
+  font-size: 14px;
+  color: #666;
+  opacity: 0.9;
+}
+
+/* ========== SETTINGS ICON ========== */
+/* Fixed position for settings icon */
 .settings-icon-container {
   position: fixed;
   top: 10px;
@@ -59,6 +119,7 @@ body {
   z-index: 100;
 }
 
+/* Settings icon link styling */
 .settings-icon-link {
   color: #888;
   display: flex;
@@ -73,57 +134,23 @@ body {
   text-decoration: none;
 }
 
+/* Hover state for settings icon */
 .settings-icon-link:hover {
-  color: #2980b9; /* Changed to match primary button color */
+  color: #2980b9; /* Match primary brand color on hover */
 }
 
+/* Icon size within settings link */
 .settings-icon-link i {
   font-size: 18px;
 }
 
-/* Header styles */
-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  position: relative;
+/* Hide settings icon in the controls section */
+.controls .settings-icon-link {
+  display: none;
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin-right: 14px;
-}
-
-.logo-img {
-  width: 36px;
-  height: 36px;
-}
-
-.header-text {
-  flex: 1;
-}
-
-h1 {
-  font-size: 24px;
-  color: #2980b9; /* Changed from #4285f4 */
-  font-weight: 600;
-  margin-bottom: 4px;
-  line-height: 1.2;
-}
-
-header p {
-  font-size: 14px;
-  color: #666;
-  opacity: 0.9;
-}
-
-/* Main content styles - let it grow naturally */
+/* ========== MAIN CONTENT AREA ========== */
+/* Main content container */
 main {
   flex: 1 1 auto;
   display: flex;
@@ -134,6 +161,7 @@ main {
   overflow-x: hidden;
 }
 
+/* Controls section (buttons and selects) */
 .controls {
   display: flex;
   gap: 12px;
@@ -141,12 +169,8 @@ main {
   width: 100%;
 }
 
-/* Hide settings icon in the controls */
-.controls .settings-icon-link {
-  display: none;
-}
-
-/* Buttons and Selects - more modern styling */
+/* ========== BUTTONS & FORM ELEMENTS ========== */
+/* Base styles for buttons and selects */
 button, select {
   border: none;
   border-radius: 8px;
@@ -157,33 +181,37 @@ button, select {
   transition: all 0.2s ease;
 }
 
-/* Change primary button color to #2980b9 */
+/* Primary action button styling */
 .primary-btn {
-  flex-grow: 4; /* Give more space to the primary button */
-  background-color: #2980b9; /* Changed from #4285f4 */
+  flex-grow: 4; /* Give more space to primary action */
+  background-color: #2980b9; /* Primary brand color */
   color: white;
-  box-shadow: 0 2px 4px rgba(41, 128, 185, 0.2); /* Adjusted shadow color */
+  box-shadow: 0 2px 4px rgba(41, 128, 185, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
 
+/* Icon within button */
 .btn-icon {
   font-size: 14px;
 }
 
+/* Hover state for primary button */
 .primary-btn:hover {
   background-color: #236fa0; /* Darker shade for hover */
-  box-shadow: 0 4px 8px rgba(41, 128, 185, 0.3); /* Adjusted shadow color */
+  box-shadow: 0 4px 8px rgba(41, 128, 185, 0.3);
   transform: translateY(-1px);
 }
 
+/* Active/pressed state for primary button */
 .primary-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(41, 128, 185, 0.2); /* Adjusted shadow color */
+  box-shadow: 0 1px 2px rgba(41, 128, 185, 0.2);
 }
 
+/* Disabled state for primary button */
 .primary-btn:disabled {
   background-color: #82b2d1; /* Lighter shade for disabled state */
   cursor: not-allowed;
@@ -191,12 +219,14 @@ button, select {
   transform: none;
 }
 
+/* Dropdown select styling */
 select {
-  flex-grow: 3; /* Give good space to the dropdown */
+  flex-grow: 3;
   background-color: white;
   border: 1px solid #e0e0e0;
   color: #555;
-  appearance: none;
+  appearance: none; /* Remove default appearance */
+  /* Custom dropdown arrow */
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
@@ -205,23 +235,27 @@ select {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+/* Hover state for select dropdown */
 select:hover {
   border-color: #d0d0d0;
 }
 
+/* Focus state for select dropdown */
 select:focus {
   outline: none;
-  border-color: #2980b9; /* Changed from #4285f4 */
-  box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.2); /* Adjusted shadow color */
+  border-color: #2980b9;
+  box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.2);
 }
 
-/* Checkbox styling */
+/* ========== CHECKBOX STYLING ========== */
+/* Container for checkbox and label */
 .checkbox-option {
   display: flex;
   align-items: center;
   margin: 8px 0;
 }
 
+/* Custom checkbox appearance */
 .checkbox-option input[type="checkbox"] {
   appearance: none;
   width: 18px;
@@ -234,11 +268,13 @@ select:focus {
   cursor: pointer;
 }
 
+/* Checked state for custom checkbox */
 .checkbox-option input[type="checkbox"]:checked {
-  background-color: #2980b9; /* Changed from #4285f4 */
-  border-color: #2980b9; /* Changed from #4285f4 */
+  background-color: #2980b9;
+  border-color: #2980b9;
 }
 
+/* Checkmark for selected checkbox */
 .checkbox-option input[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
@@ -251,6 +287,7 @@ select:focus {
   transform: rotate(-45deg);
 }
 
+/* Label styling for checkbox */
 .checkbox-option label {
   font-size: 14px;
   color: #555;
@@ -260,36 +297,40 @@ select:focus {
   gap: 6px;
 }
 
+/* Icon within checkbox label */
 .label-icon {
-  color: #2980b9; /* Changed from #4285f4 */
+  color: #2980b9;
   font-size: 12px;
 }
 
+/* Label styling when checkbox is checked */
 .checkbox-option input[type="checkbox"]:checked + label {
-  color: #2980b9; /* Changed from #4285f4 */
+  color: #2980b9;
   font-weight: 500;
 }
 
-/* Summary container - dynamic size without scrollbars */
+/* ========== SUMMARY CONTAINER ========== */
+/* Main container for summary content */
 .summary-container {
   position: relative;
   background-color: white;
   border-radius: 12px;
   padding: 16px;
   flex: 1 1 auto;
-  min-height: 200px; /* Updated from 150px */
-  max-height: 350px; /* Add a reasonable max height */
+  min-height: 200px;
+  max-height: 350px;
   height: auto;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.04);
   margin-bottom: 12px;
-  overflow-y: auto; /* Change from hidden to auto */
+  overflow-y: auto; /* Allow vertical scrolling for long content */
   max-width: 100%;
 }
 
-/* Loading indicator centered */
+/* ========== LOADING INDICATOR ========== */
+/* Loading spinner and text container */
 #loading {
   display: flex;
   flex-direction: column;
@@ -301,19 +342,24 @@ select:focus {
   gap: 12px;
 }
 
+/* Spinner icon within loading indicator */
 .spinner {
-  color: #2980b9; /* Changed from #4285f4 */
+  color: #2980b9;
   font-size: 24px;
 }
 
+/* Hide loading indicator when not needed */
 #loading.hidden {
   display: none;
 }
 
+/* Hide summary result when loading or empty */
 #summary-result.hidden {
   display: none;
 }
 
+/* ========== EMPTY STATE ========== */
+/* Styling for empty/initial state */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -325,51 +371,55 @@ select:focus {
   height: 100%;
 }
 
+/* Icon in empty state */
 .empty-icon {
   font-size: 28px;
-  color: #2980b9; /* Changed from #4285f4 */
+  color: #2980b9;
   opacity: 0.7;
   margin-bottom: 12px;
 }
 
-/* Summary text styling */
+/* ========== SUMMARY TEXT STYLING ========== */
+/* Main summary text container */
 #summary-text {
   margin-bottom: 0;
   line-height: 1.6;
   font-size: 14px;
 }
 
-/* Style for the summary title */
+/* Summary title styling */
 .summary-title {
   font-weight: 600;
   font-size: 16px;
   margin-bottom: 12px;
-  color: #2980b9; /* Changed from #4285f4 */
+  color: #2980b9;
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Style for paragraphs in the summary */
+/* Paragraph styling within summary */
 .summary-paragraph {
   margin-bottom: 12px;
 }
 
-/* Style for key points */
+/* Styling for key points (bullet lists) */
 .key-point {
   margin-bottom: 10px;
   padding-left: 22px;
   position: relative;
 }
 
+/* Custom bullet for key points */
 .key-point:before {
   content: "•";
   position: absolute;
   left: 8px;
-  color: #2980b9; /* Changed from #4285f4 */
+  color: #2980b9;
   font-weight: bold;
 }
 
-/* Style for the translation indicator */
+/* ========== TRANSLATION INDICATOR ========== */
+/* Badge for indicating translated content */
 .translation-badge {
   display: inline-block;
   background-color: #e8f0fe;
@@ -383,7 +433,8 @@ select:focus {
   vertical-align: middle;
 }
 
-/* Error message styling with improved appearance */
+/* ========== ERROR MESSAGES ========== */
+/* Standalone error message */
 .error {
   color: #d32f2f;
   background-color: #ffebee;
@@ -398,11 +449,12 @@ select:focus {
   min-height: 70px;
 }
 
+/* Icon in error message */
 .error i {
   margin-top: 2px;
 }
 
-/* Improved error styling that doesn't affect window size */
+/* Optimized error container for better layout */
 .error-container {
   display: flex;
   background-color: #ffebee;
@@ -414,12 +466,14 @@ select:focus {
   padding: 0;
 }
 
+/* Error icon styling */
 .error-icon {
   padding: 16px 0 0 12px;
   color: #d32f2f;
   font-size: 16px;
 }
 
+/* Error message content */
 .error-content {
   padding: 14px 12px;
   color: #d32f2f;
@@ -427,6 +481,7 @@ select:focus {
   flex: 1;
 }
 
+/* Additional help text for errors */
 .error-help {
   color: #666;
   margin-top: 8px;
@@ -434,9 +489,10 @@ select:focus {
   font-weight: normal;
 }
 
-/* Footer positioning at the bottom */
+/* ========== FOOTER STYLES ========== */
+/* Footer positioning */
 footer {
-  margin-top: auto; /* Push to bottom */
+  margin-top: auto; /* Push to bottom of container */
   padding: 0;
   border-top: none;
   flex-shrink: 0;
@@ -445,7 +501,7 @@ footer {
   bottom: 0;
 }
 
-/* Update translate option to match the top red rectangle position */
+/* Translation option in footer */
 .translate-option {
   margin: 0 0 16px 0;
   padding: 6px 0;
@@ -453,39 +509,44 @@ footer {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* API Method Indicator styles */
+/* ========== API METHOD INDICATORS ========== */
+/* Base style for API method indicator */
 .api-method-indicator {
   display: inline-block;
-  padding: 4px 10px; /* Reduced padding from 6px 12px */
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 12px; /* Reduced from 13px */
+  font-size: 12px;
   font-weight: 600;
   color: #fff;
-  line-height: 1.2; /* Added to control height */
+  line-height: 1.2;
 }
 
-/* Method-specific styles */
+/* OpenAI API indicator */
 .api-method-indicator.indicator-openai {
   background-color: #10a37f; /* OpenAI green */
 }
 
+/* LM Studio API indicator */
 .api-method-indicator.indicator-lmstudio {
   background-color: #0C5460; /* LM Studio blue */
 }
 
+/* Ollama API indicator */
 .api-method-indicator.indicator-ollama {
   background-color: #6e48aa; /* Ollama purple */
 }
 
+/* OpenRouter API indicator */
 .api-method-indicator.indicator-openrouter {
   background-color: #FF6B00; /* OpenRouter orange */
 }
 
-/* Chat button styling */
+/* ========== CHAT BUTTON ========== */
+/* Chat initiation button */
 .chat-button {
   background-color: #2b7de9;
   color: white;
-  border-radius: 8px; /* Match the Generate button's curved edges */
+  border-radius: 8px;
   padding: 6px 16px;
   font-size: 14px;
   font-weight: 500;
@@ -495,26 +556,29 @@ footer {
   gap: 6px;
 }
 
+/* Hover state for chat button */
 .chat-button:hover {
   background-color: #1c6fd4;
 }
 
-/* Bottom bar for API indicator and chat button */
+/* ========== BOTTOM ACTION BAR ========== */
+/* Container for bottom actions (API indicator and buttons) */
 .bottom-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: calc(100% - 8px);
   padding: 0;
-  margin: 0 4px 4px 4px; /* Very small margin from the bottom */
+  margin: 0 4px 4px 4px;
 }
 
-/* Utility classes */
+/* ========== UTILITY CLASSES ========== */
+/* Hide elements */
 .hidden {
   display: none;
 }
 
-/* Add to popup.css */
+/* Hide elements during generation process */
 .hidden-during-generation {
   display: none;
   transition: opacity 0.2s ease-out;
