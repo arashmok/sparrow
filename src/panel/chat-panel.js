@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Format the content BEFORE adding it to the chat
             const formattedContent = formatMessageText(pageContent);
             
-            // Create a properly formatted message div
+            // Create a properly formatted message div with enhanced overflow handling
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message message-assistant';
             
@@ -71,40 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             ];
             
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-          }
-          
-          // Handle chat action (ask or explain)
-          if (message.chatAction === 'ask' || message.chatAction === 'explain') {
-            const selectedText = message.text || '';
-            let prompt;
-            
-            if (message.chatAction === 'ask') {
-              prompt = `The user wants to know more about the following text: "${selectedText}"`;
-            } else {
-              prompt = `The user wants you to explain the following text in simple terms: "${selectedText}"`;
-            }
-            
-            // Send message to background script for processing
-            chrome.runtime.sendMessage({
-              action: 'chat-message',
-              text: prompt,
-              history: conversationHistory
-            }, (response) => {
-              hideTypingIndicator();
-              
-              if (response && response.reply) {
-                addMessage(response.reply, 'assistant');
-                
-                // Update conversation history
-                conversationHistory.push({
-                  role: 'assistant',
-                  content: response.reply
-                });
-              } else {
-                addMessage('Sorry, I encountered an error processing your message.', 'assistant');
-              }
-            });
+            // Force layout recalculation and scroll to bottom
+            setTimeout(() => {
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 50);
           }
           
           sendResponse({ success: true });
