@@ -389,7 +389,7 @@ async function handleChatMessage(request) {
           throw new Error('No OpenAI API key found. Please add your API key in the extension settings.');
         }
         
-        reply = await generateOpenAIChatResponse(userMessage, request.history || [], apiKey, model);
+        reply = await generateOpenAIChatResponse(userMessage, request.history || [], apiKey, model, false);
         break;
         
       case 'lmstudio':
@@ -402,7 +402,7 @@ async function handleChatMessage(request) {
           throw new Error('No LM Studio server URL found. Please check your settings.');
         }
         
-        reply = await generateLMStudioChatResponse(userMessage, request.history || [], lmStudioUrl, lmStudioKey, lmStudioModel);
+        reply = await generateLMStudioChatResponse(userMessage, request.history || [], lmStudioUrl, lmStudioKey, lmStudioModel, false);
         break;
         
       case 'ollama':
@@ -418,7 +418,7 @@ async function handleChatMessage(request) {
           throw new Error('No Ollama model specified. Please check your settings.');
         }
         
-        reply = await generateOllamaChatResponse(userMessage, request.history || [], ollamaApiUrl, ollamaModel);
+        reply = await generateOllamaChatResponse(userMessage, request.history || [], ollamaApiUrl, ollamaModel, false);
         break;
         
       case 'openrouter':
@@ -430,7 +430,7 @@ async function handleChatMessage(request) {
           throw new Error('No OpenRouter API key found. Please add your API key in the extension settings.');
         }
         
-        reply = await generateOpenRouterChatResponse(userMessage, request.history || [], openRouterApiKey, openRouterModel);
+        reply = await generateOpenRouterChatResponse(userMessage, request.history || [], openRouterApiKey, openRouterModel, false);
         break;
         
       default:
@@ -438,18 +438,23 @@ async function handleChatMessage(request) {
     }
     
     // Format the response for display
-    if (reply && reply.text) {
+    if (typeof reply === 'string') {
       // Ensure code blocks have proper spacing
-      reply.text = reply.text.replace(/```(\w*)\n/g, '```$1\n');
+      reply = reply.replace(/```(\w*)\n/g, '```$1\n');
       
       // Make sure lists have proper spacing for markdown conversion
+      reply = reply.replace(/^([*-])/gm, '\n$1');
+    } else if (reply && reply.text) {
+      // Handle case where reply is an object with text property
+      reply.text = reply.text.replace(/```(\w*)\n/g, '```$1\n');
       reply.text = reply.text.replace(/^([*-])/gm, '\n$1');
+      reply = reply.text;
     }
     
     return { reply };
   } catch (error) {
     console.error('Error handling chat message:', error);
-    throw error;
+    return { error: error.message };
   }
 }
 
@@ -693,9 +698,10 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
  * @param {Array} history - Conversation history
  * @param {string} apiKey - OpenRouter API key
  * @param {string} model - Model name
+ * @param {boolean} translateToEnglish - Whether to translate the text to English
  * @returns {Promise<string>} The generated chat reply
  */
-async function generateOpenRouterChatResponse(userMessage, history, apiKey, model) {
+async function generateOpenRouterChatResponse(userMessage, history, apiKey, model, translateToEnglish = false) {
   try {
     // Prepare conversation messages
     let messages = [];

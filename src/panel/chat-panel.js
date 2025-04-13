@@ -220,9 +220,14 @@ document.addEventListener('DOMContentLoaded', () => {
           role: 'assistant',
           content: response.reply
         });
+      } else if (response && response.error) {
+        // Display specific error message
+        addMessage(`Error: ${response.error}`, 'assistant');
+        console.error('API error:', response.error);
       } else {
         // Handle error case
         addMessage('Sorry, I encountered an error processing your message.', 'assistant');
+        console.error('Unexpected response format:', response);
       }
     });
   }
