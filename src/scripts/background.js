@@ -1186,12 +1186,6 @@ async function generateOllamaSummary(text, format, apiUrl, model, translateToEng
 async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = false) {
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
-  
-  // Use stored key if none provided
-  const keyToUse = secureKeyStore.getKey('ollama');
-  if (!keyToUse) {
-    throw new Error('No Ollama API key found. Please check your settings.');
-  }
 
   try {
     // Ensure apiUrl has the correct format (remove trailing slash if present)
