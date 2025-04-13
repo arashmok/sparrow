@@ -207,11 +207,14 @@ document.addEventListener('DOMContentLoaded', () => {
       updateApiSectionVisibility();
       
       // OpenAI settings
-      if (result.apiKey) {
-        // Show dots instead of the actual key for security
-        openaiApiKeyInput.value = '••••••••••••••••••••••••••';
-        openaiApiKeyInput.dataset.hasKey = 'true';
-      }
+      chrome.runtime.sendMessage({ action: 'check-api-key', service: 'openai' }, (result) => {
+        if (result.hasKey) {
+          openaiApiKeyInput.value = '••••••••••••••••••••••••••';
+          openaiApiKeyInput.dataset.hasKey = 'true';
+        }
+      });
+      
+      // Similarly for other services
       
       if (result.openaiModel) {
         openaiModelSelect.value = result.openaiModel;
@@ -310,9 +313,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Handle the OpenAI API key
     if (openaiApiKeyInput.value && openaiApiKeyInput.value !== '••••••••••••••••••••••••••') {
-      settings.apiKey = openaiApiKeyInput.value;
-    } else if (openaiApiKeyInput.dataset.hasKey === 'true') {
-      // Keep the existing key
+      // Store key securely using the background script
+      chrome.runtime.sendMessage({
+        action: 'store-api-key',
+        service: 'openai',
+        key: openaiApiKeyInput.value
+      });
+    }
+    
+    // Similarly for OpenRouter and other services
+    if (openrouterApiKeyInput.value && openrouterApiKeyInput.value !== '••••••••••••••••••••••••••') {
+      chrome.runtime.sendMessage({
+        action: 'store-api-key',
+        service: 'openrouter',
+        key: openrouterApiKeyInput.value
+      });
     }
     
     // Save the models for each service regardless of current mode

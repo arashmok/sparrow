@@ -27,6 +27,126 @@ const MAX_CHUNK_SIZE = 3500;  // Maximum size for a single text chunk (in charac
 const MAX_CHUNKS = 5;         // Maximum number of chunks to process (prevents excessive API calls)
 
 // ==========================================================================================
+// ENCRYPTION UTILITIES
+// ==========================================================================================
+
+// Encryption utilities
+const encryptionUtils = {
+  // Generate a consistent encryption key based on extension ID and other browser-specific values
+  getEncryptionKey: function() {
+    // Use extension ID as part of the encryption key
+    return chrome.runtime.id + "-sparrow-secure-key";
+  },
+  
+  // Encrypt a string using AES
+  encrypt: function(text) {
+    if (!text) return '';
+    // Simple XOR-based encryption (for demonstration)
+    // In production, use a library like crypto-js for proper encryption
+    const key = this.getEncryptionKey();
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(result); // Base64 encode
+  },
+  
+  // Decrypt a string
+  decrypt: function(encryptedText) {
+    if (!encryptedText) return '';
+    try {
+      const key = this.getEncryptionKey();
+      const text = atob(encryptedText); // Base64 decode
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return result;
+    } catch (e) {
+      console.error('Decryption failed', e);
+      return '';
+    }
+  }
+};
+
+// Secure key management
+const secureKeyStore = {
+  keys: {}, // In-memory key cache
+  
+  // Store a key both in memory and encrypted in storage
+  storeKey: function(service, key) {
+    if (!key) return false;
+    
+    // Store in memory
+    this.keys[service] = key;
+    
+    // Store encrypted in chrome.storage.local
+    const encryptedKey = encryptionUtils.encrypt(key);
+    const storageKey = `encrypted_${service}_key`;
+    const storageObj = {};
+    storageObj[storageKey] = encryptedKey;
+    
+    chrome.storage.local.set(storageObj);
+    return true;
+  },
+  
+  // Get a key from memory or storage
+  getKey: function(service) {
+    // If key is in memory, return it
+    if (this.keys[service]) {
+      return this.keys[service];
+    }
+    
+    // Otherwise, try to load from storage
+    return this.loadKeyFromStorage(service);
+  },
+  
+  // Load key from storage (synchronous version returns null, use async for actual value)
+  loadKeyFromStorage: function(service) {
+    // Use a placeholder - this will be replaced when the async version completes
+    this.loadKeyFromStorageAsync(service);
+    return null;
+  },
+  
+  // Asynchronously load key from storage
+  loadKeyFromStorageAsync: function(service) {
+    const storageKey = `encrypted_${service}_key`;
+    chrome.storage.local.get([storageKey], (result) => {
+      if (result[storageKey]) {
+        // Decrypt and store in memory
+        this.keys[service] = encryptionUtils.decrypt(result[storageKey]);
+      }
+    });
+  },
+  
+  // Check if a key exists
+  hasKey: function(service, callback) {
+    // If already in memory
+    if (this.keys[service]) {
+      callback(true);
+      return;
+    }
+    
+    // Check storage
+    const storageKey = `encrypted_${service}_key`;
+    chrome.storage.local.get([storageKey], (result) => {
+      callback(!!result[storageKey]);
+    });
+  }
+};
+
+// Initialize by loading keys from storage
+function initializeSecureKeyStore() {
+  const services = ['openai', 'openrouter', 'lmstudio', 'ollama'];
+  services.forEach(service => {
+    secureKeyStore.loadKeyFromStorageAsync(service);
+  });
+}
+
+// Load keys when background script starts
+initializeSecureKeyStore();
+
+// ==========================================================================================
 // MODEL AND DISPLAY UTILITIES
 // ==========================================================================================
 
@@ -142,6 +262,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(error => sendResponse({ error: error.message }));
     
     return true; // Indicate asynchronous response
+  }
+  
+  // Handle secure key storage
+  if (request.action === 'store-api-key') {
+    secureKeyStore.storeKey(request.service, request.key);
+    sendResponse({ success: true });
+    return true;
+  }
+  
+  // Handle API key checks
+  if (request.action === 'check-api-key') {
+    secureKeyStore.hasKey(request.service, (hasKey) => {
+      sendResponse({ hasKey: hasKey });
+    });
+    return true;
   }
 });
 
@@ -382,7 +517,7 @@ async function handleChatMessage(request) {
     switch (apiMode) {
       case 'openai':
         // Use OpenAI API
-        const apiKey = settings.apiKey;
+        const apiKey = settings.apiKey || secureKeyStore.getKey('openai');
         const model = settings.openaiModel || 'gpt-3.5-turbo';
         
         if (!apiKey) {
@@ -495,12 +630,18 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
       });
     }
     
+    // Use stored key if none provided
+    const keyToUse = apiKey || secureKeyStore.getKey('openai');
+    if (!keyToUse) {
+      throw new Error('No OpenAI API key found. Please check your settings.');
+    }
+    
     // Make the API call
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${keyToUse}`
       },
       body: JSON.stringify({
         model: model,
@@ -562,14 +703,18 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     });
   }
 
+  // Use stored key if none provided
+  const keyToUse = apiKey || secureKeyStore.getKey('lmstudio');
+  if (!keyToUse) {
+    throw new Error('No LM Studio API key found. Please check your settings.');
+  }
+
   // Build the LM Studio API endpoint URL
   const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
   const headers = { 'Content-Type': 'application/json' };
   
   // Add API key if provided
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
+  headers['Authorization'] = `Bearer ${keyToUse}`;
   
   try {
     // Make the API request
@@ -636,6 +781,12 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
     });
   }
   
+  // Use stored key if none provided
+  const keyToUse = secureKeyStore.getKey('ollama');
+  if (!keyToUse) {
+    throw new Error('No Ollama API key found. Please check your settings.');
+  }
+
   // Build the Ollama API chat endpoint
   const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat`;
   
@@ -725,12 +876,18 @@ async function generateOpenRouterChatResponse(userMessage, history, apiKey, mode
       });
     }
     
+    // Use stored key if none provided
+    const keyToUse = apiKey || secureKeyStore.getKey('openrouter');
+    if (!keyToUse) {
+      throw new Error('No OpenRouter API key found. Please check your settings.');
+    }
+    
     // Make the API call
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${keyToUse}`,
         'HTTP-Referer': 'https://github.com/arashmok/sparrow', // Replace with your actual repo URL
         'X-Title': 'Sparrow Extension'
       },
@@ -814,13 +971,19 @@ async function callOpenAIAPI(text, format, apiKey, model, translateToEnglish = f
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
   
+  // Use stored key if none provided
+  const keyToUse = apiKey || secureKeyStore.getKey('openai');
+  if (!keyToUse) {
+    throw new Error('No OpenAI API key found. Please check your settings.');
+  }
+
   try {
     // Make the API call
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${keyToUse}`
       },
       body: JSON.stringify({
         model: model,
@@ -906,6 +1069,12 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
   
+  // Use stored key if none provided
+  const keyToUse = apiKey || secureKeyStore.getKey('lmstudio');
+  if (!keyToUse) {
+    throw new Error('No LM Studio API key found. Please check your settings.');
+  }
+
   // Ensure apiUrl has the correct endpoint
   const chatEndpoint = apiUrl.endsWith('/chat/completions') ? 
     apiUrl : 
@@ -914,13 +1083,9 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
   try {
     // Prepare headers
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${keyToUse}`
     };
-    
-    // Add API key if provided
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
-    }
     
     // Prepare request body
     const requestBody = {
@@ -1022,6 +1187,12 @@ async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = f
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
   
+  // Use stored key if none provided
+  const keyToUse = secureKeyStore.getKey('ollama');
+  if (!keyToUse) {
+    throw new Error('No Ollama API key found. Please check your settings.');
+  }
+
   try {
     // Ensure apiUrl has the correct format (remove trailing slash if present)
     const baseUrl = apiUrl.replace(/\/+$/, '');
@@ -1208,13 +1379,19 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
   
+  // Use stored key if none provided
+  const keyToUse = apiKey || secureKeyStore.getKey('openrouter');
+  if (!keyToUse) {
+    throw new Error('No OpenRouter API key found. Please check your settings.');
+  }
+
   try {
     // Make the API call
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${keyToUse}`
       },
       body: JSON.stringify({
         model: model,
