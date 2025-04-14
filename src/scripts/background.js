@@ -598,6 +598,25 @@ async function handleChatMessage(request) {
 // ==========================================================================================
 
 /**
+ * Format conversation history into the structure expected by chat APIs
+ * 
+ * @param {Array} history - The conversation history array
+ * @returns {Array} Formatted history array
+ */
+function formatChatHistory(history) {
+  if (!history || !Array.isArray(history) || history.length === 0) {
+    return [];
+  }
+  
+  // Filter out any invalid entries and ensure proper formatting
+  return history.filter(entry => 
+    entry && typeof entry === 'object' && 
+    entry.role && typeof entry.role === 'string' &&
+    entry.content && typeof entry.content === 'string'
+  );
+}
+
+/**
  * Generate a chat response using OpenAI's API
  * 
  * @param {string} userMessage - The user's message
@@ -675,63 +694,46 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
 
 /**
  * Generate a chat response using LM Studio's API
- * 
- * @param {string} userMessage - The user's message
- * @param {Array} history - Conversation history
- * @param {string} apiUrl - LM Studio API URL
- * @param {string} apiKey - LM Studio API key
- * @param {string} model - Model name to use
- * @returns {Promise<string>} The generated chat reply
  */
 async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey, model) {
-  // Prepare conversation messages similar to OpenAI
-  let messages = [{
-    role: 'system',
-    content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
-  }];
-  
-  // Add conversation history if available
-  if (history && history.length > 0) {
-    messages = messages.concat(history);
-  }
-  
-  // Add the current message if not present
-  if (!history || !history.some(msg => msg.role === 'user' && msg.content === userMessage)) {
-    messages.push({
-      role: 'user',
-      content: userMessage
-    });
-  }
-
-  // Use stored key if provided, but don't require it
-  const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
-
-  // Build the LM Studio API endpoint URL
-  const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
-
-  // Prepare headers
-  const headers = {
-    'Content-Type': 'application/json'
-  };
-
-  // Only add Authorization header if we have a key
-  if (keyToUse) {
-    headers['Authorization'] = `Bearer ${keyToUse}`;
-  }
-  
   try {
-    // Prepare request body
+    // Format the chat history into messages array expected by LM Studio
+    const messages = formatChatHistory(history);
+    
+    // Add the user's new message
+    messages.push({ role: 'user', content: userMessage });
+    
+    // Use stored key if provided, but don't require it
+    const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
+    
+    // Build the LM Studio API endpoint URL
+    const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
+    
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Only add Authorization header if we have a key
+    if (keyToUse) {
+      headers['Authorization'] = `Bearer ${keyToUse}`;
+    }
+    
+    // Prepare request body - IMPORTANT: DON'T include empty model
     const requestBody = {
       messages: messages,
       max_tokens: CONFIG.MAX_TOKENS,
-      temperature: CONFIG.TEMPERATURE
+      temperature: CONFIG.TEMPERATURE,
+      stream: false
     };
     
-    // Only add model if it's provided and not empty
-    if (model) {
+    // Only add model if it's non-empty and meaningful
+    if (model && model.trim() !== '' && model !== 'default') {
       requestBody.model = model;
     }
-
+    
+    console.log("LM Studio chat request:", endpoint, requestBody);
+    
     // Make the API request
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -741,12 +743,21 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     
     // Handle API errors
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || `Failed to generate response (Status: ${response.status})`);
+      let errorData;
+      try {
+        errorData = await response.json();
+        console.error("LM Studio error response:", errorData);
+      } catch (e) {
+        // If we can't parse JSON, use status text
+      }
+      
+      const errorMessage = errorData?.error?.message || `Status: ${response.status}`;
+      throw new Error(`Failed to generate response (${errorMessage})`);
     }
     
     // Process the response
     const data = await response.json();
+    
     return data.choices[0].message.content.trim();
   } catch (error) {
     console.error('Error generating LM Studio chat response:', error);
@@ -1085,7 +1096,7 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
       headers['Authorization'] = `Bearer ${keyToUse}`;
     }
     
-    // Prepare request body
+    // Prepare request body - IMPORTANT: DON'T include empty model
     const requestBody = {
       messages: [
         { 
@@ -1099,8 +1110,8 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
       stream: false
     };
     
-    // Add model if provided
-    if (model) {
+    // Only add model if it's non-empty and meaningful
+    if (model && model.trim() !== '' && model !== 'default') {
       requestBody.model = model;
     }
     
