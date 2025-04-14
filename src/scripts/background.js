@@ -697,8 +697,17 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
  */
 async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey, model) {
   try {
-    // Format the chat history into messages array expected by LM Studio
-    const messages = formatChatHistory(history);
+    // Start with a system message - THIS IS REQUIRED BY LM STUDIO
+    let messages = [{
+      role: 'system',
+      content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
+    }];
+    
+    // Add formatted chat history if available
+    if (history && Array.isArray(history) && history.length > 0) {
+      const formattedHistory = formatChatHistory(history);
+      messages = messages.concat(formattedHistory);
+    }
     
     // Add the user's new message
     messages.push({ role: 'user', content: userMessage });
@@ -719,7 +728,7 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
       headers['Authorization'] = `Bearer ${keyToUse}`;
     }
     
-    // Prepare request body - IMPORTANT: DON'T include empty model
+    // Prepare request body
     const requestBody = {
       messages: messages,
       max_tokens: CONFIG.MAX_TOKENS,
