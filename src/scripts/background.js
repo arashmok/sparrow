@@ -780,12 +780,6 @@ async function generateOllamaChatResponse(userMessage, history, apiUrl, model, t
       content: userMessage
     });
   }
-  
-  // Use stored key if none provided
-  const keyToUse = secureKeyStore.getKey('ollama');
-  if (!keyToUse) {
-    throw new Error('No Ollama API key found. Please check your settings.');
-  }
 
   // Build the Ollama API chat endpoint
   const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat`;
