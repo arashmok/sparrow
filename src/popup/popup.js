@@ -98,8 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Get the selected model name based on API mode
+      const apiMode = result.apiMode;
       let selectedModel = '';
-      switch(result.apiMode) {
+      switch(apiMode) {
         case 'openai':
           selectedModel = result.openaiModel;
           break;
@@ -115,10 +116,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Update API indicator with current provider and model name
-      updateApiIndicator(result.apiMode, selectedModel);
+      updateApiIndicator(apiMode, selectedModel);
       
       // Disable chat button if no content has been generated
-      updateChatButtonState(!!result.latestSummary);
+      chatBtn.disabled = !result.latestSummary;
+      if (!result.latestSummary) {
+        chatBtn.classList.add('disabled');
+      } else {
+        chatBtn.classList.remove('disabled');
+      }
     });
   }
 
@@ -531,11 +537,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset UI elements
     resetUIAfterGeneration("Regenerate");
     
-    // Set the summary text
-    summaryText.innerHTML = summary;
+    // Format the summary text with better structure
+    const formattedSummary = formatSummaryText(summary);
     
-    // Enable the chat button since we now have content
-    updateChatButtonState(true);
+    // Set the summary text with proper formatting
+    summaryText.innerHTML = formattedSummary;
+    
+    // Enable the chat button
+    chatBtn.disabled = false;
+    chatBtn.classList.remove('disabled');
+    
+    // Save the summary to storage for the chat panel to access
+    chrome.storage.local.set({ latestSummary: summary });
     
     // Adjust window height to fit content
     adjustWindowHeight();
@@ -757,7 +770,8 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     
-    // Keep chat button disabled since we don't have valid content
-    updateChatButtonState(false);
+    // Disable chat button
+    chatBtn.disabled = true;
+    chatBtn.classList.add('disabled');
   }
 });
