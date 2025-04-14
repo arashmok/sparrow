@@ -715,8 +715,10 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     // Use stored key if provided, but don't require it
     const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
     
-    // Build the LM Studio API endpoint URL
-    const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
+    // Build the LM Studio API endpoint URL - improved URL handling like in callLMStudioAPI
+    const endpoint = apiUrl.endsWith('/chat/completions') ? 
+      apiUrl : 
+      `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
     
     // Prepare headers
     const headers = {
@@ -750,22 +752,27 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
       body: JSON.stringify(requestBody)
     });
     
-    // Handle API errors
+    // Handle API errors with better error logging
     if (!response.ok) {
-      let errorData;
+      let errorMessage = `Status: ${response.status}`;
       try {
-        errorData = await response.json();
+        const errorData = await response.json();
         console.error("LM Studio error response:", errorData);
+        errorMessage = errorData.error?.message || errorMessage;
       } catch (e) {
-        // If we can't parse JSON, use status text
+        // If JSON parsing fails
+        console.error("Error parsing LM Studio error response", e);
       }
-      
-      const errorMessage = errorData?.error?.message || `Status: ${response.status}`;
-      throw new Error(`Failed to generate response (${errorMessage})`);
+      throw new Error(`Failed to generate response: ${errorMessage}`);
     }
     
     // Process the response
     const data = await response.json();
+    console.log("LM Studio chat response:", data);
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error("Unexpected response format from LM Studio API");
+    }
     
     return data.choices[0].message.content.trim();
   } catch (error) {
