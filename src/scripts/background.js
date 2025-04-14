@@ -697,7 +697,7 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
  */
 async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey, model) {
   try {
-    // Start with a system message - THIS IS REQUIRED BY LM STUDIO
+    // Start with a system message
     let messages = [{
       role: 'system',
       content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
@@ -705,8 +705,8 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     
     // Add formatted chat history if available
     if (history && Array.isArray(history) && history.length > 0) {
-      const formattedHistory = formatChatHistory(history);
-      messages = messages.concat(formattedHistory);
+      // Don't use formatChatHistory - directly use the history for LM Studio
+      messages = messages.concat(history);
     }
     
     // Add the user's new message
@@ -715,7 +715,7 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     // Use stored key if provided, but don't require it
     const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
     
-    // Build the LM Studio API endpoint URL - improved URL handling like in callLMStudioAPI
+    // Build the LM Studio API endpoint URL
     const endpoint = apiUrl.endsWith('/chat/completions') ? 
       apiUrl : 
       `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
@@ -730,11 +730,11 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
       headers['Authorization'] = `Bearer ${keyToUse}`;
     }
     
-    // Prepare request body
+    // Prepare request body - Simplified to match the working callLMStudioAPI function
     const requestBody = {
       messages: messages,
-      max_tokens: CONFIG.MAX_TOKENS,
-      temperature: CONFIG.TEMPERATURE,
+      max_tokens: 500,
+      temperature: 0.7,
       stream: false
     };
     
@@ -743,7 +743,7 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
       requestBody.model = model;
     }
     
-    console.log("LM Studio chat request:", endpoint, requestBody);
+    console.log("LM Studio chat request:", endpoint, JSON.stringify(requestBody));
     
     // Make the API request
     const response = await fetch(endpoint, {
@@ -760,7 +760,6 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
         console.error("LM Studio error response:", errorData);
         errorMessage = errorData.error?.message || errorMessage;
       } catch (e) {
-        // If JSON parsing fails
         console.error("Error parsing LM Studio error response", e);
       }
       throw new Error(`Failed to generate response: ${errorMessage}`);
