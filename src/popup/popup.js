@@ -302,13 +302,38 @@ document.addEventListener('DOMContentLoaded', () => {
           
           if (currentUrl === storedUrl) {
             console.log("URLs match! Displaying saved summary");
-            displaySummary(result.latestSummary, result.latestUrl);
+            
+            // Enable the chat button
+            chatBtn.disabled = false;
+            chatBtn.classList.remove('disabled');
+            
+            // Show the result container, hide loading
+            loading.classList.add('hidden');
+            summaryResult.classList.remove('hidden');
+            
+            // Format the summary for display
+            const formattedSummary = formatSummaryText(result.latestSummary);
+            
+            // Update the content in the summary container
+            summaryText.innerHTML = formattedSummary;
+            
+            // Change button text to "Regenerate"
+            summarizeBtn.querySelector('span').textContent = "Regenerate";
+            
+            // Adjust window height to fit content
+            adjustWindowHeight();
           } else {
             console.log("URLs don't match. No stored summary for this page.");
+            // Disable chat button since we don't have content for this page
+            chatBtn.disabled = true;
+            chatBtn.classList.add('disabled');
           }
         });
       } else {
         console.log("No saved summary found in storage");
+        // Disable chat button since we don't have any content
+        chatBtn.disabled = true;
+        chatBtn.classList.add('disabled');
       }
     });
   }
