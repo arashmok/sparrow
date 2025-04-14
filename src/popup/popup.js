@@ -75,7 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'openaiModel',
       'lmstudioModel',
       'ollamaModel',
-      'openrouterModel'
+      'openrouterModel',
+      'latestSummary'
     ], (result) => {
       console.log("Loaded settings:", result);
       
@@ -96,25 +97,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10);
       }
       
-      // Get the appropriate model name based on the API mode
-      const apiMode = result.apiMode || 'openai';
-      let modelName = '';
-      
-      // Get the model name for the current API mode
-      if (apiMode === 'openai') {
-        modelName = result.openaiModel || '';
-      } else if (apiMode === 'lmstudio') {
-        modelName = result.lmstudioModel || '';
-      } else if (apiMode === 'ollama') {
-        modelName = result.ollamaModel || '';
-      } else if (apiMode === 'openrouter') {
-        modelName = result.openrouterModel || '';
+      // Get the selected model name based on API mode
+      let selectedModel = '';
+      switch(result.apiMode) {
+        case 'openai':
+          selectedModel = result.openaiModel;
+          break;
+        case 'lmstudio':
+          selectedModel = result.lmstudioModel;
+          break;
+        case 'ollama':
+          selectedModel = result.ollamaModel;
+          break;
+        case 'openrouter':
+          selectedModel = result.openrouterModel;
+          break;
       }
       
-      console.log(`Updating indicator with API mode: ${apiMode}, model: ${modelName}`);
+      // Update API indicator with current provider and model name
+      updateApiIndicator(result.apiMode, selectedModel);
       
-      // Update the indicator in the DOM
-      updateApiIndicator(apiMode, modelName);
+      // Disable chat button if no content has been generated
+      updateChatButtonState(!!result.latestSummary);
     });
   }
 
@@ -142,6 +146,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set the text to the model name or API name
     apiMethodIndicator.textContent = modelName ? truncateModelName(modelName) : apiMode;
+  }
+
+  /**
+   * Updates the chat button state based on whether content exists
+   * @param {boolean} hasContent - Whether content exists to chat about
+   */
+  function updateChatButtonState(hasContent) {
+    chatBtn.disabled = !hasContent;
+    if (!hasContent) {
+      chatBtn.classList.add('disabled');
+    } else {
+      chatBtn.classList.remove('disabled');
+    }
   }
 
   /**
@@ -496,30 +513,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Display the summary
-      displaySummary(result.summary, url);
+      displaySummary(result.summary, summaryFormat.value);
     };
   }
   
   /**
-   * Display the summary in the popup UI
+   * Display the generated summary in the popup
    * 
-   * @param {string} summary - Summary text to display
-   * @param {string} storedUrl - URL to associate with the summary
+   * @param {string} summary - The generated summary text
+   * @param {string} format - The format of the summary
    */
-  function displaySummary(summary, storedUrl = null) {
-    // Hide loading spinner, show results
+  function displaySummary(summary, format) {
+    // Hide loading indicator, show results
     loading.classList.add('hidden');
     summaryResult.classList.remove('hidden');
     
-    // Format and display the summary
-    const formattedSummary = formatSummaryText(summary);
-    summaryText.innerHTML = formattedSummary;
+    // Reset UI elements
+    resetUIAfterGeneration("Regenerate");
+    
+    // Set the summary text
+    summaryText.innerHTML = summary;
+    
+    // Enable the chat button since we now have content
+    updateChatButtonState(true);
     
     // Adjust window height to fit content
     adjustWindowHeight();
-    
-    // Save the current URL and summary for future use
-    saveCurrentSummary(summary, storedUrl);
   }
 
   /**
@@ -738,7 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     
-    // Don't resize the popup window for error messages
-    // This maintains consistent size between normal and error states
+    // Keep chat button disabled since we don't have valid content
+    updateChatButtonState(false);
   }
 });
