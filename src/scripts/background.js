@@ -537,7 +537,7 @@ async function handleChatMessage(request) {
           throw new Error('No LM Studio server URL found. Please check your settings.');
         }
         
-        reply = await generateLMStudioChatResponse(userMessage, request.history || [], lmStudioUrl, lmStudioKey, lmStudioModel, false);
+        reply = await generateLMStudioChatResponse(userMessage, request.history || [], lmStudioUrl, lmStudioKey, lmStudioModel);
         break;
         
       case 'ollama':
@@ -703,30 +703,40 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     });
   }
 
-  // Use stored key if none provided
-  const keyToUse = apiKey || secureKeyStore.getKey('lmstudio');
-  if (!keyToUse) {
-    throw new Error('No LM Studio API key found. Please check your settings.');
-  }
+  // Use stored key if provided, but don't require it
+  const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
 
   // Build the LM Studio API endpoint URL
   const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
-  const headers = { 'Content-Type': 'application/json' };
-  
-  // Add API key if provided
-  headers['Authorization'] = `Bearer ${keyToUse}`;
+
+  // Prepare headers
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+
+  // Only add Authorization header if we have a key
+  if (keyToUse) {
+    headers['Authorization'] = `Bearer ${keyToUse}`;
+  }
   
   try {
+    // Prepare request body
+    const requestBody = {
+      messages: messages,
+      max_tokens: CONFIG.MAX_TOKENS,
+      temperature: CONFIG.TEMPERATURE
+    };
+    
+    // Only add model if it's provided and not empty
+    if (model) {
+      requestBody.model = model;
+    }
+
     // Make the API request
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        max_tokens: CONFIG.MAX_TOKENS,
-        temperature: CONFIG.TEMPERATURE
-      })
+      body: JSON.stringify(requestBody)
     });
     
     // Handle API errors
@@ -737,14 +747,7 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
     
     // Process the response
     const data = await response.json();
-    let summary = data.choices[0].message.content.trim();
-    
-    // Add translation prefix if needed - ONLY if requested
-    if (translateToEnglish) {
-      summary = "[Translated to English] " + summary;
-    }
-    
-    return summary;
+    return data.choices[0].message.content.trim();
   } catch (error) {
     console.error('Error generating LM Studio chat response:', error);
     throw error;
@@ -1063,11 +1066,8 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
   
-  // Use stored key if none provided
-  const keyToUse = apiKey || secureKeyStore.getKey('lmstudio');
-  if (!keyToUse) {
-    throw new Error('No LM Studio API key found. Please check your settings.');
-  }
+  // Use stored key if provided, but don't require it
+  const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
 
   // Ensure apiUrl has the correct endpoint
   const chatEndpoint = apiUrl.endsWith('/chat/completions') ? 
@@ -1077,9 +1077,13 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
   try {
     // Prepare headers
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${keyToUse}`
+      'Content-Type': 'application/json'
     };
+
+    // Only add Authorization header if we have a key
+    if (keyToUse) {
+      headers['Authorization'] = `Bearer ${keyToUse}`;
+    }
     
     // Prepare request body
     const requestBody = {
