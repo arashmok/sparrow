@@ -694,56 +694,58 @@ async function generateOpenAIChatResponse(userMessage, history, apiKey, model) {
 
 /**
  * Generate a chat response using LM Studio's API
+ * 
+ * @param {string} userMessage - The user's message
+ * @param {Array} history - Conversation history
+ * @param {string} apiUrl - LM Studio API URL
+ * @param {string} apiKey - LM Studio API key
+ * @param {string} model - Model name to use
+ * @param {boolean} translateToEnglish - Whether to translate to English
+ * @returns {Promise<string>} The generated chat reply
  */
-async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey, model) {
+async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey, model, translateToEnglish = false) {
+  // Prepare conversation messages similar to OpenAI
+  let messages = [{
+    role: 'system',
+    content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
+  }];
+  
+  // Add conversation history if available
+  if (history && history.length > 0) {
+    messages = messages.concat(history);
+  }
+  
+  // Add the current message if not present
+  if (!history || !history.some(msg => msg.role === 'user' && msg.content === userMessage)) {
+    messages.push({
+      role: 'user',
+      content: userMessage
+    });
+  }
+
+  // Build the LM Studio API endpoint URL
+  const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
+  const headers = { 'Content-Type': 'application/json' };
+  
+  // Add API key if provided
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+  
   try {
-    // Start with a system message
-    let messages = [{
-      role: 'system',
-      content: 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.'
-    }];
-    
-    // Add formatted chat history if available
-    if (history && Array.isArray(history) && history.length > 0) {
-      // Don't use formatChatHistory - directly use the history for LM Studio
-      messages = messages.concat(history);
-    }
-    
-    // Add the user's new message
-    messages.push({ role: 'user', content: userMessage });
-    
-    // Use stored key if provided, but don't require it
-    const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
-    
-    // Build the LM Studio API endpoint URL
-    const endpoint = apiUrl.endsWith('/chat/completions') ? 
-      apiUrl : 
-      `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
-    
-    // Prepare headers
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    
-    // Only add Authorization header if we have a key
-    if (keyToUse) {
-      headers['Authorization'] = `Bearer ${keyToUse}`;
-    }
-    
-    // Prepare request body - Simplified to match the working callLMStudioAPI function
+    // Prepare request body
     const requestBody = {
       messages: messages,
-      max_tokens: 500,
-      temperature: 0.7,
-      stream: false
+      max_tokens: CONFIG.MAX_TOKENS,
+      temperature: CONFIG.TEMPERATURE
     };
     
-    // Only add model if it's non-empty and meaningful
-    if (model && model.trim() !== '' && model !== 'default') {
+    // Only add model if it's provided and not empty
+    if (model && model.trim()) {
       requestBody.model = model;
     }
     
-    console.log("LM Studio chat request:", endpoint, JSON.stringify(requestBody));
+    console.log("Sending LM Studio chat request to:", endpoint);
     
     // Make the API request
     const response = await fetch(endpoint, {
@@ -752,30 +754,89 @@ async function generateLMStudioChatResponse(userMessage, history, apiUrl, apiKey
       body: JSON.stringify(requestBody)
     });
     
-    // Handle API errors with better error logging
+    // Handle API errors
     if (!response.ok) {
+      // Try to get detailed error info
       let errorMessage = `Status: ${response.status}`;
       try {
         const errorData = await response.json();
-        console.error("LM Studio error response:", errorData);
         errorMessage = errorData.error?.message || errorMessage;
       } catch (e) {
-        console.error("Error parsing LM Studio error response", e);
+        // If JSON parsing fails, use the status code
       }
+      
+      // Log additional debug info
+      console.error("LM Studio request details:", {
+        endpoint,
+        modelProvided: !!model,
+        bodySize: JSON.stringify(requestBody).length,
+        responseStatus: response.status
+      });
+      
       throw new Error(`Failed to generate response: ${errorMessage}`);
     }
     
     // Process the response
     const data = await response.json();
-    console.log("LM Studio chat response:", data);
+    let summary = data.choices[0].message.content.trim();
     
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error("Unexpected response format from LM Studio API");
+    // Add translation prefix if requested
+    if (translateToEnglish) {
+      summary = "[Translated to English] " + summary;
     }
     
-    return data.choices[0].message.content.trim();
+    return summary;
   } catch (error) {
     console.error('Error generating LM Studio chat response:', error);
+    
+    // Attempt fallback if the chat endpoint failed
+    if (error.message.includes("Status: 400") || error.message.includes("Status: 404")) {
+      try {
+        console.log("Trying fallback approach for LM Studio...");
+        // Create a single prompt with all messages concatenated
+        const systemMessage = 'You are Sparrow, an AI assistant integrated with a Chrome extension. You help users understand and interact with web content. Be concise, helpful, and conversational.';
+        
+        // Format history as a conversation
+        let conversationText = systemMessage + "\n\n";
+        
+        if (history && history.length > 0) {
+          history.forEach(msg => {
+            const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
+            conversationText += `${role}: ${msg.content}\n\n`;
+          });
+        }
+        
+        conversationText += `User: ${userMessage}\n\nAssistant:`;
+        
+        // Build the completions endpoint URL
+        const completionsEndpoint = `${apiUrl.replace(/\/+$/, '')}/completions`;
+        
+        // Make the API request
+        const response = await fetch(completionsEndpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            prompt: conversationText,
+            max_tokens: CONFIG.MAX_TOKENS,
+            temperature: CONFIG.TEMPERATURE,
+            model: model || undefined,
+            stream: false
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Fallback failed, status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.choices[0].text.trim();
+      } catch (fallbackError) {
+        console.error('LM Studio fallback also failed:', fallbackError);
+        // Re-throw the original error if fallback fails
+        throw error;
+      }
+    }
+    
     throw error;
   }
 }
