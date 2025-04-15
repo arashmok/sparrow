@@ -572,8 +572,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chatBtn.disabled = false;
     chatBtn.classList.remove('disabled');
     
-    // Save the summary to storage for the chat panel to access
-    chrome.storage.local.set({ latestSummary: summary });
+    // Save the summary and current URL to storage
+    saveCurrentSummary(summary);
     
     // Adjust window height to fit content
     adjustWindowHeight();
