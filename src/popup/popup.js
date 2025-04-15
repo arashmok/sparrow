@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiIndicator = document.getElementById('api-indicator');
   const apiMethodIndicator = document.getElementById('api-method-indicator');
   const chatBtn = document.getElementById('chat-btn');
-  
+  const expandBtn = document.getElementById('expand-btn');
+
   // =====================================================================
   // Initialization
   // =====================================================================
@@ -57,6 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Chat button functionality
   chatBtn.addEventListener('click', handleChatButtonClick);
+
+  // Expand/Collapse summary functionality
+  expandBtn.addEventListener('click', expandSummary);
 
   // =====================================================================
   // Core Functions
@@ -577,6 +581,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Adjust window height to fit content
     adjustWindowHeight();
+
+    // Show expand button
+    expandBtn.style.display = 'block';
   }
 
   /**
@@ -798,5 +805,96 @@ document.addEventListener('DOMContentLoaded', () => {
     // Disable chat button
     chatBtn.disabled = true;
     chatBtn.classList.add('disabled');
+
+    // Hide expand button on error
+    expandBtn.style.display = 'none';
+  }
+
+  /**
+   * Toggle the expanded/collapsed state of the summary
+   * Changes the icon and updates the body class for styling
+   */
+
+  function expandSummary() {
+    // Get the current summary content and title
+    const summaryContent = summaryText.innerHTML;
+    
+    // Try to extract the title from the content
+    let contentTitle = "Page Summary";
+    const titleElement = summaryText.querySelector('.summary-title');
+    if (titleElement) {
+      contentTitle = titleElement.textContent;
+    }
+    
+    // Create the expanded window
+    const expandedWindow = document.createElement('div');
+    expandedWindow.className = 'expanded-window';
+    
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'expanded-header';
+    
+    // Create title
+    const title = document.createElement('h1');
+    title.className = 'expanded-title';
+    title.textContent = 'Page Summary';
+    
+    // Create close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'close-expanded';
+    closeButton.innerHTML = '<i class="fa-solid fa-times"></i>';
+    closeButton.title = "Close fullscreen view";
+    closeButton.addEventListener('click', () => {
+      document.body.removeChild(expandedWindow);
+      document.removeEventListener('keydown', handleEscKey);
+    });
+    
+    // Assemble header
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    
+    // Create content area
+    const contentArea = document.createElement('div');
+    contentArea.className = 'expanded-content';
+    
+    // Create inner content container for max-width control
+    const contentInner = document.createElement('div');
+    contentInner.className = 'expanded-content-inner';
+    
+    // Create content title
+    const contentTitleElement = document.createElement('div');
+    contentTitleElement.className = 'expanded-content-title';
+    contentTitleElement.textContent = contentTitle;
+    
+    // Create content element
+    const content = document.createElement('div');
+    content.className = 'expanded-text';
+    content.innerHTML = summaryContent.replace(/<div class="summary-title">.*?<\/div>/, ''); // Remove the original title
+    
+    // Assemble content
+    contentInner.appendChild(contentTitleElement);
+    contentInner.appendChild(content);
+    contentArea.appendChild(contentInner);
+    
+    // Assemble the window
+    expandedWindow.appendChild(header);
+    expandedWindow.appendChild(contentArea);
+    
+    // Add to document
+    document.body.appendChild(expandedWindow);
+    
+    // Add event listener for ESC key to close
+    document.addEventListener('keydown', handleEscKey);
+  }
+
+  // Close the expanded view when ESC key is pressed
+  function handleEscKey(event) {
+    if (event.key === 'Escape') {
+      const expandedWindow = document.querySelector('.expanded-window');
+      if (expandedWindow) {
+        document.body.removeChild(expandedWindow);
+        document.removeEventListener('keydown', handleEscKey);
+      }
+    }
   }
 });
