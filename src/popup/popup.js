@@ -857,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentArea = document.createElement('div');
     contentArea.className = 'expanded-content';
     
-    // Create inner content container for max-width control
+    // Create inner content container 
     const contentInner = document.createElement('div');
     contentInner.className = 'expanded-content-inner';
     
@@ -869,7 +869,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create content element
     const content = document.createElement('div');
     content.className = 'expanded-text';
-    content.innerHTML = summaryContent.replace(/<div class="summary-title">.*?<\/div>/, ''); // Remove the original title
+    
+    // Remove any existing title from the content to avoid duplication
+    const processedContent = summaryContent.replace(/<div class="summary-title">.*?<\/div>/, '');
+    content.innerHTML = processedContent;
     
     // Assemble content
     contentInner.appendChild(contentTitleElement);
@@ -883,8 +886,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add to document
     document.body.appendChild(expandedWindow);
     
+    // Size optimization - dynamically adjust font size if content is large
+    adjustContentForFullView(contentInner);
+    
     // Add event listener for ESC key to close
     document.addEventListener('keydown', handleEscKey);
+  }
+
+  // Adjust the content size for full view
+  function adjustContentForFullView(container) {
+    // Get the content height
+    const contentHeight = container.scrollHeight;
+    const windowHeight = window.innerHeight;
+    
+    // If content is too large for the screen, adjust sizing
+    if (contentHeight > windowHeight * 0.85) {
+      // Calculate a smaller font size based on content amount
+      const calculatedSize = Math.max(16, Math.min(18, 18 * (windowHeight * 0.85 / contentHeight)));
+      
+      // Apply the calculated size
+      container.style.fontSize = calculatedSize + 'px';
+      
+      // Also adjust padding to gain more space
+      container.style.padding = '20px 40px';
+    }
   }
 
   // Close the expanded view when ESC key is pressed
