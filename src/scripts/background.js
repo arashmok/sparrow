@@ -218,41 +218,28 @@ function truncateModelName(modelName) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle side panel opening requests
   if (request.action === 'open-chat-panel') {
-    // Store the generated text for the side panel to access
+    // Store the ORIGINAL unformatted text (not pre-processed)
     if (request.generatedText) {
-      // Preserve and enhance formatting for chat panel
-      const enhancedText = prepareTextForChatPanel(request.generatedText);
-      chrome.storage.local.set({ latestSummary: enhancedText });
-    }
-    
-    // Open the side panel with the chat interface
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = tabs[0].id;
-      chrome.sidePanel.open({ tabId: tabId }).then(() => {
-        // Set the side panel page to the chat panel HTML
-        chrome.sidePanel.setOptions({
-          path: 'src/panel/chat-panel.html',
-          enabled: true
-        });
-        
-        // Send a message to initialize the chat panel with the generated text
-        setTimeout(() => {
-          chrome.runtime.sendMessage({
-            action: 'chat-initiate',
-            tabId: tabId,
-            pageContent: request.generatedText,
-            chatAction: request.chatAction
+      chrome.storage.local.set({ latestSummary: request.generatedText });
+      
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabId = tabs[0].id;
+        chrome.sidePanel.open({ tabId: tabId }).then(() => {
+          chrome.sidePanel.setOptions({
+            path: 'src/panel/chat-panel.html',
+            enabled: true
           });
-        }, 500); // Give the side panel time to load
-        
-        sendResponse({ success: true });
-      }).catch(error => {
-        console.error("Error opening side panel:", error);
-        sendResponse({ success: false, error: error.message });
+          
+          // No longer need to send the content in a message
+          // The chat panel will load it from storage
+          sendResponse({ success: true });
+        }).catch(error => {
+          console.error("Error opening side panel:", error);
+          sendResponse({ success: false, error: error.message });
+        });
       });
-    });
-    
-    return true; // Keep the messaging channel open for asynchronous sendResponse
+    }
+    return true;
   }
   
   // Handle chat message requests (for API communication)

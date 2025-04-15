@@ -59,8 +59,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configure event listeners for message sending
     setupEventListeners();
     
-    // Listen for messages from the background script
-    setupBackgroundMessageListener();
+    // Load and display the stored summary
+    chrome.storage.local.get(['latestSummary'], function(result) {
+      if (result.latestSummary) {
+        // Format and display the stored summary
+        const formattedContent = formatMessageText(result.latestSummary);
+        
+        // Create and add the assistant message to the chat
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message message-assistant';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        messageContent.innerHTML = formattedContent;
+        
+        messageDiv.appendChild(messageContent);
+        UI.chatMessages.appendChild(messageDiv);
+        
+        // Initialize conversation history with raw text
+        conversationHistory = [
+          {
+            role: 'assistant',
+            content: result.latestSummary
+          }
+        ];
+        
+        // Ensure the new message is visible
+        scrollToBottom();
+      }
+    });
+    
+    // Remove the background message listener for chat-initiate
+    // since we're now loading from storage directly
+    
   }
   
   /**
