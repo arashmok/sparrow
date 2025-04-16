@@ -389,6 +389,7 @@ select:focus {
 
 /* Summary title styling */
 .summary-title {
+  padding-right: 40px; /* Add space on the right to prevent overlap with expand button */
   font-weight: 600;
   font-size: 16px;
   margin-bottom: 12px;
@@ -601,21 +602,23 @@ footer {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: none;
-  border: none;
-  color: #888;
+  background-color: rgba(248, 249, 251, 0.9); /* Light background with slight transparency */
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border */
+  color: #2980b9; /* Brand blue color */
   font-size: 14px;
   cursor: pointer;
-  z-index: 10;
+  z-index: 20; /* Ensure it's above other content */
   transition: all 0.2s ease;
-  display: none; /* Initially hidden, will show when summary is available */
-  padding: 5px;
-  border-radius: 4px;
+  display: none; /* Initially hidden, shown when summary is available */
+  padding: 6px 8px; /* Slightly larger padding */
+  border-radius: 6px; /* Rounded corners */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
 .expand-button:hover {
-  color: #2980b9;
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: #2980b9; /* Brand blue on hover */
+  color: white; /* White text on hover */
+  box-shadow: 0 2px 6px rgba(41, 128, 185, 0.3); /* Enhanced shadow on hover */
 }
 
 /* Full-window expanded view */

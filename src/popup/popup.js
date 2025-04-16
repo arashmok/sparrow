@@ -557,41 +557,50 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
   
-  /**
-   * Display the generated summary in the popup
-   * 
-   * @param {string} summary - The generated summary text
-   * @param {string} format - The format of the summary
-   */
-  function displaySummary(summary, format) {
-    // Hide loading indicator, show results
-    loading.classList.add('hidden');
-    summaryResult.classList.remove('hidden');
+
+/**
+ * Display the generated summary in the popup
+ * 
+ * @param {string} summary - The generated summary text
+ * @param {string} format - The format of the summary
+ */
+function displaySummary(summary, format) {
+  // Hide loading indicator, show results
+  loading.classList.add('hidden');
+  summaryResult.classList.remove('hidden');
+  
+  // Reset UI elements
+  resetUIAfterGeneration("Regenerate");
+  
+  // Format the summary text with better structure
+  const formattedSummary = formatSummaryText(summary);
+  
+  // Set the summary text with proper formatting
+  summaryText.innerHTML = formattedSummary;
+  
+  // Show the expand button when summary is displayed
+  if (expandBtn) {
+    expandBtn.style.display = 'block';
     
-    // Reset UI elements
-    resetUIAfterGeneration("Regenerate");
-    
-    // Format the summary text with better structure
-    const formattedSummary = formatSummaryText(summary);
-    
-    // Set the summary text with proper formatting
-    summaryText.innerHTML = formattedSummary;
-    
-    // Show the expand button when summary is displayed
-    if (expandBtn) {
-      expandBtn.style.display = 'block';
-    }
-    
-    // Enable the chat button
-    chatBtn.disabled = false;
-    chatBtn.classList.remove('disabled');
-    
-    // Save the summary and current URL to storage
-    saveCurrentSummary(summary);
-    
-    // Adjust window height to fit content
-    adjustWindowHeight();
+    // Ensure the expand button is focused briefly to draw attention to it
+    setTimeout(() => {
+      expandBtn.style.transform = 'scale(1.1)';
+      setTimeout(() => {
+        expandBtn.style.transform = 'scale(1)';
+      }, 300);
+    }, 500);
   }
+  
+  // Enable the chat button
+  chatBtn.disabled = false;
+  chatBtn.classList.remove('disabled');
+  
+  // Save the summary and current URL to storage
+  saveCurrentSummary(summary);
+  
+  // Adjust window height to fit content
+  adjustWindowHeight();
+}
 
   /**
    * Save the current summary and URL to storage
