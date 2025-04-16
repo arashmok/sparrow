@@ -17,10 +17,31 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Default configuration for API calls
 let CONFIG = {
-  API_MODE: 'openai',  // Default API mode
-  MAX_TOKENS: 500,     // Maximum tokens in response
-  TEMPERATURE: 0.5     // Creativity level (higher = more creative)
+  API_MODE: 'openai',        // Default API mode
+  MAX_TOKENS: 500,           // Default maximum tokens in response
+  TEMPERATURE: 0.5,          // Creativity level (higher = more creative)
+  // Add new token limit configurations by format
+  TOKEN_LIMITS: {
+    'short': 500,            // Keep short summaries concise
+    'detailed': 1000,        // Double tokens for detailed summaries
+    'key-points': 750        // Moderate increase for key points
+  }
 };
+
+/**
+ * Gets the appropriate token limit based on the requested format
+ * 
+ * @param {string} format - The summary format ('short', 'detailed', 'key-points')
+ * @returns {number} The token limit to use
+ */
+function getTokenLimit(format) {
+  // If format exists in our TOKEN_LIMITS config, use that value
+  if (format && CONFIG.TOKEN_LIMITS[format]) {
+    return CONFIG.TOKEN_LIMITS[format];
+  }
+  // Otherwise, fall back to the default MAX_TOKENS
+  return CONFIG.MAX_TOKENS;
+}
 
 // Text processing limits
 const MAX_CHUNK_SIZE = 3500;  // Maximum size for a single text chunk (in characters)
@@ -1059,13 +1080,13 @@ async function callOpenAIAPI(text, format, apiKey, model, translateToEnglish = f
       body: JSON.stringify({
         model: model,
         messages: [
-          { 
-            role: 'system', 
-            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+          {
+            role: 'system',
+            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.'
           },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 500,
+        max_tokens: tokenLimit, // Use the dynamic token limit
         temperature: 0.5
       })
     });
@@ -1143,6 +1164,9 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
   // Use stored key if provided, but don't require it
   const keyToUse = apiKey || secureKeyStore.getKey('lmstudio') || '';
 
+  // Get the appropriate token limit based on the summary format
+  const tokenLimit = getTokenLimit(format);
+
   // Ensure apiUrl has the correct endpoint
   const chatEndpoint = apiUrl.endsWith('/chat/completions') ? 
     apiUrl : 
@@ -1153,13 +1177,13 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
     const headers = {
       'Content-Type': 'application/json'
     };
-
+  
     // Only add Authorization header if we have a key
     if (keyToUse) {
       headers['Authorization'] = `Bearer ${keyToUse}`;
     }
-    
-    // Prepare request body - IMPORTANT: DON'T include empty model
+      
+    // Prepare request body
     const requestBody = {
       messages: [
         { 
@@ -1168,7 +1192,7 @@ async function callLMStudioAPI(text, format, apiUrl, apiKey = '', translateToEng
         },
         { role: 'user', content: prompt }
       ],
-      max_tokens: 500,
+      max_tokens: tokenLimit, // Use the dynamic token limit
       temperature: 0.5,
       stream: false
     };
@@ -1259,6 +1283,9 @@ async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = f
   // Create the optimized prompt
   const prompt = createPrompt(text, format, translateToEnglish);
 
+  // Get the appropriate token limit based on the summary format
+  const tokenLimit = getTokenLimit(format);
+
   try {
     // Ensure apiUrl has the correct format (remove trailing slash if present)
     const baseUrl = apiUrl.replace(/\/+$/, '');
@@ -1268,6 +1295,7 @@ async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = f
     const chatEndpoint = `${baseUrl}/chat`;
     
     console.log("Ollama API request to:", chatEndpoint);
+    console.log(`Using token limit of ${tokenLimit} for ${format} format`);
     
     // Make the API call to Ollama
     const response = await fetch(chatEndpoint, {
@@ -1285,7 +1313,8 @@ async function callOllamaAPI(text, format, apiUrl, model, translateToEnglish = f
           { role: 'user', content: prompt }
         ],
         options: {
-          temperature: 0.5
+          temperature: 0.5,
+          num_predict: tokenLimit // Ollama uses num_predict instead of max_tokens
         },
         stream: false
       })
@@ -1338,6 +1367,9 @@ async function generateOllamaFallbackSummary(text, format, apiUrl, model, transl
   const systemMessage = 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.';
   const userPrompt = createPrompt(text, format, translateToEnglish);
   const fullPrompt = `${systemMessage}\n\n${userPrompt}`;
+
+  // Get the appropriate token limit based on the summary format
+  const tokenLimit = getTokenLimit(format);
   
   try {
     // Ensure apiUrl has the correct format (remove trailing slash if present)
@@ -1358,7 +1390,8 @@ async function generateOllamaFallbackSummary(text, format, apiUrl, model, transl
         model: model,
         prompt: fullPrompt,
         options: {
-          temperature: 0.5
+          temperature: 0.5,
+          num_predict: tokenLimit // Ollama uses num_predict instead of max_tokens
         },
         stream: false
       })
@@ -1451,6 +1484,9 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
     throw new Error('No OpenRouter API key found. Please check your settings.');
   }
 
+  // Get the appropriate token limit based on the summary format
+  const tokenLimit = getTokenLimit(format);
+
   try {
     // Make the API call
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -1468,7 +1504,7 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
           },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 500,
+        max_tokens: tokenLimit, // Use the dynamic token limit
         temperature: 0.5
       })
     });
@@ -1678,12 +1714,14 @@ First provide a very short title (3-5 words only), then a tiny summary paragraph
       break;
       
     case 'detailed':
-      prompt = `${translationPrefix}Please provide a detailed yet focused summary (1-2 paragraphs) of the following text.
-Cover the main points and key information.
+      prompt = `${translationPrefix}Please provide a COMPREHENSIVE and THOROUGH summary of the following text.
+Cover ALL important points, key information, significant details, and relevant examples from the original content.
+Your summary should be complete enough that a reader doesn't need to refer to the original text.
 Structure your response with:
 1. A clear, descriptive title (one line)
-2. Well-organized paragraphs with proper line breaks between them
-3. Ensure the most important information is prioritized\n\n${text}`;
+2. Well-organized paragraphs with proper line breaks between sections
+3. Include specific details, facts, figures, and examples that are critical to understanding the content
+4. Ensure nothing significant is omitted from the original content\n\n${text}`;
       break;
       
     case 'key-points':
