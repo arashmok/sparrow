@@ -100,6 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
           summaryFormat.value = result.defaultFormat;
         }, 10);
       }
+
+      // Reset button/dropdown proportions to default
+      summarizeBtn.style.flexGrow = "4";
+      summaryFormat.style.flexGrow = "3";
       
       // Get the selected model name based on API mode
       const apiMode = result.apiMode;
@@ -440,8 +444,39 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {string} buttonText - Text to set on the button
    */
   function resetUIAfterGeneration(buttonText) {
+    // Update button text
     summarizeBtn.querySelector('span').textContent = buttonText;
+    
+    // If the button text is "Regenerate", make specific adjustments
+    if (buttonText === "Regenerate") {
+      // Create a more optimal distribution for the container
+      const controlsContainer = document.querySelector('.controls');
+      if (controlsContainer) {
+        // Set a fixed width for the entire controls container
+        controlsContainer.style.width = "calc(100% - 8px)"; // Account for any padding
+        
+        // Set more appropriate widths for button and dropdown
+        summarizeBtn.style.width = "110px"; // Fixed width for the button
+        summaryFormat.style.width = "calc(100% - 118px)"; // Remaining width minus button width and gap
+        
+        // Reduce the gap between elements
+        controlsContainer.style.gap = "8px"; // Default is 12px
+      }
+    } else {
+      // Reset to default styles for "Generate"
+      const controlsContainer = document.querySelector('.controls');
+      if (controlsContainer) {
+        controlsContainer.style.width = "";
+        controlsContainer.style.gap = "";
+      }
+      summarizeBtn.style.width = "";
+      summaryFormat.style.width = "";
+    }
+    
+    // Enable button
     summarizeBtn.disabled = false;
+    
+    // Show summary format dropdown
     summaryFormat.classList.remove('hidden-during-generation');
   }
   
