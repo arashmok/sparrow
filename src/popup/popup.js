@@ -838,104 +838,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(existingView);
       }
       
-      // Create CSS to be injected
-      const style = document.createElement('style');
-      style.id = 'sparrow-fullscreen-styles';
-      style.textContent = `
-        #sparrow-fullscreen-view {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background-color: white;
-          z-index: 2147483647;
-          display: flex;
-          flex-direction: column;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          overflow: hidden;
-        }
-        #sparrow-fullscreen-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 24px;
-          background-color: #f8f9fb;
-          border-bottom: 1px solid rgba(0,0,0,0.08);
-          width: 100%;
-          box-sizing: border-box;
-        }
-        #sparrow-fullscreen-title {
-          font-size: 20px;
-          font-weight: 600;
-          color: #2980b9;
-          margin: 0;
-        }
-        #sparrow-fullscreen-close {
-          background: none;
-          border: none;
-          font-size: 20px;
-          color: #666;
-          cursor: pointer;
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 4px;
-        }
-        #sparrow-fullscreen-close:hover {
-          background-color: rgba(0,0,0,0.05);
-        }
-        #sparrow-fullscreen-content-area {
-          width: 100%;
-          height: calc(100% - 52px);
-          overflow-y: auto;
-          overflow-x: hidden;
-          display: flex;
-          justify-content: center;
-          box-sizing: border-box;
-        }
-        #sparrow-fullscreen-container {
-          width: 100%;
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 40px;
-          box-sizing: border-box;
-        }
-        #sparrow-content-title {
-          font-size: 32px;
-          font-weight: 600;
-          color: #2980b9;
-          margin-bottom: 30px;
-          padding-bottom: 15px;
-          border-bottom: 1px solid rgba(0,0,0,0.08);
-          text-align: center;
-        }
-        #sparrow-content-text {
-          font-size: 18px;
-          line-height: 1.8;
-        }
-        #sparrow-content-text .summary-paragraph {
-          font-size: 18px;
-          margin-bottom: 20px;
-          color: #333;
-        }
-        #sparrow-content-text .key-point {
-          font-size: 18px;
-          margin-bottom: 20px;
-          padding-left: 24px;
-          position: relative;
-          color: #333;
-        }
-        #sparrow-content-text .key-point::before {
-          content: "•";
-          position: absolute;
-          left: 8px;
-          color: #2980b9;
-          font-weight: bold;
-        }
-      `;
+      // Remove any existing style if present
+      const existingStyle = document.getElementById('sparrow-fullscreen-styles');
+      if (existingStyle) {
+        document.head.removeChild(existingStyle);
+      }
+      
+      // We'll inject the CSS file reference instead of inline styles
+      const linkElement = document.createElement('link');
+      linkElement.id = 'sparrow-fullscreen-styles';
+      linkElement.rel = 'stylesheet';
+      linkElement.href = chrome.runtime.getURL('assets/css/popup.css');
+      document.head.appendChild(linkElement);
       
       // Create the main container
       const overlay = document.createElement('div');
@@ -959,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add close button event listener
       closeBtn.addEventListener('click', function() {
         document.body.removeChild(overlay);
-        document.head.removeChild(style);
+        document.head.removeChild(linkElement);
       });
       
       // Create content area
@@ -992,7 +906,6 @@ document.addEventListener('DOMContentLoaded', () => {
       overlay.appendChild(contentArea);
       
       // Add to document
-      document.head.appendChild(style);
       document.body.appendChild(overlay);
       
       // Add ESC key event listener to close
@@ -1000,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.key === 'Escape') {
           if (document.body.contains(overlay)) {
             document.body.removeChild(overlay);
-            document.head.removeChild(style);
+            document.head.removeChild(linkElement);
           }
           document.removeEventListener('keydown', escKeyHandler);
         }
@@ -1013,10 +926,18 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (!tabs || !tabs[0]) return;
       
-      chrome.scripting.executeScript({
+      // First, inject the CSS file
+      chrome.scripting.insertCSS({
         target: { tabId: tabs[0].id },
-        function: createFullscreenInPage,
-        args: [summaryContent, contentTitle]
+        files: ['assets/css/popup.css']
+      })
+      .then(() => {
+        // Then execute the script to create the fullscreen view
+        return chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          function: createFullscreenInPage,
+          args: [summaryContent, contentTitle]
+        });
       })
       .then(() => {
         console.log("Fullscreen view injected into page");
