@@ -818,9 +818,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createFullscreenView() {
-    console.log("Creating fullscreen view");
+    console.log("Creating fullscreen view in the active tab");
     
-    // Get the current summary content
+    // Get the current summary content and title
     const summaryContent = summaryText.innerHTML;
     
     // Try to extract the title
@@ -830,131 +830,205 @@ document.addEventListener('DOMContentLoaded', () => {
       contentTitle = titleElement.textContent;
     }
     
-    // Create a fullscreen overlay div (instead of an iframe)
-    const fullscreenOverlay = document.createElement('div');
-    fullscreenOverlay.className = 'fullscreen-overlay';
-    fullscreenOverlay.style.position = 'fixed';
-    fullscreenOverlay.style.top = '0';
-    fullscreenOverlay.style.left = '0';
-    fullscreenOverlay.style.width = '100vw';
-    fullscreenOverlay.style.height = '100vh';
-    fullscreenOverlay.style.backgroundColor = 'white';
-    fullscreenOverlay.style.zIndex = '2147483647';
-    fullscreenOverlay.style.overflow = 'hidden';
-    
-    // Create header
-    const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.alignItems = 'center';
-    header.style.padding = '12px 24px';
-    header.style.backgroundColor = '#f8f9fb';
-    header.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
-    header.style.width = '100%';
-    
-    // Create title
-    const title = document.createElement('h1');
-    title.style.fontSize = '20px';
-    title.style.fontWeight = '600';
-    title.style.color = '#2980b9';
-    title.style.margin = '0';
-    title.textContent = 'Page Summary';
-    
-    // Create close button
-    const closeBtn = document.createElement('button');
-    closeBtn.style.background = 'none';
-    closeBtn.style.border = 'none';
-    closeBtn.style.fontSize = '20px';
-    closeBtn.style.color = '#666';
-    closeBtn.style.cursor = 'pointer';
-    closeBtn.style.width = '32px';
-    closeBtn.style.height = '32px';
-    closeBtn.style.display = 'flex';
-    closeBtn.style.alignItems = 'center';
-    closeBtn.style.justifyContent = 'center';
-    closeBtn.style.borderRadius = '4px';
-    closeBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
-    closeBtn.title = 'Close fullscreen view';
-    
-    // Add close button event listener
-    closeBtn.addEventListener('click', function() {
-      document.body.removeChild(fullscreenOverlay);
-    });
-    
-    // Create content area
-    const contentArea = document.createElement('div');
-    contentArea.style.width = '100%';
-    contentArea.style.height = 'calc(100vh - 56px)';
-    contentArea.style.padding = '0';
-    contentArea.style.margin = '0';
-    contentArea.style.overflow = 'hidden';
-    contentArea.style.display = 'flex';
-    contentArea.style.justifyContent = 'center';
-    
-    // Create content container
-    const contentContainer = document.createElement('div');
-    contentContainer.style.padding = '40px';
-    contentContainer.style.width = '100%';
-    contentContainer.style.maxWidth = '100%';
-    contentContainer.style.boxSizing = 'border-box';
-    contentContainer.style.overflowY = 'auto';
-    
-    // Create content title
-    const contentTitleEl = document.createElement('h2');
-    contentTitleEl.style.fontSize = '32px';
-    contentTitleEl.style.fontWeight = '600';
-    contentTitleEl.style.color = '#2980b9';
-    contentTitleEl.style.marginBottom = '30px';
-    contentTitleEl.style.paddingBottom = '15px';
-    contentTitleEl.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
-    contentTitleEl.style.textAlign = 'center';
-    contentTitleEl.style.width = '100%';
-    contentTitleEl.textContent = contentTitle;
-    
-    // Create content text
-    const contentText = document.createElement('div');
-    contentText.style.fontSize = '18px';
-    contentText.style.lineHeight = '1.8';
-    contentText.style.width = '100%';
-    
-    // Add the summary content, removing any existing title
-    contentText.innerHTML = summaryContent.replace(/<div class="summary-title">.*?<\/div>/, '');
-    
-    // Style all paragraphs and bullet points
-    setTimeout(() => {
-      const paragraphs = contentText.querySelectorAll('.summary-paragraph');
-      paragraphs.forEach(para => {
-        para.style.fontSize = '18px';
-        para.style.marginBottom = '20px';
-        para.style.width = '100%';
+    // Create a function that will be injected into the page
+    function createFullscreenInPage(summaryHtml, titleText) {
+      // Remove any existing fullscreen view
+      const existingView = document.getElementById('sparrow-fullscreen-view');
+      if (existingView) {
+        document.body.removeChild(existingView);
+      }
+      
+      // Create CSS to be injected
+      const style = document.createElement('style');
+      style.id = 'sparrow-fullscreen-styles';
+      style.textContent = `
+        #sparrow-fullscreen-view {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background-color: white;
+          z-index: 2147483647;
+          display: flex;
+          flex-direction: column;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow: hidden;
+        }
+        #sparrow-fullscreen-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 24px;
+          background-color: #f8f9fb;
+          border-bottom: 1px solid rgba(0,0,0,0.08);
+          width: 100%;
+          box-sizing: border-box;
+        }
+        #sparrow-fullscreen-title {
+          font-size: 20px;
+          font-weight: 600;
+          color: #2980b9;
+          margin: 0;
+        }
+        #sparrow-fullscreen-close {
+          background: none;
+          border: none;
+          font-size: 20px;
+          color: #666;
+          cursor: pointer;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+        }
+        #sparrow-fullscreen-close:hover {
+          background-color: rgba(0,0,0,0.05);
+        }
+        #sparrow-fullscreen-content-area {
+          width: 100%;
+          height: calc(100% - 52px);
+          overflow-y: auto;
+          overflow-x: hidden;
+          display: flex;
+          justify-content: center;
+          box-sizing: border-box;
+        }
+        #sparrow-fullscreen-container {
+          width: 100%;
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 40px;
+          box-sizing: border-box;
+        }
+        #sparrow-content-title {
+          font-size: 32px;
+          font-weight: 600;
+          color: #2980b9;
+          margin-bottom: 30px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid rgba(0,0,0,0.08);
+          text-align: center;
+        }
+        #sparrow-content-text {
+          font-size: 18px;
+          line-height: 1.8;
+        }
+        #sparrow-content-text .summary-paragraph {
+          font-size: 18px;
+          margin-bottom: 20px;
+          color: #333;
+        }
+        #sparrow-content-text .key-point {
+          font-size: 18px;
+          margin-bottom: 20px;
+          padding-left: 24px;
+          position: relative;
+          color: #333;
+        }
+        #sparrow-content-text .key-point::before {
+          content: "•";
+          position: absolute;
+          left: 8px;
+          color: #2980b9;
+          font-weight: bold;
+        }
+      `;
+      
+      // Create the main container
+      const overlay = document.createElement('div');
+      overlay.id = 'sparrow-fullscreen-view';
+      
+      // Create header
+      const header = document.createElement('div');
+      header.id = 'sparrow-fullscreen-header';
+      
+      // Create title
+      const title = document.createElement('h1');
+      title.id = 'sparrow-fullscreen-title';
+      title.textContent = 'Page Summary';
+      
+      // Create close button
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'sparrow-fullscreen-close';
+      closeBtn.innerHTML = '×'; // Using × character instead of Font Awesome
+      closeBtn.title = 'Close fullscreen view';
+      
+      // Add close button event listener
+      closeBtn.addEventListener('click', function() {
+        document.body.removeChild(overlay);
+        document.head.removeChild(style);
       });
       
-      const bullets = contentText.querySelectorAll('.key-point');
-      bullets.forEach(bullet => {
-        bullet.style.fontSize = '18px';
-        bullet.style.marginBottom = '20px';
-        bullet.style.width = '100%';
-      });
-    }, 0);
-    
-    // Assemble the DOM structure
-    contentContainer.appendChild(contentTitleEl);
-    contentContainer.appendChild(contentText);
-    contentArea.appendChild(contentContainer);
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    fullscreenOverlay.appendChild(header);
-    fullscreenOverlay.appendChild(contentArea);
-    
-    // Add to document
-    document.body.appendChild(fullscreenOverlay);
-    
-    // Add ESC key event listener to close
-    document.addEventListener('keydown', function escKeyHandler(event) {
-      if (event.key === 'Escape') {
-        document.body.removeChild(fullscreenOverlay);
-        document.removeEventListener('keydown', escKeyHandler);
+      // Create content area
+      const contentArea = document.createElement('div');
+      contentArea.id = 'sparrow-fullscreen-content-area';
+      
+      // Create content container
+      const contentContainer = document.createElement('div');
+      contentContainer.id = 'sparrow-fullscreen-container';
+      
+      // Create content title
+      const contentTitleEl = document.createElement('h2');
+      contentTitleEl.id = 'sparrow-content-title';
+      contentTitleEl.textContent = titleText;
+      
+      // Create content text
+      const contentText = document.createElement('div');
+      contentText.id = 'sparrow-content-text';
+      
+      // Add the summary content, removing any existing title
+      contentText.innerHTML = summaryHtml.replace(/<div class="summary-title">.*?<\/div>/, '');
+      
+      // Assemble the DOM structure
+      contentContainer.appendChild(contentTitleEl);
+      contentContainer.appendChild(contentText);
+      contentArea.appendChild(contentContainer);
+      header.appendChild(title);
+      header.appendChild(closeBtn);
+      overlay.appendChild(header);
+      overlay.appendChild(contentArea);
+      
+      // Add to document
+      document.head.appendChild(style);
+      document.body.appendChild(overlay);
+      
+      // Add ESC key event listener to close
+      function escKeyHandler(event) {
+        if (event.key === 'Escape') {
+          if (document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+            document.head.removeChild(style);
+          }
+          document.removeEventListener('keydown', escKeyHandler);
+        }
       }
+      
+      document.addEventListener('keydown', escKeyHandler);
+    }
+    
+    // Execute in the current active tab
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (!tabs || !tabs[0]) return;
+      
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        function: createFullscreenInPage,
+        args: [summaryContent, contentTitle]
+      })
+      .then(() => {
+        console.log("Fullscreen view injected into page");
+        // Close the popup to show the fullscreen view in the tab
+        setTimeout(() => window.close(), 100);
+      })
+      .catch(err => {
+        console.error("Failed to inject fullscreen view:", err);
+        
+        // Fallback to showing in popup if injection fails
+        showError("Could not open fullscreen view. The page might be restricting scripts.");
+      });
     });
   }
 });
