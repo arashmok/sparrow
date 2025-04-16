@@ -336,7 +336,11 @@ select:focus {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100px;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
   color: #666;
   font-weight: 500;
   gap: 12px;

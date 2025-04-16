@@ -410,6 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show loading state, hide result state
     loading.classList.remove('hidden');
     summaryResult.classList.add('hidden');
+
+    // Hide the chat button during generation
+    if (expandBtn) {
+      expandBtn.style.display = 'none';
+    }
   }
   
   /**
