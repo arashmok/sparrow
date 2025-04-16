@@ -47,9 +47,10 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-height: 100%;
+  min-height: 450px; /* Set minimum height */
+  /*max-height: 100%;
   width: 100%;
-  overflow: hidden;
+  overflow: hidden;*/
 }
 
 /* Container for popup content with proper overflow handling */
@@ -504,6 +505,8 @@ footer {
   width: 100%;
   position: sticky;
   bottom: 0;
+  background-color: #f8f9fb; /* Match background color */
+  z-index: 10; /* Ensure it stays above content */
 }
 
 /* Translation option in footer */

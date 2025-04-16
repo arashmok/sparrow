@@ -397,24 +397,41 @@ document.addEventListener('DOMContentLoaded', () => {
    * Update UI elements to show generation is in progress
    */
   function updateUIForGenerating() {
+    // Store the current height of the summary container before making changes
+    const summaryContainer = document.querySelector('.summary-container');
+    const currentHeight = summaryContainer.offsetHeight;
+    
     // Update button state
     summarizeBtn.querySelector('span').textContent = "Generating...";
     summarizeBtn.disabled = true;
-
+  
     // Hide summary format dropdown during generation
     summaryFormat.classList.add('hidden-during-generation');
     
-    // Clear any previous summary
+    // Hide expand button
+    if (expandBtn) {
+      expandBtn.style.display = 'none';
+    }
+    
+    // Important: Set explicit height on container before switching content
+    if (currentHeight > 0) {
+      summaryContainer.style.height = `${currentHeight}px`;
+    } else {
+      summaryContainer.style.height = '200px'; // Default minimum height
+    }
+    
+    // Clear previous summary content
     summaryText.textContent = '';
     
     // Show loading state, hide result state
     loading.classList.remove('hidden');
     summaryResult.classList.add('hidden');
-
-    // Hide the chat button during generation
-    if (expandBtn) {
-      expandBtn.style.display = 'none';
-    }
+    
+    // Position the loading indicator absolutely within the container
+    loading.style.position = 'absolute';
+    loading.style.top = '50%';
+    loading.style.left = '50%';
+    loading.style.transform = 'translate(-50%, -50%)';
   }
   
   /**
@@ -573,6 +590,16 @@ function displaySummary(summary, format) {
   // Hide loading indicator, show results
   loading.classList.add('hidden');
   summaryResult.classList.remove('hidden');
+
+  // Reset loading position styles
+  loading.style.position = '';
+  loading.style.top = '';
+  loading.style.left = '';
+  loading.style.transform = '';
+
+  // Reset the summary container height to auto for content
+  const summaryContainer = document.querySelector('.summary-container');
+  summaryContainer.style.height = 'auto';
   
   // Reset UI elements
   resetUIAfterGeneration("Regenerate");
