@@ -225,16 +225,16 @@ small {
 
 /* Cancel button styling */
 #cancel-btn {
-    flex: 1;
+    width: 120px; /* Wider button */
     background-color: #fff;
     color: #444;
     border: 1px solid #ddd;
-    padding: 10px 16px;
+    padding: 10px 0;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
-    transition: all 0.2s ease;
     font-size: 14px;
+    text-align: center;
 }
 
 /* Hover state for cancel button */
@@ -245,17 +245,16 @@ small {
 
 /* Save button styling */
 #save-btn {
-    flex: 2; /* Take more space than cancel button */
-    background-color: #4285f4; /* Primary brand color */
+    width: 120px; /* Wider button */
+    background-color: #4285f4;
     color: #fff;
     border: none;
-    padding: 10px 16px;
+    padding: 10px 0;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
     font-size: 14px;
+    text-align: center;
 }
 
 /* Hover state for save button */
@@ -450,28 +449,22 @@ select:disabled {
 /* ========== FOOTER STYLING ========== */
 /* Footer positioning and styling */
 footer {
-    margin-top: 12px;
-    padding: 0;
-    border-top: none;
-    flex-shrink: 0;
+    margin-top: 20px;
+    padding: 0 12px 12px 12px;
     width: 100%;
-    position: sticky;
-    bottom: 0;
-    background-color: #f8f9fb;
-    z-index: 10;
-    padding-bottom: 4px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column-reverse; /* This is crucial - puts status message above buttons */
 }
 
 /* ========== BOTTOM ACTIONS ========== */
 /* Container for bottom action buttons */
 .bottom-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: calc(100% - 8px);
-    padding: 12px 20px;
-    margin: 0 4px 4px 4px;
-    gap: 12px;
+    width: 100%;
+    gap: 8px; /* Reduced gap */
+    padding: 0;
+    margin: 0;
 }
 
 /* Last form group spacing adjustment */
@@ -485,14 +478,12 @@ footer {
     text-align: center;
     font-size: 13px;
     font-weight: 500;
-    padding: 6px 0;
     color: #388e3c;
-    min-height: 25px;
-    transition: opacity 0.2s ease;
+    margin-bottom: 8px; /* Add space below the message */
     opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
-/* Visible state for status message */
 .status-message.visible {
     opacity: 1;
 }
