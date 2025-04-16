@@ -324,6 +324,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Change button text to "Regenerate"
             summarizeBtn.querySelector('span').textContent = "Regenerate";
             
+            // Make sure the expand button is visible when showing existing summary
+            if (expandBtn) {
+              expandBtn.style.display = 'block';
+            }
+            
             // Adjust window height to fit content
             adjustWindowHeight();
           } else {
@@ -830,125 +835,290 @@ document.addEventListener('DOMContentLoaded', () => {
       contentTitle = titleElement.textContent;
     }
     
-    // Create a function that will be injected into the page
-    function createFullscreenInPage(summaryHtml, titleText) {
-      // Remove any existing fullscreen view
-      const existingView = document.getElementById('sparrow-fullscreen-view');
-      if (existingView) {
-        document.body.removeChild(existingView);
+    // First, get the base64 data of the icon
+    // We'll use a canvas to convert the image to base64
+    function getBase64Image(callback) {
+      try {
+        const img = new Image();
+        img.src = chrome.runtime.getURL('assets/icons/icon48.png');
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = 24; // Resizing to 24px width
+          canvas.height = 24; // Resizing to 24px height
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 24, 24);
+          
+          const dataURL = canvas.toDataURL('image/png');
+          callback(dataURL);
+        };
+        
+        img.onerror = function() {
+          // If image fails to load, use a fallback
+          callback(null);
+        };
+      } catch (e) {
+        console.error("Error converting image to base64:", e);
+        callback(null);
       }
-      
-      // Remove any existing style if present
-      const existingStyle = document.getElementById('sparrow-fullscreen-styles');
-      if (existingStyle) {
-        document.head.removeChild(existingStyle);
-      }
-      
-      // We'll inject the CSS file reference instead of inline styles
-      const linkElement = document.createElement('link');
-      linkElement.id = 'sparrow-fullscreen-styles';
-      linkElement.rel = 'stylesheet';
-      linkElement.href = chrome.runtime.getURL('assets/css/popup.css');
-      document.head.appendChild(linkElement);
-      
-      // Create the main container
-      const overlay = document.createElement('div');
-      overlay.id = 'sparrow-fullscreen-view';
-      
-      // Create header
-      const header = document.createElement('div');
-      header.id = 'sparrow-fullscreen-header';
-      
-      // Create title
-      const title = document.createElement('h1');
-      title.id = 'sparrow-fullscreen-title';
-      title.textContent = 'Page Summary';
-      
-      // Create close button
-      const closeBtn = document.createElement('button');
-      closeBtn.id = 'sparrow-fullscreen-close';
-      closeBtn.innerHTML = '×'; // Using × character instead of Font Awesome
-      closeBtn.title = 'Close fullscreen view';
-      
-      // Add close button event listener
-      closeBtn.addEventListener('click', function() {
-        document.body.removeChild(overlay);
-        document.head.removeChild(linkElement);
-      });
-      
-      // Create content area
-      const contentArea = document.createElement('div');
-      contentArea.id = 'sparrow-fullscreen-content-area';
-      
-      // Create content container
-      const contentContainer = document.createElement('div');
-      contentContainer.id = 'sparrow-fullscreen-container';
-      
-      // Create content title
-      const contentTitleEl = document.createElement('h2');
-      contentTitleEl.id = 'sparrow-content-title';
-      contentTitleEl.textContent = titleText;
-      
-      // Create content text
-      const contentText = document.createElement('div');
-      contentText.id = 'sparrow-content-text';
-      
-      // Add the summary content, removing any existing title
-      contentText.innerHTML = summaryHtml.replace(/<div class="summary-title">.*?<\/div>/, '');
-      
-      // Assemble the DOM structure
-      contentContainer.appendChild(contentTitleEl);
-      contentContainer.appendChild(contentText);
-      contentArea.appendChild(contentContainer);
-      header.appendChild(title);
-      header.appendChild(closeBtn);
-      overlay.appendChild(header);
-      overlay.appendChild(contentArea);
-      
-      // Add to document
-      document.body.appendChild(overlay);
-      
-      // Add ESC key event listener to close
-      function escKeyHandler(event) {
-        if (event.key === 'Escape') {
-          if (document.body.contains(overlay)) {
-            document.body.removeChild(overlay);
-            document.head.removeChild(linkElement);
-          }
-          document.removeEventListener('keydown', escKeyHandler);
-        }
-      }
-      
-      document.addEventListener('keydown', escKeyHandler);
     }
     
-    // Execute in the current active tab
-    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-      if (!tabs || !tabs[0]) return;
+    // Get the base64 image first, then create the fullscreen view
+    getBase64Image(function(base64Image) {
+      // Create a function that will be injected into the page
+      function createFullscreenInPage(summaryHtml, titleText, logoBase64) {
+        // Remove any existing fullscreen view
+        const existingView = document.getElementById('sparrow-fullscreen-view');
+        if (existingView) {
+          document.body.removeChild(existingView);
+        }
+        
+        // Remove any existing style if present
+        const existingStyle = document.getElementById('sparrow-fullscreen-styles');
+        if (existingStyle) {
+          document.head.removeChild(existingStyle);
+        }
+        
+        // Create a style element with all necessary CSS
+        const styleElement = document.createElement('style');
+        styleElement.id = 'sparrow-fullscreen-styles';
+        styleElement.textContent = `
+          #sparrow-fullscreen-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: white;
+            z-index: 2147483647;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+          }
+          
+          #sparrow-fullscreen-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background-color: #f8f9fb;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            width: 100%;
+            box-sizing: border-box;
+          }
+          
+          #sparrow-fullscreen-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          
+          #sparrow-fullscreen-logo {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+          }
+          
+          #sparrow-fullscreen-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2980b9;
+            margin: 0;
+          }
+          
+          #sparrow-fullscreen-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+          }
+          
+          #sparrow-fullscreen-close:hover {
+            background-color: rgba(0,0,0,0.05);
+          }
+          
+          #sparrow-fullscreen-content-area {
+            width: 100%;
+            height: calc(100% - 52px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            box-sizing: border-box;
+          }
+          
+          #sparrow-fullscreen-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            box-sizing: border-box;
+          }
+          
+          #sparrow-content-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #2980b9;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            text-align: center;
+          }
+          
+          #sparrow-content-text {
+            font-size: 18px;
+            line-height: 1.8;
+          }
+          
+          #sparrow-content-text .summary-paragraph {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+          }
+          
+          #sparrow-content-text .key-point {
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-left: 24px;
+            position: relative;
+            color: #333;
+          }
+          
+          #sparrow-content-text .key-point::before {
+            content: "•";
+            position: absolute;
+            left: 8px;
+            color: #2980b9;
+            font-weight: bold;
+          }
+        `;
+        document.head.appendChild(styleElement);
+        
+        // Create the main container
+        const overlay = document.createElement('div');
+        overlay.id = 'sparrow-fullscreen-view';
+        
+        // Create header
+        const header = document.createElement('div');
+        header.id = 'sparrow-fullscreen-header';
+        
+        // Create title container with logo
+        const titleContainer = document.createElement('div');
+        titleContainer.id = 'sparrow-fullscreen-title-container';
+        
+        // Create logo element using base64 image
+        let logoElement;
+        if (logoBase64) {
+          logoElement = document.createElement('img');
+          logoElement.id = 'sparrow-fullscreen-logo';
+          logoElement.src = logoBase64;
+          logoElement.alt = 'Sparrow logo';
+          logoElement.width = 24;
+          logoElement.height = 24;
+        } else {
+          // Fallback to a div with a symbol if no base64 image is available
+          logoElement = document.createElement('div');
+          logoElement.style.fontSize = '20px';
+          logoElement.textContent = '🐦';
+          logoElement.style.marginRight = '8px';
+        }
+        
+        // Create title
+        const title = document.createElement('h1');
+        title.id = 'sparrow-fullscreen-title';
+        title.textContent = 'Page Summary';
+        
+        // Add logo and title to container
+        titleContainer.appendChild(logoElement);
+        titleContainer.appendChild(title);
+        
+        // Create close button
+        const closeBtn = document.createElement('button');
+        closeBtn.id = 'sparrow-fullscreen-close';
+        closeBtn.innerHTML = '×'; // Using × character instead of Font Awesome
+        closeBtn.title = 'Close fullscreen view';
+        
+        // Add close button event listener
+        closeBtn.addEventListener('click', function() {
+          document.body.removeChild(overlay);
+          document.head.removeChild(styleElement);
+        });
+        
+        // Create content area
+        const contentArea = document.createElement('div');
+        contentArea.id = 'sparrow-fullscreen-content-area';
+        
+        // Create content container
+        const contentContainer = document.createElement('div');
+        contentContainer.id = 'sparrow-fullscreen-container';
+        
+        // Create content title
+        const contentTitleEl = document.createElement('h2');
+        contentTitleEl.id = 'sparrow-content-title';
+        contentTitleEl.textContent = titleText;
+        
+        // Create content text
+        const contentText = document.createElement('div');
+        contentText.id = 'sparrow-content-text';
+        
+        // Add the summary content, removing any existing title
+        contentText.innerHTML = summaryHtml.replace(/<div class="summary-title">.*?<\/div>/, '');
+        
+        // Assemble the DOM structure
+        contentContainer.appendChild(contentTitleEl);
+        contentContainer.appendChild(contentText);
+        contentArea.appendChild(contentContainer);
+        header.appendChild(titleContainer);
+        header.appendChild(closeBtn);
+        overlay.appendChild(header);
+        overlay.appendChild(contentArea);
+        
+        // Add to document
+        document.body.appendChild(overlay);
+        
+        // Add ESC key event listener to close
+        function escKeyHandler(event) {
+          if (event.key === 'Escape') {
+            if (document.body.contains(overlay)) {
+              document.body.removeChild(overlay);
+              document.head.removeChild(styleElement);
+            }
+            document.removeEventListener('keydown', escKeyHandler);
+          }
+        }
+        
+        document.addEventListener('keydown', escKeyHandler);
+      }
       
-      // First, inject the CSS file
-      chrome.scripting.insertCSS({
-        target: { tabId: tabs[0].id },
-        files: ['assets/css/popup.css']
-      })
-      .then(() => {
-        // Then execute the script to create the fullscreen view
-        return chrome.scripting.executeScript({
+      // Execute in the current active tab
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (!tabs || !tabs[0]) return;
+        
+        // Execute the script with the base64 image
+        chrome.scripting.executeScript({
           target: { tabId: tabs[0].id },
           function: createFullscreenInPage,
-          args: [summaryContent, contentTitle]
+          args: [summaryContent, contentTitle, base64Image]
+        })
+        .then(() => {
+          console.log("Fullscreen view injected into page");
+          // Close the popup to show the fullscreen view in the tab
+          setTimeout(() => window.close(), 100);
+        })
+        .catch(err => {
+          console.error("Failed to inject fullscreen view:", err);
+          
+          // Fallback to showing in popup if injection fails
+          showError("Could not open fullscreen view. The page might be restricting scripts.");
         });
-      })
-      .then(() => {
-        console.log("Fullscreen view injected into page");
-        // Close the popup to show the fullscreen view in the tab
-        setTimeout(() => window.close(), 100);
-      })
-      .catch(err => {
-        console.error("Failed to inject fullscreen view:", err);
-        
-        // Fallback to showing in popup if injection fails
-        showError("Could not open fullscreen view. The page might be restricting scripts.");
       });
     });
   }
