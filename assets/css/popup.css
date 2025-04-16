@@ -599,8 +599,8 @@ footer {
 /* Expand button in the summary container */
 .expand-button {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   background: none;
   border: none;
   color: #888;
