@@ -571,19 +571,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set the summary text with proper formatting
     summaryText.innerHTML = formattedSummary;
-
-    loading.classList.add('hidden');
-    summaryResult.classList.remove('hidden');
-    
-    //const formattedSummary = formatSummaryText(summary);
-    summaryText.innerHTML = formattedSummary;
     
     // Show the expand button when summary is displayed
     if (expandBtn) {
       expandBtn.style.display = 'block';
     }
-    
-    adjustWindowHeight();
     
     // Enable the chat button
     chatBtn.disabled = false;
@@ -594,9 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Adjust window height to fit content
     adjustWindowHeight();
-
-    // Show expand button
-    expandBtn.style.display = 'block';
   }
 
   /**
@@ -826,152 +815,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Disable chat button
     chatBtn.disabled = true;
     chatBtn.classList.add('disabled');
-
-  }
-
-  /**
-   * Toggle the expanded/collapsed state of the summary
-   * Changes the icon and updates the body class for styling
-   */
-
-  function expandSummary() {
-    // Get the current summary content
-    const summaryContent = summaryText.innerHTML;
-    
-    // Try to extract the title from the content
-    let contentTitle = "Page Summary";
-    const titleElement = summaryText.querySelector('.summary-title');
-    if (titleElement) {
-      contentTitle = titleElement.textContent;
-    }
-    
-    // Create full window overlay - using document.createElement for maximum control
-    const fullWindow = document.createElement('div');
-    fullWindow.className = 'expanded-window';
-    fullWindow.style.width = '100vw';
-    fullWindow.style.height = '100vh';
-    fullWindow.style.position = 'fixed';
-    fullWindow.style.top = '0';
-    fullWindow.style.left = '0';
-    fullWindow.style.padding = '0';
-    fullWindow.style.margin = '0';
-    fullWindow.style.boxSizing = 'border-box';
-    fullWindow.style.zIndex = '10000';
-    fullWindow.style.background = '#ffffff';
-    fullWindow.style.overflow = 'hidden';
-    
-    // Create header
-    const header = document.createElement('div');
-    header.className = 'expanded-header';
-    header.style.width = '100%';
-    header.style.padding = '12px 20px';
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.background = '#f8f9fb';
-    header.style.borderBottom = '1px solid rgba(0, 0, 0, 0.08)';
-    header.style.boxSizing = 'border-box';
-    
-    // Create title
-    const title = document.createElement('h1');
-    title.className = 'expanded-title';
-    title.textContent = 'Page Summary';
-    title.style.margin = '0';
-    title.style.padding = '0';
-    title.style.fontSize = '20px';
-    title.style.fontWeight = '600';
-    title.style.color = '#2980b9';
-    
-    // Create close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'close-expanded';
-    closeButton.innerHTML = '<i class="fa-solid fa-times"></i>';
-    closeButton.style.background = 'none';
-    closeButton.style.border = 'none';
-    closeButton.style.cursor = 'pointer';
-    closeButton.style.fontSize = '18px';
-    closeButton.style.color = '#666';
-    closeButton.title = "Close fullscreen view";
-    closeButton.addEventListener('click', () => {
-      document.body.removeChild(fullWindow);
-      document.removeEventListener('keydown', handleEscKey);
-    });
-    
-    // Create content area - direct child of window
-    const contentArea = document.createElement('div');
-    contentArea.className = 'expanded-content';
-    contentArea.style.width = '100%';
-    contentArea.style.padding = '0';
-    contentArea.style.margin = '0';
-    contentArea.style.boxSizing = 'border-box';
-    contentArea.style.display = 'block';
-    
-    // Create inner content container
-    const contentInner = document.createElement('div');
-    contentInner.className = 'expanded-content-inner';
-    contentInner.style.width = '100%';
-    contentInner.style.maxWidth = '100%';
-    contentInner.style.padding = '40px 5%';
-    contentInner.style.boxSizing = 'border-box';
-    contentInner.style.margin = '0';
-    
-    // Create content title
-    const contentTitleElement = document.createElement('div');
-    contentTitleElement.className = 'expanded-content-title';
-    contentTitleElement.textContent = contentTitle;
-    contentTitleElement.style.fontSize = '32px';
-    contentTitleElement.style.color = '#2980b9';
-    contentTitleElement.style.textAlign = 'center';
-    contentTitleElement.style.marginBottom = '30px';
-    contentTitleElement.style.paddingBottom = '15px';
-    contentTitleElement.style.borderBottom = '1px solid rgba(0, 0, 0, 0.08)';
-    contentTitleElement.style.width = '100%';
-    contentTitleElement.style.boxSizing = 'border-box';
-    
-    // Create content with full width
-    const content = document.createElement('div');
-    content.className = 'expanded-text';
-    content.style.fontSize = '18px';
-    content.style.lineHeight = '1.8';
-    content.style.width = '100%';
-    content.style.boxSizing = 'border-box';
-    
-    // Remove any existing title from the content
-    const processedContent = summaryContent.replace(/<div class="summary-title">.*?<\/div>/, '');
-    content.innerHTML = processedContent;
-    
-    // Convert to full width by adding explicit styles to any elements
-    const paragraphs = content.querySelectorAll('.summary-paragraph, .key-point');
-    paragraphs.forEach(para => {
-      para.style.fontSize = '18px';
-      para.style.marginBottom = '20px';
-      para.style.width = '100%';
-      para.style.boxSizing = 'border-box';
-    });
-    
-    // Explicitly style bullet points
-    const bullets = content.querySelectorAll('.key-point');
-    bullets.forEach(bullet => {
-      bullet.style.paddingLeft = '30px';
-      bullet.style.position = 'relative';
-    });
-    
-    // Assemble everything
-    header.appendChild(title);
-    header.appendChild(closeButton);
-    
-    contentInner.appendChild(contentTitleElement);
-    contentInner.appendChild(content);
-    
-    contentArea.appendChild(contentInner);
-    
-    fullWindow.appendChild(header);
-    fullWindow.appendChild(contentArea);
-    
-    // Add to document
-    document.body.appendChild(fullWindow);
-    
-    // Add event listener for ESC key
-    document.addEventListener('keydown', handleEscKey);
   }
 
   function createFullscreenView() {
@@ -1012,7 +855,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <title>${contentTitle}</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <style>
-          /* Reset all styles to ensure clean slate */
           * {
             box-sizing: border-box;
             margin: 0;
