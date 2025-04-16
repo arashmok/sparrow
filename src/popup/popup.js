@@ -970,7 +970,7 @@ function displaySummary(summary, format) {
             display: flex;
             flex-direction: column;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
+            overflow: hidden; /* This is key - don't change */
           }
           
           #sparrow-fullscreen-header {
@@ -1023,12 +1023,13 @@ function displaySummary(summary, format) {
           
           #sparrow-fullscreen-content-area {
             width: 100%;
-            height: calc(100% - 52px);
-            overflow-y: auto;
+            height: calc(100% - 52px); /* Adjusted to account for header height */
+            overflow-y: auto; /* This enables scrolling */
             overflow-x: hidden;
             display: flex;
             justify-content: center;
             box-sizing: border-box;
+            position: relative; /* Add this */
           }
           
           #sparrow-fullscreen-container {
@@ -1037,6 +1038,8 @@ function displaySummary(summary, format) {
             margin: 0 auto;
             padding: 40px;
             box-sizing: border-box;
+            overflow-y: visible; /* Add this */
+            min-height: 100%; /* Add this */
           }
           
           #sparrow-content-title {
@@ -1076,6 +1079,15 @@ function displaySummary(summary, format) {
             font-weight: bold;
           }
         `;
+        // Add a timeout to reset scroll position after rendering
+        setTimeout(() => {
+          const contentArea = document.getElementById('sparrow-fullscreen-content-area');
+          if (contentArea) {
+            contentArea.scrollTop = 0; // Reset scroll position
+          }
+        }, 100);
+
+        // Append the style to the document head
         document.head.appendChild(styleElement);
         
         // Create the main container
@@ -1170,7 +1182,35 @@ function displaySummary(summary, format) {
             document.removeEventListener('keydown', escKeyHandler);
           }
         }
-        
+
+        // Add event listener for ESC key
+        function setupScrollHandling() {
+          const contentArea = document.getElementById('sparrow-fullscreen-content-area');
+          if (!contentArea) return;
+          
+          // Ensure wheel events propagate correctly
+          contentArea.addEventListener('wheel', (e) => {
+            const maxScroll = contentArea.scrollHeight - contentArea.clientHeight;
+            
+            // Only prevent default if we're not at the top or bottom
+            if ((contentArea.scrollTop > 0 && contentArea.scrollTop < maxScroll) ||
+                (contentArea.scrollTop === 0 && e.deltaY > 0) || 
+                (contentArea.scrollTop === maxScroll && e.deltaY < 0)) {
+              e.stopPropagation();
+            }
+          }, { passive: false });
+          
+          // Force a layout reflow to ensure correct scroll dimensions
+          setTimeout(() => {
+            contentArea.style.display = 'none';
+            void contentArea.offsetHeight; // This forces a reflow
+            contentArea.style.display = 'flex';
+            contentArea.scrollTop = 0;
+          }, 200);
+        }
+
+        setupScrollHandling();
+
         document.addEventListener('keydown', escKeyHandler);
       }
       
