@@ -818,6 +818,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createFullscreenView() {
+    console.log("Creating fullscreen view");
+    
     // Get the current summary content
     const summaryContent = summaryText.innerHTML;
     
@@ -828,217 +830,131 @@ document.addEventListener('DOMContentLoaded', () => {
       contentTitle = titleElement.textContent;
     }
     
-    // Create an iframe for truly fullscreen experience
-    const iframe = document.createElement('iframe');
+    // Create a fullscreen overlay div (instead of an iframe)
+    const fullscreenOverlay = document.createElement('div');
+    fullscreenOverlay.className = 'fullscreen-overlay';
+    fullscreenOverlay.style.position = 'fixed';
+    fullscreenOverlay.style.top = '0';
+    fullscreenOverlay.style.left = '0';
+    fullscreenOverlay.style.width = '100vw';
+    fullscreenOverlay.style.height = '100vh';
+    fullscreenOverlay.style.backgroundColor = 'white';
+    fullscreenOverlay.style.zIndex = '2147483647';
+    fullscreenOverlay.style.overflow = 'hidden';
     
-    // Set critical iframe properties for 100% fullscreen
-    iframe.style.position = 'fixed';
-    iframe.style.top = '0';
-    iframe.style.left = '0';
-    iframe.style.width = '100vw';
-    iframe.style.height = '100vh';
-    iframe.style.border = 'none';
-    iframe.style.margin = '0';
-    iframe.style.padding = '0';
-    iframe.style.zIndex = '2147483647'; // Maximum z-index
+    // Create header
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.padding = '12px 24px';
+    header.style.backgroundColor = '#f8f9fb';
+    header.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
+    header.style.width = '100%';
     
-    // Add the iframe to the document body
-    document.body.appendChild(iframe);
+    // Create title
+    const title = document.createElement('h1');
+    title.style.fontSize = '20px';
+    title.style.fontWeight = '600';
+    title.style.color = '#2980b9';
+    title.style.margin = '0';
+    title.textContent = 'Page Summary';
     
-    // Create the complete HTML document for the iframe
-    const iframeContent = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${contentTitle}</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <style>
-          * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
-                         Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            overflow-x: hidden;
-            background-color: #fff;
-            color: #333;
-            width: 100vw;
-            height: 100vh;
-          }
-          
-          /* Header bar */
-          .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            padding: 12px 24px;
-            background-color: #f8f9fb;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
-          }
-          
-          .header-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #2980b9;
-            margin: 0;
-          }
-          
-          .close-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            color: #666;
-            cursor: pointer;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-          }
-          
-          .close-btn:hover {
-            color: #2980b9;
-            background-color: rgba(0,0,0,0.05);
-          }
-          
-          /* Main content area */
-          .content-area {
-            width: 100%;
-            height: calc(100vh - 56px); /* Full height minus header */
-            padding: 0;
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-          }
-          
-          /* Actual content container */
-          .content-container {
-            padding: 40px;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-            overflow-y: auto;
-          }
-          
-          /* Title styling */
-          .content-title {
-            font-size: 32px;
-            font-weight: 600;
-            color: #2980b9;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
-            text-align: center;
-            width: 100%;
-          }
-          
-          /* Content text styling */
-          .content-text {
-            font-size: 18px;
-            line-height: 1.8;
-            width: 100%;
-          }
-          
-          /* Summary paragraph styling */
-          .summary-paragraph {
-            margin-bottom: 20px;
-            font-size: 18px;
-          }
-          
-          /* Key point styling */
-          .key-point {
-            margin-bottom: 20px;
-            padding-left: 30px;
-            position: relative;
-            font-size: 18px;
-          }
-          
-          .key-point:before {
-            content: "•";
-            position: absolute;
-            left: 10px;
-            color: #2980b9;
-            font-weight: bold;
-            font-size: 18px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1 class="header-title">Page Summary</h1>
-          <button class="close-btn" id="close-btn" title="Close fullscreen view">
-            <i class="fa-solid fa-times"></i>
-          </button>
-        </div>
-        
-        <div class="content-area">
-          <div class="content-container">
-            <h2 class="content-title">${contentTitle}</h2>
-            <div class="content-text">
-              ${summaryContent.replace(/<div class="summary-title">.*?<\/div>/, '')}
-            </div>
-          </div>
-        </div>
-        
-        <script>
-          // Close button event listener
-          document.getElementById('close-btn').addEventListener('click', function() {
-            window.parent.document.querySelector('iframe').remove();
-          });
-          
-          // ESC key to close
-          document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-              window.parent.document.querySelector('iframe').remove();
-            }
-          });
-        </script>
-      </body>
-      </html>
-    `;
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.style.background = 'none';
+    closeBtn.style.border = 'none';
+    closeBtn.style.fontSize = '20px';
+    closeBtn.style.color = '#666';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.width = '32px';
+    closeBtn.style.height = '32px';
+    closeBtn.style.display = 'flex';
+    closeBtn.style.alignItems = 'center';
+    closeBtn.style.justifyContent = 'center';
+    closeBtn.style.borderRadius = '4px';
+    closeBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
+    closeBtn.title = 'Close fullscreen view';
     
-    // Write the content to the iframe
-    const iframeDoc = iframe.contentWindow.document;
-    iframeDoc.open();
-    iframeDoc.write(iframeContent);
-    iframeDoc.close();
-  }
-
-  // Adjust the content size for full view
-  function adjustContentForFullView(container) {
-    // Get the content height
-    const contentHeight = container.scrollHeight;
-    const windowHeight = window.innerHeight;
+    // Add close button event listener
+    closeBtn.addEventListener('click', function() {
+      document.body.removeChild(fullscreenOverlay);
+    });
     
-    // If content is too large for the screen, adjust sizing
-    if (contentHeight > windowHeight * 0.85) {
-      // Calculate a smaller font size based on content amount
-      const calculatedSize = Math.max(16, Math.min(18, 18 * (windowHeight * 0.85 / contentHeight)));
+    // Create content area
+    const contentArea = document.createElement('div');
+    contentArea.style.width = '100%';
+    contentArea.style.height = 'calc(100vh - 56px)';
+    contentArea.style.padding = '0';
+    contentArea.style.margin = '0';
+    contentArea.style.overflow = 'hidden';
+    contentArea.style.display = 'flex';
+    contentArea.style.justifyContent = 'center';
+    
+    // Create content container
+    const contentContainer = document.createElement('div');
+    contentContainer.style.padding = '40px';
+    contentContainer.style.width = '100%';
+    contentContainer.style.maxWidth = '100%';
+    contentContainer.style.boxSizing = 'border-box';
+    contentContainer.style.overflowY = 'auto';
+    
+    // Create content title
+    const contentTitleEl = document.createElement('h2');
+    contentTitleEl.style.fontSize = '32px';
+    contentTitleEl.style.fontWeight = '600';
+    contentTitleEl.style.color = '#2980b9';
+    contentTitleEl.style.marginBottom = '30px';
+    contentTitleEl.style.paddingBottom = '15px';
+    contentTitleEl.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
+    contentTitleEl.style.textAlign = 'center';
+    contentTitleEl.style.width = '100%';
+    contentTitleEl.textContent = contentTitle;
+    
+    // Create content text
+    const contentText = document.createElement('div');
+    contentText.style.fontSize = '18px';
+    contentText.style.lineHeight = '1.8';
+    contentText.style.width = '100%';
+    
+    // Add the summary content, removing any existing title
+    contentText.innerHTML = summaryContent.replace(/<div class="summary-title">.*?<\/div>/, '');
+    
+    // Style all paragraphs and bullet points
+    setTimeout(() => {
+      const paragraphs = contentText.querySelectorAll('.summary-paragraph');
+      paragraphs.forEach(para => {
+        para.style.fontSize = '18px';
+        para.style.marginBottom = '20px';
+        para.style.width = '100%';
+      });
       
-      // Apply the calculated size
-      container.style.fontSize = calculatedSize + 'px';
-      
-      // Also adjust padding to gain more space
-      container.style.padding = '20px 40px';
-    }
-  }
-
-  // Close the expanded view when ESC key is pressed
-  function handleEscKey(event) {
-    if (event.key === 'Escape') {
-      const expandedWindow = document.querySelector('.expanded-window');
-      if (expandedWindow) {
-        document.body.removeChild(expandedWindow);
-        document.removeEventListener('keydown', handleEscKey);
+      const bullets = contentText.querySelectorAll('.key-point');
+      bullets.forEach(bullet => {
+        bullet.style.fontSize = '18px';
+        bullet.style.marginBottom = '20px';
+        bullet.style.width = '100%';
+      });
+    }, 0);
+    
+    // Assemble the DOM structure
+    contentContainer.appendChild(contentTitleEl);
+    contentContainer.appendChild(contentText);
+    contentArea.appendChild(contentContainer);
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    fullscreenOverlay.appendChild(header);
+    fullscreenOverlay.appendChild(contentArea);
+    
+    // Add to document
+    document.body.appendChild(fullscreenOverlay);
+    
+    // Add ESC key event listener to close
+    document.addEventListener('keydown', function escKeyHandler(event) {
+      if (event.key === 'Escape') {
+        document.body.removeChild(fullscreenOverlay);
+        document.removeEventListener('keydown', escKeyHandler);
       }
-    }
+    });
   }
 });
