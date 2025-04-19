@@ -883,3 +883,58 @@ footer {
   flex: 1 !important;
   flex-grow: 1 !important;
 }
+
+/* ========== SUMMARY FORMATS ========== */
+
+/* Short summary styling */
+.summary-container[data-format="short"] {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.summary-container[data-format="short"] .summary-paragraph {
+  font-weight: 500;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 0;
+}
+
+/* Detailed summary styling */
+.summary-container[data-format="detailed"] {
+  line-height: 1.6;
+}
+
+.summary-container[data-format="detailed"] .summary-title {
+  font-size: 18px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(41, 128, 185, 0.2);
+}
+
+.summary-container[data-format="detailed"] .summary-paragraph {
+  text-align: justify;
+  margin-bottom: 14px;
+}
+
+/* Key points styling */
+.summary-container[data-format="key-points"] {
+  line-height: 1.5;
+}
+
+.summary-container[data-format="key-points"] .summary-title {
+  margin-bottom: 18px;
+}
+
+.summary-container[data-format="key-points"] .key-point {
+  margin-bottom: 12px;
+  padding-left: 24px;
+}
+
+.summary-container[data-format="key-points"] .key-point:before {
+  content: "•";
+  position: absolute;
+  left: 8px;
+  color: #2980b9;
+  font-weight: bold;
+  font-size: 18px;
+}

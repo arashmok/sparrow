@@ -636,11 +636,14 @@ function displaySummary(summary, format) {
   const summaryContainer = document.querySelector('.summary-container');
   summaryContainer.style.height = 'auto';
   
+  // Apply the format as a data attribute for CSS styling
+  summaryContainer.dataset.format = format;
+  
   // Reset UI elements
   resetUIAfterGeneration("Regenerate");
   
   // Format the summary text with better structure
-  const formattedSummary = formatSummaryText(summary);
+  const formattedSummary = formatSummaryText(summary, format);
   
   // Set the summary text with proper formatting
   summaryText.innerHTML = formattedSummary;
@@ -648,14 +651,6 @@ function displaySummary(summary, format) {
   // Show the expand button when summary is displayed
   if (expandBtn) {
     expandBtn.style.display = 'block';
-    
-    // Ensure the expand button is focused briefly to draw attention to it
-    setTimeout(() => {
-      expandBtn.style.transform = 'scale(1.1)';
-      setTimeout(() => {
-        expandBtn.style.transform = 'scale(1)';
-      }, 300);
-    }, 500);
   }
   
   // Enable the chat button
@@ -733,133 +728,139 @@ function displaySummary(summary, format) {
   }
   
   /**
-   * Format the summary text with better structure
-   * Detects titles, paragraphs, and bullet points for improved readability
-   * 
-   * @param {string} text - Raw summary text
-   * @returns {string} HTML-formatted summary
-   */
-  function formatSummaryText(text) {
-    // Check if this is a translated summary
-    const isTranslated = text.includes("[Translated to English]");
+ * Format the summary text with better structure
+ * Detects titles, paragraphs, and bullet points for improved readability
+ * 
+ * @param {string} text - Raw summary text
+ * @param {string} format - The summary format type
+ * @returns {string} HTML-formatted summary
+ */
+function formatSummaryText(text, format) {
+  // Check if this is a translated summary
+  const isTranslated = text.includes("[Translated to English]");
+  
+  // Remove the translation prefix for processing
+  let processedText = text.replace("[Translated to English] ", "");
+  
+  // Split all content by new lines for easier processing
+  const allLines = processedText.split('\n').map(line => line.trim()).filter(line => line);
+  
+  // Prepare variables for content organization
+  let title = '';
+  let contentLines = [];
+  let bulletPoints = [];
+  let foundTitle = false;
+  
+  // First pass - identify if first line is a title (not needed for short format)
+  if (format !== 'short' && allLines.length > 0) {
+    const firstLine = allLines[0];
     
-    // Remove the translation prefix for processing
-    let processedText = text.replace("[Translated to English] ", "");
-    
-    // Split all content by new lines for easier processing
-    const allLines = processedText.split('\n').map(line => line.trim()).filter(line => line);
-    
-    // Prepare variables for content organization
-    let title = '';
-    let contentLines = [];
-    let bulletPoints = [];
-    let foundTitle = false;
-    
-    // First pass - identify if first line is a title
-    if (allLines.length > 0) {
-      const firstLine = allLines[0];
-      
-      // Check if it's a markdown-formatted title within a bullet point
-      if ((firstLine.match(/^[•*]\s*\*\*.*\*\*/) || firstLine.match(/^[•*]\s*\*.*\*/))) {
-        // Extract title from markup
-        const titleMatch = firstLine.match(/\*\*(.*?)\*\*/) || firstLine.match(/\*(.*?)\*/);
-        if (titleMatch && titleMatch[1]) {
-          title = titleMatch[1].trim();
-          foundTitle = true;
-          // Don't remove the line, as it might contain important content
-        }
-      }
-      // Check if it's a short first line that looks like a title
-      else if (firstLine.length < 80 && !firstLine.startsWith('•') && !firstLine.startsWith('*')) {
-        title = firstLine
-                .replace(/^\*+|\*+$/g, '')  // Remove surrounding asterisks
-                .replace(/^"|"$/g, '')      // Remove surrounding quotes
-                .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
-                .replace(/\*\*(.*?)\*\*/, '$1') // Remove markdown bold
-                .trim();
+    // Check if it's a markdown-formatted title within a bullet point
+    if ((firstLine.match(/^[•*]\s*\*\*.*\*\*/) || firstLine.match(/^[•*]\s*\*.*\*/))) {
+      // Extract title from markup
+      const titleMatch = firstLine.match(/\*\*(.*?)\*\*/) || firstLine.match(/\*(.*?)\*/);
+      if (titleMatch && titleMatch[1]) {
+        title = titleMatch[1].trim();
         foundTitle = true;
-        allLines.shift(); // Remove the title line from processing
       }
     }
+    // Check if it's a short first line that looks like a title
+    else if (firstLine.length < 80 && !firstLine.startsWith('•') && !firstLine.startsWith('*')) {
+      title = firstLine
+              .replace(/^\*+|\*+$/g, '')  // Remove surrounding asterisks
+              .replace(/^"|"$/g, '')      // Remove surrounding quotes
+              .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
+              .replace(/\*\*(.*?)\*\*/, '$1') // Remove markdown bold
+              .trim();
+      foundTitle = true;
+      allLines.shift(); // Remove the title line from processing
+    }
+  }
+  
+  // Second pass - identify content vs bullet points
+  for (let i = 0; i < allLines.length; i++) {
+    const line = allLines[i];
     
-    // Second pass - identify content vs bullet points
-    for (let i = 0; i < allLines.length; i++) {
-      const line = allLines[i];
-      
-      // Skip processing this line if it was already identified as the title
-      if (foundTitle && i === 0 && line.includes(title)) {
-        continue;
-      }
-      
-      // Check if it's a bullet point
-      if (line.startsWith('•') || line.startsWith('*') || /^\d+\./.test(line)) {
-        bulletPoints.push(line);
-      } 
-      // Otherwise it's regular content
-      else {
-        contentLines.push(line);
-      }
+    // Skip processing this line if it was already identified as the title
+    if (foundTitle && i === 0 && line.includes(title)) {
+      continue;
     }
     
-    // Generate the formatted HTML
-    let formattedHtml = '';
-    
-    // Add translation badge if necessary
-    if (isTranslated) {
-      formattedHtml += '<span class="translation-badge">Translated</span>';
+    // Check if it's a bullet point
+    if (line.startsWith('•') || line.startsWith('*') || /^\d+\./.test(line)) {
+      bulletPoints.push(line);
+    } 
+    // Otherwise it's regular content
+    else {
+      contentLines.push(line);
     }
-    
-    // Add title at the top if we found one
+  }
+  
+  // Generate the formatted HTML
+  let formattedHtml = '';
+  
+  // Add translation badge if necessary
+  if (isTranslated) {
+    formattedHtml += '<span class="translation-badge">Translated</span>';
+  }
+  
+  // Add title at the top if we found one and it's not a short summary
+  if (title && format !== 'short') {
+    formattedHtml += `<div class="summary-title">${title}</div>`;
+  }
+  
+  // Different handling based on format
+  if (format === 'short') {
+    // For short format, treat all lines as one concise paragraph
+    const shortContent = contentLines.join(' ');
+    formattedHtml += `<div class="summary-paragraph">${shortContent}</div>`;
+  } else if (format === 'key-points') {
+    // For key points, prioritize bullet points
     if (title) {
-      formattedHtml += `<div class="summary-title">${title}</div>`;
-      
-      // Also add a title in markdown format for transfer to chat panel
-      processedText = `# ${title}\n\n${processedText}`;
+      // If we found a title separately, add standard paragraphs first if any
+      contentLines.forEach(para => {
+        formattedHtml += `<div class="summary-paragraph">${para}</div>`;
+      });
     }
     
-    // Add regular content
-    if (contentLines.length > 0) {
-      // If multiple content lines, treat as paragraphs
-      if (contentLines.length > 1) {
-        contentLines.forEach(para => {
-          formattedHtml += `<div class="summary-paragraph">${para}</div>`;
-        });
-      } 
-      // For a single long paragraph, consider breaking it up
-      else if (contentLines[0].length > 150) {
-        const sentences = contentLines[0].match(/[^.!?]+[.!?]+/g) || [contentLines[0]];
-        const sentencesPerParagraph = sentences.length <= 3 ? sentences.length : Math.ceil(sentences.length / 3);
-        
-        for (let i = 0; i < sentences.length; i += sentencesPerParagraph) {
-          const paragraph = sentences.slice(i, i + sentencesPerParagraph).join(' ');
-          formattedHtml += `<div class="summary-paragraph">${paragraph}</div>`;
-        }
-      } 
-      // Just add the single paragraph
-      else {
-        formattedHtml += `<div class="summary-paragraph">${contentLines[0]}</div>`;
-      }
-    }
-    
-    // Add bullet points
+    // Add all bullet points
     bulletPoints.forEach(point => {
       // Clean up the bullet point formatting
       const cleanedPoint = point.replace(/^[•*]\s*/, '')  // Remove bullet
-                                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove markdown bold
-                                .replace(/\*(.*?)\*/g, '$1') // Remove markdown italic
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **bold** to <strong>
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *italic* to <em>
                                 .trim();
       formattedHtml += `<div class="key-point">${cleanedPoint}</div>`;
     });
-    
-    // If we have no content at all, display the entire text formatted as paragraphs
-    if (formattedHtml === '' || (title && !contentLines.length && !bulletPoints.length)) {
-      formattedHtml = processedText.split('\n').map(line => 
-        line.trim() ? `<div class="summary-paragraph">${line.trim()}</div>` : ''
-      ).join('');
+  } else {
+    // For detailed format, add paragraphs with proper spacing
+    if (contentLines.length > 0) {
+      // Add each paragraph with proper formatting
+      contentLines.forEach(para => {
+        formattedHtml += `<div class="summary-paragraph">${para}</div>`;
+      });
     }
     
-    return formattedHtml;
+    // Add bullet points if any
+    bulletPoints.forEach(point => {
+      // Clean up the bullet point formatting
+      const cleanedPoint = point.replace(/^[•*]\s*/, '')  // Remove bullet
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **bold** to <strong>
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *italic* to <em>
+                              .trim();
+      formattedHtml += `<div class="key-point">${cleanedPoint}</div>`;
+    });
   }
+  
+  // If we have no content at all, display the entire text formatted as paragraphs
+  if (formattedHtml === '' || (title && !contentLines.length && !bulletPoints.length)) {
+    formattedHtml = processedText.split('\n').map(line => 
+      line.trim() ? `<div class="summary-paragraph">${line.trim()}</div>` : ''
+    ).join('');
+  }
+  
+  return formattedHtml;
+}
   
   /**
    * Show an error message in the popup

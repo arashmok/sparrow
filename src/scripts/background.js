@@ -1671,30 +1671,45 @@ function createPrompt(text, format, translateToEnglish = false) {
   // Create prompt based on requested format
   switch (format) {
     case 'short':
-      prompt = `${translationPrefix}You must create an EXTREMELY concise summary (maximum 2-3 sentences, no more) of the following text. 
-Focus only on the most essential information. Your response must be very brief.
-Do not include any explanations or additional details beyond the core message.
-First provide a very short title (3-5 words only), then a tiny summary paragraph:\n\n${text}`;
+      prompt = `${translationPrefix}Create an EXTREMELY concise summary of the following text.
+REQUIREMENTS:
+- Maximum 1-2 sentences total (35-50 words maximum)
+- No title or headings
+- Focus only on the absolute core message or main point
+- Omit all secondary details and examples
+- Use simple, direct language
+- Do not use bullet points
+
+Your response must be dramatically shorter than the original text and extremely brief:\n\n${text}`;
       break;
       
     case 'detailed':
-      prompt = `${translationPrefix}Please provide a detailed yet focused summary (1-2 paragraphs) of the following text.
-Cover the main points and key information.
-Structure your response with:
-1. A clear, descriptive title (one line)
-2. Well-organized paragraphs with proper line breaks between them
-3. Ensure the most important information is prioritized\n\n${text}`;
+      prompt = `${translationPrefix}Provide a comprehensive, well-structured summary of the following text.
+REQUIREMENTS:
+- Begin with a clear, descriptive title (5-7 words)
+- Write 2-3 substantial paragraphs (150-200 words total)
+- Include main arguments, key evidence, and important conclusions
+- Maintain logical flow between paragraphs
+- Use proper transitions between ideas
+- Ensure all major sections of the original content are represented
+- End with the most significant conclusion or implication
+
+Your summary should be thorough while still condensing the original content:\n\n${text}`;
       break;
       
     case 'key-points':
-      prompt = `${translationPrefix}Extract exactly 3-5 of the most important key points from the following text.
-Format your response as:
-1. A brief title (one line only)
-2. A bullet list where each key point:
-   - Starts with a bullet point (•)
-   - Is concise (preferably one sentence)
-   - Captures a distinct important idea
-   - Is directly relevant to the main topic\n\n${text}`;
+      prompt = `${translationPrefix}Extract exactly 4-6 of the most important key points from the following text.
+REQUIREMENTS:
+- Begin with a brief, descriptive title (3-6 words)
+- Format as a bullet list with each point:
+  • Starting with a bullet point (•)
+  • Written as a complete sentence
+  • Containing one specific, concrete idea
+  • Including relevant statistics or evidence where available
+  • Ordered by importance (most critical points first)
+  • Using bold for any critical terms or figures
+
+Ensure each point captures a distinct and essential idea from the text:\n\n${text}`;
       break;
       
     default:
