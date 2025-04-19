@@ -5,18 +5,23 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 ## Features
 
 - **One-Click Summarization**: Generate AI-powered summaries of webpages with a single click
+- **Multiple Summary Formats**:
+  - **Short Summary**: Ultra-concise 1-2 sentence overview (35-50 words)
+  - **Detailed Summary**: Comprehensive 2-3 paragraph analysis (150-200 words)
+  - **Key Takeaways**: 4-6 bullet points highlighting the most important information
 - **Multiple AI Providers**: Choose between OpenAI, OpenRouter, LM Studio, or Ollama
-- **Customizable Summaries**: Choose between different summary formats (short, detailed, key takeaways)
 - **Translation Support**: Option to translate content to English before summarizing
 - **Interactive Chat**: Discuss the summarized content with AI through the side panel
 - **Clean Interface**: Intuitive and lightweight UI within Chrome
 - **Smart Content Extraction**: Efficiently extracts relevant content while ignoring ads and sidebars
-- **Copy & Save Options**: Easily copy the summary or save it for later reference
+- **Fullscreen View**: Expand summaries for better readability
 - **Offline Capabilities**: Use with LM Studio or Ollama for completely offline summarization
 
 ## Coming Soon
 
-- History & Bookmarking for past summaries
+- **Text Selection Actions**: Select text on any webpage to ask questions or get explanations
+- **Copy & Save Options**: Easily copy the summary or save it for later reference
+- **History & Bookmarking**: Save past summaries for later reference
 
 ## Installation
 
@@ -44,32 +49,33 @@ Sparrow is a Chrome extension that provides quick and concise summaries of webpa
 2. Click the Sparrow extension icon in your browser toolbar
 3. Click the "Generate" button
 4. Select your preferred summary format
-5. View, copy, or save the generated summary
+5. View or expand the generated summary
+6. Click the "Chat" button to open a side panel for discussing the content
 
 ## AI Providers
 
 Sparrow supports four AI providers for generating summaries:
 
-#### OpenAI API
+### OpenAI API
 
 - Requires an API key from OpenAI
 - Provides high-quality summarizations using OpenAI models
 - Requires an Internet connection
 
-#### OpenRouter API
+### OpenRouter API
 
 - Requires an API key from OpenRouter
-- Provides an alternative online summarization solution
+- Provides access to various AI models through a single API
 - Requires an Internet connection
 
-#### LM Studio (Local)
+### LM Studio (Local)
 
 - Run AI models locally on your computer
 - Complete privacy – no data sent to external servers
 - Works offline
 - Requires [LM Studio](https://lmstudio.ai/) to be installed and configured
 
-#### Ollama (Local)
+### Ollama (Local)
 
 - Run AI models locally using Ollama
 - Provides an alternative local summarization solution
@@ -85,7 +91,6 @@ sparrow/
 │   ├── css/                  # CSS stylesheets
 │   │   ├── popup.css         # Main popup styling
 │   │   ├── settings.css      # Settings page styling
-│   │   └── selection-menu.css # Text selection menu styling
 │   └── icons/                # Extension icons
 ├── src/                      # Source code
 │   ├── popup/                # Popup UI
@@ -100,7 +105,6 @@ sparrow/
 │   └── scripts/              # Background and content scripts
 │       ├── background.js     # Background service worker
 │       ├── content.js        # Content script
-│       └── selection-menu.js # Text selection menu script
 ├── LICENSE                   # MIT License
 ├── README.md                 # Project documentation
 └── .gitignore                # Git ignore file
@@ -114,6 +118,7 @@ Sparrow consists of the following key components:
 - **Popup UI**: Frontend user interface to interact with the extension
 - **Content Script**: Extracts text from webpages and sends it to the background script
 - **Background Script**: Handles API requests to AI providers and returns summaries
+- **Chat Panel**: Side panel interface for interactive conversations about content
 - **Storage Module**: Manages locally stored settings and history
 
 ### Workflow
@@ -122,7 +127,14 @@ Sparrow consists of the following key components:
 2. User clicks "Generate" → Content script extracts text from the active webpage
 3. Text is sent to the background script → API call is made to the selected AI provider
 4. AI returns summarized text → Displayed in the popup UI
-5. User can copy or save the summary for later use
+5. User can click "Chat" to discuss the summary in the side panel
+
+### Security & Privacy
+
+- API keys are stored securely using simple encryption
+- No user data is stored externally
+- Local AI options (LM Studio and Ollama) allow for completely offline use
+- Only necessary webpage content is extracted and processed
 
 ## Contributing
 
