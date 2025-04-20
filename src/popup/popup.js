@@ -765,6 +765,11 @@ function displaySummary(summary, format) {
       existingStyle.remove();
     }
     
+    // Determine the appropriate heights based on the format
+    // Use taller heights for detailed and key-points formats
+    const containerMaxHeight = formatType === 'short' ? '300px' : '350px';
+    const bodyHeight = formatType === 'short' ? '450px' : '550px';
+    
     // Create CSS that works for all formats with special handling for detailed and key-points
     style.textContent = `
       /* Base styles for all formats */
@@ -786,7 +791,7 @@ function displaySummary(summary, format) {
       .summary-container {
         margin-bottom: 10px !important;
         overflow-y: auto !important;
-        max-height: ${formatType === 'short' ? '300px' : '250px'} !important;
+        max-height: ${containerMaxHeight} !important;
       }
       
       .bottom-actions {
@@ -818,7 +823,7 @@ function displaySummary(summary, format) {
       }
       
       body {
-        height: ${formatType === 'short' ? '450px' : '500px'} !important;
+        height: ${bodyHeight} !important;
         overflow: hidden !important;
       }
       
@@ -834,6 +839,16 @@ function displaySummary(summary, format) {
         border: none !important;
         font-size: 14px !important;
         font-weight: 500 !important;
+      }
+      
+      /* For detailed summary and key takeaways, ensure title is visible */
+      .summary-title {
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        margin-bottom: 12px !important;
+        color: #2980b9 !important;
+        padding-bottom: 8px !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
       }
     `;
     
@@ -862,7 +877,14 @@ function displaySummary(summary, format) {
       bottomActions.style.padding = '0 4px';
     }
     
-    console.log(`Footer placement adjusted for format: ${formatType}`);
+    // Adjust the container height directly too
+    const summaryContainer = document.querySelector('.summary-container');
+    if (summaryContainer) {
+      summaryContainer.style.maxHeight = containerMaxHeight;
+      summaryContainer.style.overflowY = 'auto';
+    }
+    
+    console.log(`Footer placement adjusted for format: ${formatType}, container height: ${containerMaxHeight}, body height: ${bodyHeight}`);
   }
 
   /**
