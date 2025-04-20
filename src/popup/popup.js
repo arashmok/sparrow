@@ -765,64 +765,24 @@ function displaySummary(summary, format) {
       existingStyle.remove();
     }
     
-    // Determine the appropriate heights based on the format
-    let containerMaxHeight, bodyHeight, mainPadding;
+    // Maintain overall height but improve spacing
+    const bodyHeight = '580px';
+    const containerMaxHeight = formatType === 'short' ? '350px' : '400px';
     
-    if (formatType === 'short') {
-      containerMaxHeight = '280px';
-      bodyHeight = '450px';
-      mainPadding = '16px';
-    } else {
-      containerMaxHeight = '350px';
-      bodyHeight = '550px';
-      mainPadding = '16px';
-    }
-    
-    // Create CSS that works for all formats
+    // Create CSS with improved container sizing and centering
     style.textContent = `
       /* Base styles for all formats */
-      footer {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        width: 100% !important;
-        position: sticky !important;
-        bottom: 0 !important;
-        z-index: 100 !important;
-        background-color: #f8f9fb !important;
-        padding-top: 4px !important;
-        padding-bottom: 4px !important;
-        margin-top: ${formatType === 'short' ? 'auto' : '8px'} !important;
-        border-top: 1px solid rgba(0,0,0,0.05) !important;
+      body {
+        height: ${bodyHeight} !important;
+        overflow: hidden !important;
+        padding: 16px !important;
       }
       
-      .summary-container {
-        margin-bottom: ${formatType === 'short' ? '8px' : '10px'} !important;
-        overflow-y: auto !important;
-        max-height: ${containerMaxHeight} !important;
-        height: auto !important;
-        flex: ${formatType === 'short' ? '0 1 auto' : '1 1 auto'} !important;
-      }
-      
-      .bottom-actions {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        width: 100% !important;
-        padding: 0 4px !important;
-      }
-      
-      #app-wrapper {
+      #app-wrapper, #popup-container {
+        height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
-        height: 100% !important;
-        min-height: ${formatType === 'short' ? '430px' : '450px'} !important;
-      }
-      
-      #popup-container {
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100% !important;
+        overflow: hidden !important;
       }
       
       main {
@@ -830,15 +790,45 @@ function displaySummary(summary, format) {
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
-        padding-bottom: ${formatType === 'short' ? '0' : mainPadding} !important;
+        padding-bottom: 70px !important; /* Bottom padding for footer */
       }
       
-      body {
-        height: ${bodyHeight} !important;
-        overflow: hidden !important;
+      .summary-container {
+        max-height: ${containerMaxHeight} !important;
+        min-height: 280px !important;
+        overflow-y: auto !important;
+        margin-bottom: 24px !important;
+        background-color: white !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid rgba(0, 0, 0, 0.04) !important;
+        width: 100% !important; /* Full width of parent */
       }
       
-      /* Special handling for the chat button to ensure it's visible */
+      footer {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        background-color: #f8f9fb !important;
+        border-top: 1px solid rgba(0,0,0,0.05) !important;
+        padding: 12px 0 !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 100 !important;
+      }
+      
+      .bottom-actions {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        padding: 0 16px !important;
+      }
+      
+      /* Chat button styling */
       .chat-button {
         display: flex !important;
         align-items: center !important;
@@ -852,7 +842,7 @@ function displaySummary(summary, format) {
         font-weight: 500 !important;
       }
       
-      /* Format-specific title styling */
+      /* Title styling */
       .summary-title {
         font-weight: 600 !important;
         font-size: 16px !important;
@@ -861,65 +851,52 @@ function displaySummary(summary, format) {
         padding-bottom: 8px !important;
         border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
       }
+      
+      /* API indicator styling */
+      .api-method-indicator {
+        display: inline-block !important;
+        padding: 4px 10px !important;
+        border-radius: 12px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #fff !important;
+        line-height: 1.2 !important;
+      }
     `;
     
     // Add the style to the document
     document.head.appendChild(style);
     
-    // Directly manipulate the key elements
-    const footer = document.querySelector('footer');
+    // Force consistent dimensions and positioning
+    document.body.style.height = bodyHeight;
+    
+    // Directly style the container and content for precise control
     const summaryContainer = document.querySelector('.summary-container');
-    const mainContainer = document.querySelector('main');
-    
-    if (footer) {
-      footer.style.display = 'block';
-      footer.style.visibility = 'visible';
-      footer.style.opacity = '1';
-      footer.style.position = 'sticky';
-      footer.style.bottom = '0';
-      footer.style.zIndex = '100';
-      footer.style.backgroundColor = '#f8f9fb';
-      footer.style.width = '100%';
-      
-      // For short summaries, ensure footer is at the bottom with less margin
-      if (formatType === 'short') {
-        footer.style.marginTop = 'auto';
-      } else {
-        footer.style.marginTop = '8px';
-      }
-    }
-    
     if (summaryContainer) {
+      // Full width container
+      summaryContainer.style.width = '100%';
       summaryContainer.style.maxHeight = containerMaxHeight;
-      summaryContainer.style.overflowY = 'auto';
+      summaryContainer.style.minHeight = '280px';
+      summaryContainer.style.margin = '0 0 24px 0'; // No horizontal margin
+      summaryContainer.style.boxSizing = 'border-box';
       
-      // For short summaries, adjust flex behavior
-      if (formatType === 'short') {
-        summaryContainer.style.flex = '0 1 auto';
-        summaryContainer.style.marginBottom = '8px';
-      } else {
-        summaryContainer.style.flex = '1 1 auto';
-        summaryContainer.style.marginBottom = '10px';
-      }
+      // Ensure the container background color and shadows are visible
+      summaryContainer.style.backgroundColor = 'white';
+      summaryContainer.style.borderRadius = '12px';
+      summaryContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+      summaryContainer.style.border = '1px solid rgba(0, 0, 0, 0.04)';
     }
     
-    if (mainContainer) {
-      if (formatType === 'short') {
-        mainContainer.style.paddingBottom = '0';
-      } else {
-        mainContainer.style.paddingBottom = mainPadding;
-      }
+    // Ensure main has proper padding but no horizontal padding
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.style.paddingBottom = '70px';
+      // No horizontal padding for main
+      mainElement.style.paddingLeft = '0';
+      mainElement.style.paddingRight = '0';
     }
     
-    // For short format, adjust the layout after a brief delay to ensure it takes effect
-    if (formatType === 'short') {
-      setTimeout(() => {
-        document.body.style.height = bodyHeight;
-        if (summaryContainer) summaryContainer.style.height = 'auto';
-      }, 50);
-    }
-    
-    console.log(`Footer placement adjusted for format: ${formatType}, container height: ${containerMaxHeight}, body height: ${bodyHeight}`);
+    console.log(`Container sizing improved: ${formatType}`);
   }
 
   /**
