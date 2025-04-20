@@ -749,6 +749,122 @@ function displaySummary(summary, format) {
     document.head.appendChild(style);
   }
 
+  // Adjust footer placement based on summary format
+  function adjustFooterPlacement() {
+    // Get current format
+    const formatType = summaryFormat ? summaryFormat.value : 'short';
+    console.log("Adjusting footer placement for format:", formatType);
+    
+    // Create specific styling for footer placement based on format
+    const style = document.createElement('style');
+    style.id = 'footer-placement-fix';
+    
+    // Remove any existing style element we've added previously
+    const existingStyle = document.getElementById('footer-placement-fix');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    
+    // Create CSS that works for all formats with special handling for detailed and key-points
+    style.textContent = `
+      /* Base styles for all formats */
+      footer {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 100 !important;
+        background-color: #f8f9fb !important;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        margin-top: 8px !important;
+        border-top: 1px solid rgba(0,0,0,0.05) !important;
+      }
+      
+      .summary-container {
+        margin-bottom: 10px !important;
+        overflow-y: auto !important;
+        max-height: ${formatType === 'short' ? '300px' : '250px'} !important;
+      }
+      
+      .bottom-actions {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        padding: 0 4px !important;
+      }
+      
+      #app-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        min-height: 450px !important;
+      }
+      
+      #popup-container {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+      }
+      
+      main {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+      }
+      
+      body {
+        height: ${formatType === 'short' ? '450px' : '500px'} !important;
+        overflow: hidden !important;
+      }
+      
+      /* Special handling for the chat button to ensure it's visible */
+      .chat-button {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        padding: 6px 16px !important;
+        background-color: #2b7de9 !important;
+        color: white !important;
+        border-radius: 8px !important;
+        border: none !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+      }
+    `;
+    
+    // Add the style to the document
+    document.head.appendChild(style);
+    
+    // Also directly manipulate the footer element to ensure it's visible
+    const footer = document.querySelector('footer');
+    const bottomActions = document.querySelector('.bottom-actions');
+    
+    if (footer) {
+      footer.style.display = 'block';
+      footer.style.visibility = 'visible';
+      footer.style.opacity = '1';
+      footer.style.position = 'sticky';
+      footer.style.bottom = '0';
+      footer.style.zIndex = '100';
+      footer.style.backgroundColor = '#f8f9fb';
+      footer.style.width = '100%';
+    }
+    
+    if (bottomActions) {
+      bottomActions.style.display = 'flex';
+      bottomActions.style.justifyContent = 'space-between';
+      bottomActions.style.width = '100%';
+      bottomActions.style.padding = '0 4px';
+    }
+    
+    console.log(`Footer placement adjusted for format: ${formatType}`);
+  }
+
   /**
    * Adjust the popup window height based on content
    * Ensures optimal size for different content lengths
@@ -756,41 +872,72 @@ function displaySummary(summary, format) {
    * @param {boolean} isError - Whether we're showing an error message
    */
   function adjustWindowHeight(isError = false) {
-    // Apply normal adjustments first
+    // Make sure adjustFooterPlacement is called last
     setTimeout(() => {
       try {
-        // Normal height adjustment code...
-        // [Keep your existing code here]
+        // Get the heights of each major section
+        const headerHeight = document.querySelector('header').offsetHeight || 0;
+        const controlsHeight = document.querySelector('.controls').offsetHeight || 0;
+        const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight || 0;
+        const footerHeight = document.querySelector('footer').offsetHeight || 0;
         
-        // Now check if the layout is broken (wait a bit for rendering)
+        // For summary height, ensure minimum height for errors
+        const summaryContentHeight = summaryText.scrollHeight || 200;
+        const summaryContainerHeight = isError 
+          ? Math.max(150, Math.min(350, summaryContentHeight))
+          : Math.min(350, summaryContentHeight);
+        
+        // Add padding/margins
+        const padding = isError ? 70 : 50;
+        
+        // Calculate optimal window height
+        const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryContainerHeight + footerHeight + padding;
+        
+        // Limit to reasonable bounds
+        const minHeight = isError ? 400 : 350;
+        const maxHeight = 600;
+        
+        // Set height with constraints
+        const finalHeight = Math.max(minHeight, Math.min(maxHeight, optimalHeight));
+        
+        // Apply the height to body to let Chrome resize the popup window
+        document.body.style.height = `${finalHeight}px`;
+        
+        // Check if the layout is broken
         setTimeout(() => {
           const footer = document.querySelector('footer');
           const footerRect = footer ? footer.getBoundingClientRect() : null;
-          const popupContainer = document.getElementById('popup-container');
-          const contentBottom = summaryText ? summaryText.getBoundingClientRect().bottom : 0;
+          const chatBtn = document.querySelector('#chat-btn');
           
-          // Check for signs of a broken layout:
-          // 1. Footer not visible or has zero height
-          // 2. Content extends beyond the bottom of the container
-          // 3. Double scrollbars present
-          const isFooterHidden = !footer || footerRect.height < 5 || footerRect.top > window.innerHeight;
-          const isContentCutOff = contentBottom > window.innerHeight;
-          const hasDoubleScrollbars = document.body.scrollHeight > document.body.clientHeight &&
-                                    document.querySelector('.summary-container').scrollHeight > 
-                                    document.querySelector('.summary-container').clientHeight;
-          
-          if (isFooterHidden || isContentCutOff || hasDoubleScrollbars) {
-            console.warn("Detected broken layout, applying emergency fix");
+          if (!footer || footerRect.height < 5 || !chatBtn || chatBtn.offsetParent === null) {
+            console.warn("Footer or chat button not visible, applying emergency fix");
             forceLayoutRecovery();
           }
-        }, 300);
+          
+          // Always apply footer placement adjustments
+          adjustFooterPlacement();
+        }, 200);
       } catch (error) {
         console.error("Error in height adjustment:", error);
-        // If anything goes wrong, apply the emergency fix
         forceLayoutRecovery();
+        adjustFooterPlacement();
       }
     }, 100);
   }
+  
+  // Ensure there's a call to adjustFooterPlacement() when the format changes
+  summaryFormat.addEventListener('change', () => {
+    setTimeout(() => {
+      adjustFooterPlacement();
+    }, 50);
+  });
+  
+  // Also add this call when the popup first loads to ensure proper layout
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      adjustFooterPlacement();
+    }, 100);
+  });
 
   // Wait for the DOM to be fully loaded before checking for footer visibility
   document.addEventListener('DOMContentLoaded', () => {
