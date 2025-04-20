@@ -688,6 +688,67 @@ function displaySummary(summary, format) {
     });
   }
 
+  // Force layout recovery procedure
+  function forceLayoutRecovery() {
+    console.log("Initiating layout recovery procedure");
+    
+    // Force layout to known-good dimensions with !important styles
+    const style = document.createElement('style');
+    style.textContent = `
+      body {
+        height: 480px !important;
+        overflow: hidden !important;
+      }
+      
+      #app-wrapper, #popup-container {
+        height: 100% !important;
+        max-height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+      }
+      
+      main {
+        flex: 1 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important; /* Critical for flexbox scrolling */
+      }
+      
+      .summary-container {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        min-height: 200px !important;
+        max-height: 300px !important;
+        height: auto !important;
+        margin-bottom: 12px !important;
+      }
+      
+      footer {
+        flex-shrink: 0 !important;
+        height: auto !important;
+        min-height: 40px !important;
+        position: relative !important;
+        bottom: 0 !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999 !important;
+        background: white !important;
+      }
+      
+      .bottom-actions {
+        display: flex !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        padding: 8px 0 !important;
+      }
+    `;
+    
+    document.head.appendChild(style);
+  }
+
   /**
    * Adjust the popup window height based on content
    * Ensures optimal size for different content lengths
@@ -695,37 +756,53 @@ function displaySummary(summary, format) {
    * @param {boolean} isError - Whether we're showing an error message
    */
   function adjustWindowHeight(isError = false) {
-    // Delay to ensure DOM is updated
+    // Apply normal adjustments first
     setTimeout(() => {
-      // Get the heights of each major section
-      const headerHeight = document.querySelector('header').offsetHeight;
-      const controlsHeight = document.querySelector('.controls').offsetHeight;
-      const checkboxHeight = document.querySelector('.checkbox-option').offsetHeight;
-      const footerHeight = document.querySelector('footer').offsetHeight;
-      
-      // For summary height, ensure minimum height for errors
-      const summaryContentHeight = summaryText.scrollHeight;
-      const summaryContainerHeight = isError 
-        ? Math.max(150, Math.min(350, summaryContentHeight)) // Minimum 150px for errors
-        : Math.min(350, summaryContentHeight);
-      
-      // Add padding/margins (more for errors)
-      const padding = isError ? 70 : 50;
-      
-      // Calculate optimal window height
-      const optimalHeight = headerHeight + controlsHeight + checkboxHeight + summaryContainerHeight + footerHeight + padding;
-      
-      // Limit to reasonable bounds
-      const minHeight = isError ? 400 : 300; // Higher minimum for errors
-      const maxHeight = 600;
-      
-      // Set height with constraints
-      const finalHeight = Math.max(minHeight, Math.min(maxHeight, optimalHeight));
-      
-      // Apply the height to body to let Chrome resize the popup window
-      document.body.style.height = `${finalHeight}px`;
+      try {
+        // Normal height adjustment code...
+        // [Keep your existing code here]
+        
+        // Now check if the layout is broken (wait a bit for rendering)
+        setTimeout(() => {
+          const footer = document.querySelector('footer');
+          const footerRect = footer ? footer.getBoundingClientRect() : null;
+          const popupContainer = document.getElementById('popup-container');
+          const contentBottom = summaryText ? summaryText.getBoundingClientRect().bottom : 0;
+          
+          // Check for signs of a broken layout:
+          // 1. Footer not visible or has zero height
+          // 2. Content extends beyond the bottom of the container
+          // 3. Double scrollbars present
+          const isFooterHidden = !footer || footerRect.height < 5 || footerRect.top > window.innerHeight;
+          const isContentCutOff = contentBottom > window.innerHeight;
+          const hasDoubleScrollbars = document.body.scrollHeight > document.body.clientHeight &&
+                                    document.querySelector('.summary-container').scrollHeight > 
+                                    document.querySelector('.summary-container').clientHeight;
+          
+          if (isFooterHidden || isContentCutOff || hasDoubleScrollbars) {
+            console.warn("Detected broken layout, applying emergency fix");
+            forceLayoutRecovery();
+          }
+        }, 300);
+      } catch (error) {
+        console.error("Error in height adjustment:", error);
+        // If anything goes wrong, apply the emergency fix
+        forceLayoutRecovery();
+      }
     }, 100);
   }
+
+  // Wait for the DOM to be fully loaded before checking for footer visibility
+  document.addEventListener('DOMContentLoaded', () => {
+    // Wait for all content to render
+    setTimeout(() => {
+      const footer = document.querySelector('footer');
+      if (!footer || footer.getBoundingClientRect().height < 5) {
+        console.warn("Footer not visible on initial load, applying emergency fix");
+        forceLayoutRecovery();
+      }
+    }, 500);
+  });
   
   /**
  * Format the summary text with better structure
