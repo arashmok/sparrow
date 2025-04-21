@@ -297,7 +297,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         switch (apiMode) {
           case 'openai':
             // Use OpenAI API
-            const apiKey = settings.apiKey;
+            const apiKey = secureKeyStore.getKey('openai');  // <- This is the fixed line
             const model = settings.openaiModel || 'gpt-3.5-turbo';
             
             if (!apiKey) {
