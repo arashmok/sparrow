@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // OpenAI elements
   const openaiApiKeyInput = document.getElementById('openai-api-key');
   const openaiModelSelect = document.getElementById('openai-model');
+  const openaiRefreshBtn = document.getElementById('openai-refresh-btn');
+  const openaiSpinner = document.getElementById('openai-spinner');
   
   // LM Studio elements
   const lmstudioApiUrlInput = document.getElementById('lmstudio-api-url');
@@ -105,6 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Refresh buttons for model lists
+    openaiRefreshBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      fetchOpenAIModels(true);
+    });
+    
     lmstudioRefreshBtn.addEventListener('click', (e) => {
       e.preventDefault();
       fetchLMStudioModels(true);
@@ -121,6 +128,30 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchOpenRouterModels(true); // Pass true to indicate manual refresh
       });
     }
+    
+    // Add OpenAI API key input events
+    openaiApiKeyInput.addEventListener('blur', function() {
+      const apiKey = this.value.trim();
+      if (apiKey && apiKey !== '••••••••••••••••••••••••••') {
+        fetchOpenAIModels(true);
+      }
+    });
+
+    // Handle clearing the masked bullets when the field gets focus
+    openaiApiKeyInput.addEventListener('focus', function() {
+      if (/^•+$/.test(this.value)) {
+        // Clear the bullet characters when focused
+        this.value = '';
+      }
+    });
+
+    // When the field loses focus and is empty but we had a key before
+    openaiApiKeyInput.addEventListener('blur', function() {
+      if (this.value === '' && this.dataset.hasKey === 'true') {
+        // Restore bullets if no new input was provided
+        this.value = '••••••••••••••••••••••••••';
+      }
+    });
     
     // OpenRouter API key input events
     setupOpenRouterKeyEvents();
@@ -211,6 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.hasKey) {
           openaiApiKeyInput.value = '••••••••••••••••••••••••••';
           openaiApiKeyInput.dataset.hasKey = 'true';
+          // Fetch OpenAI models after confirming we have a key
+          fetchOpenAIModels();
         }
       });
       
@@ -734,6 +767,75 @@ document.addEventListener('DOMContentLoaded', () => {
       // Hide spinner and enable select
       openrouterSpinner.classList.add('hidden');
       openrouterModelSelect.disabled = false;
+    }
+  }
+
+  /**
+   * Fetch available models from OpenAI
+   * 
+   * @param {boolean} isManualRefresh - Whether this is a manual refresh (true) or automatic (false)
+   */
+  async function fetchOpenAIModels(isManualRefresh = false) {
+    // Check if we have a key
+    const hasStoredKey = openaiApiKeyInput.dataset.hasKey === 'true';
+    const hasVisibleKey = openaiApiKeyInput.value.trim() !== '' && 
+                          openaiApiKeyInput.value !== '••••••••••••••••••••••••••';
+    
+    if (!hasStoredKey && !hasVisibleKey) {
+      // No key available, use default options
+      console.log("No OpenAI API key available, using default models");
+      return;
+    }
+    
+    // Get the visible key if there is one
+    let apiKey = null;
+    if (hasVisibleKey) {
+      apiKey = openaiApiKeyInput.value.trim();
+    }
+    
+    // Show loading state
+    openaiModelSelect.disabled = true;
+    
+    // Store current selection to restore it after refresh
+    const currentSelection = openaiModelSelect.value;
+    
+    try {
+      // Request models from background script
+      chrome.runtime.sendMessage({ 
+        action: 'fetch-openai-models',
+        apiKey: apiKey 
+      }, (response) => {
+        if (response.error) {
+          console.warn("Error fetching OpenAI models:", response.error);
+        }
+        
+        // Clear existing options
+        openaiModelSelect.innerHTML = '';
+        
+        // Add models to dropdown
+        if (response.models && response.models.length > 0) {
+          response.models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name;
+            openaiModelSelect.appendChild(option);
+          });
+          
+          // Restore previous selection if it exists in the new models list
+          const modelExists = Array.from(openaiModelSelect.options)
+            .some(option => option.value === currentSelection);
+            
+          if (modelExists) {
+            openaiModelSelect.value = currentSelection;
+          }
+        }
+        
+        // Enable the select
+        openaiModelSelect.disabled = false;
+      });
+    } catch (error) {
+      console.error("Error in fetchOpenAIModels:", error);
+      openaiModelSelect.disabled = false;
     }
   }
 

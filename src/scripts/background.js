@@ -711,6 +711,95 @@ const summarizationService = {
 };
 
 // ==========================================================================================
+// MODEL FETCHING UTILITIES
+// ==========================================================================================
+
+const modelFetchingService = {
+  async fetchOpenAIModels(apiKey) {
+    try {
+      // Use existing API key if available, or use the one provided
+      const key = apiHandler.getApiKey('openai', apiKey);
+      if (!key) throw new Error('No OpenAI API key found');
+      
+      const headers = apiHandler.prepareHeaders('openai', key);
+      const modelsUrl = 'https://api.openai.com/v1/models';
+      
+      const response = await fetch(modelsUrl, {
+        method: 'GET',
+        headers: headers
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Filter to relevant chat completion models
+      const relevantModels = data.data.filter(model => 
+        (model.id.includes('gpt-') && !model.id.includes('-instruct')) ||
+        model.id.includes('claude')
+      ).map(model => ({
+        id: model.id,
+        name: formatModelName(model.id)
+      }));
+      
+      // Sort models by priority and name
+      return sortModelsByPriority(relevantModels);
+    } catch (error) {
+      console.error('Error fetching OpenAI models:', error);
+      throw error;
+    }
+  }
+};
+
+// Format model name for display
+function formatModelName(modelId) {
+  // Specific naming overrides
+  if (modelId === 'gpt-3.5-turbo') return 'GPT-3.5 Turbo';
+  if (modelId === 'gpt-4-turbo') return 'GPT-4 Turbo';
+  if (modelId === 'gpt-4o') return 'GPT-4o';
+  
+  // General formatting
+  return modelId
+    .replace('gpt-', 'GPT ')
+    .replace(/-/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// Sort models by priority
+function sortModelsByPriority(models) {
+  // Define priority models in order of importance
+  const priorityModels = [
+    'gpt-4o',
+    'gpt-4-turbo',
+    'gpt-4',
+    'gpt-3.5-turbo'
+  ];
+  
+  // Sort function that prioritizes specific models and then alphabetizes the rest
+  return models.sort((a, b) => {
+    const priorityA = priorityModels.indexOf(a.id);
+    const priorityB = priorityModels.indexOf(b.id);
+    
+    // If both models are in the priority list, sort by priority
+    if (priorityA !== -1 && priorityB !== -1) {
+      return priorityA - priorityB;
+    }
+    
+    // If only one model is in the priority list, it comes first
+    if (priorityA !== -1) return -1;
+    if (priorityB !== -1) return 1;
+    
+    // Otherwise sort alphabetically
+    return a.id.localeCompare(b.id);
+  });
+}
+
+
+// ==========================================================================================
 // CHAT SERVICE
 // ==========================================================================================
 
@@ -945,7 +1034,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;
   }
+  
+  // Handle OpenAI models fetching
+  if (request.action === 'fetch-openai-models') {
+    try {
+      const apiKey = request.apiKey || secureKeyStore.getKey('openai');
+      if (!apiKey) {
+        sendResponse({ 
+          error: 'API key not found', 
+          models: getDefaultOpenAIModels() 
+        });
+        return true;
+      }
+      
+      modelFetchingService.fetchOpenAIModels(apiKey)
+        .then(models => {
+          sendResponse({ models: models });
+        })
+        .catch(error => {
+          console.error('Error fetching models:', error);
+          sendResponse({ 
+            error: error.message, 
+            models: getDefaultOpenAIModels() 
+          });
+        });
+      
+      return true;
+    } catch (error) {
+      sendResponse({ 
+        error: error.message, 
+        models: getDefaultOpenAIModels() 
+      });
+      return true;
+    }
+  }
 });
+
+// Default models to use when API call fails
+function getDefaultOpenAIModels() {
+  return [
+    { id: 'gpt-4o', name: 'GPT-4o' },
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+    { id: 'gpt-4', name: 'GPT-4' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' }
+  ];
+}
 
 // Handle summarization requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
