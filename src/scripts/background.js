@@ -1061,7 +1061,7 @@ async function callOpenAIAPI(text, format, apiKey, model, translateToEnglish = f
         messages: [
           { 
             role: 'system', 
-            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. IMPORTANT: Unless explicitly asked to translate, ALWAYS maintain the same language as the original content. Be as concise as possible while capturing the essential meaning.' 
           },
           { role: 'user', content: prompt }
         ],
@@ -1464,7 +1464,7 @@ async function callOpenRouterAPI(text, format, apiKey, model, translateToEnglish
         messages: [
           { 
             role: 'system', 
-            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. Be as concise as possible while capturing the essential meaning. Never apologize or include meta-commentary about the summary process.' 
+            content: 'You are a highly efficient summarization assistant that creates clear, concise summaries of web content. Follow the requested format precisely. IMPORTANT: Unless explicitly asked to translate, ALWAYS maintain the same language as the original content. Be as concise as possible while capturing the essential meaning.' 
           },
           { role: 'user', content: prompt }
         ],
@@ -1663,8 +1663,8 @@ Please provide a ${format} summary that covers all the important points from all
 function createPrompt(text, format, translateToEnglish = false) {
   // Add translation instruction ONLY if explicitly requested
   const translationPrefix = translateToEnglish 
-    ? "Translate the following content to English and then " 
-    : "Summarize in the original language. DO NOT translate to English. ";
+    ? "Translate the following content to English, then " 
+    : "Summarize in the SAME LANGUAGE as the original content. DO NOT translate. ";
   
   let prompt;
   
