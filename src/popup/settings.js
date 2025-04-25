@@ -47,6 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const openrouterSpinner = document.getElementById('openrouter-spinner');
   const openrouterModelMessage = document.getElementById('openrouter-model-message');
   
+  // OpenWebUI elements
+  const enableOpenWebUI = document.getElementById('enable-openwebui');
+  const openWebUISettings = document.getElementById('openwebui-settings');
+  const openWebUIUrl = document.getElementById('openwebui-url');
+  const openWebUIApiKey = document.getElementById('openwebui-api-key');
+  
   // Shared elements
   const defaultFormatSelect = document.getElementById('default-format');
   const cancelBtn = document.getElementById('cancel-btn');
@@ -155,6 +161,30 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // OpenRouter API key input events
     setupOpenRouterKeyEvents();
+    
+    // OpenWebUI checkbox
+    enableOpenWebUI.addEventListener('change', function() {
+      if (this.checked) {
+        openWebUISettings.classList.remove('hidden');
+      } else {
+        openWebUISettings.classList.add('hidden');
+      }
+    });
+    
+    // OpenWebUI API key input events
+    openWebUIApiKey.addEventListener('focus', function() {
+      if (/^•+$/.test(this.value)) {
+        // Clear the bullet characters when focused
+        this.value = '';
+      }
+    });
+
+    openWebUIApiKey.addEventListener('blur', function() {
+      if (this.value === '' && this.dataset.hasKey === 'true') {
+        // Restore bullets if no new input was provided
+        this.value = '••••••••••••••••••••••••••';
+      }
+    });
   }
   
   /**
@@ -228,7 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
       'ollamaModel',
       'openrouterApiKey',
       'openrouterModel',
-      'defaultFormat'
+      'defaultFormat',
+      'enableOpenWebUI',
+      'openWebUIUrl',
+      'openWebUIApiKey'
     ], (result) => {
       console.log("Loaded settings:", result);
       
@@ -298,6 +331,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
       }
       
+      // OpenWebUI settings
+      if (result.enableOpenWebUI) {
+        enableOpenWebUI.checked = true;
+        openWebUISettings.classList.remove('hidden');
+      } else {
+        enableOpenWebUI.checked = false;
+        openWebUISettings.classList.add('hidden');
+      }
+      
+      if (result.openWebUIUrl) {
+        openWebUIUrl.value = result.openWebUIUrl;
+      }
+      
+      // Check if OpenWebUI API key exists
+      chrome.runtime.sendMessage({ action: 'check-api-key', service: 'openwebui' }, (result) => {
+        if (result.hasKey) {
+          openWebUIApiKey.value = '••••••••••••••••••••••••••';
+          openWebUIApiKey.dataset.hasKey = 'true';
+        }
+      });
+      
       // Format settings - IMPORTANT: use defaultFormat consistently
       if (result.defaultFormat) {
         console.log("Setting default format to:", result.defaultFormat);
@@ -332,7 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const settings = {
       apiMode: apiMode,
       defaultFormat: defaultFormatSelect.value,
-      openaiModel: openaiModelSelect.value
+      openaiModel: openaiModelSelect.value,
+      enableOpenWebUI: enableOpenWebUI.checked,
+      openWebUIUrl: openWebUIUrl.value
     };
     
     // Ensure we save all the API URLs regardless of current mode
@@ -351,6 +407,15 @@ document.addEventListener('DOMContentLoaded', () => {
         action: 'store-api-key',
         service: 'openai',
         key: openaiApiKeyInput.value
+      });
+    }
+    
+    // Handle OpenWebUI API key
+    if (openWebUIApiKey.value && openWebUIApiKey.value !== '••••••••••••••••••••••••••') {
+      chrome.runtime.sendMessage({
+        action: 'store-api-key',
+        service: 'openwebui',
+        key: openWebUIApiKey.value
       });
     }
     

@@ -159,6 +159,32 @@
                     <option value="key-points">Key Takeaways</option>
                 </select>
             </div>
+
+            <!-- OpenWebUI Integration Settings -->
+            <div class="form-group">
+                <label for="openwebui-integration">OpenWebUI Integration</label>
+                <div class="checkbox-option">
+                    <input type="checkbox" id="enable-openwebui" />
+                    <label for="enable-openwebui">
+                        <i class="fa-solid fa-cloud-arrow-up label-icon"></i>
+                        Enable Export to OpenWebUI
+                    </label>
+                </div>
+                
+                <div id="openwebui-settings" class="hidden">
+                    <div class="form-group">
+                        <label for="openwebui-url">OpenWebUI Server URL</label>
+                        <input type="url" id="openwebui-url" placeholder="http://localhost:8080">
+                        <small>The URL where your OpenWebUI is hosted</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="openwebui-api-key">API Key (if required)</label>
+                        <input type="password" id="openwebui-api-key" placeholder="Enter your OpenWebUI API key">
+                        <small>API key for your OpenWebUI instance (if needed)</small>
+                    </div>
+                </div>
+            </div>
         </form>
     </main>
 
