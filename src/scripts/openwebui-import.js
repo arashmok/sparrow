@@ -6,7 +6,8 @@ const CONFIG = {
   waitTimes: {
     domReady: 1800,
     betweenMessages: 1200,
-    responseGeneration: 2500
+    responseGeneration: 2500,
+    initialLoad: 2000
   },
   selectors: {
     // Add more specific selectors based on OpenWebUI's structure
@@ -47,18 +48,21 @@ function initializeImport() {
       console.log("Detected Sparrow export in URL parameters");
       
       // Get the conversation data from storage
-      chrome.storage.local.get(['openwebui_export_data'], function(result) {
+      chrome.storage.local.get(['openwebui_export_data', 'openwebui_export_timestamp'], function(result) {
         if (result && result.openwebui_export_data && result.openwebui_export_data.messages) {
-          // Create the import button
-          displayImportButton(result.openwebui_export_data);
-          
           // Analyze the DOM to better understand OpenWebUI's structure
           analyzeOpenWebUIDOM();
           
           // Set up mutation observers to track UI changes
           setupMutationObservers();
+          
+          // Auto-import instead of showing a button
+          setTimeout(() => {
+            importConversationToOpenWebUI(result.openwebui_export_data);
+          }, CONFIG.waitTimes.initialLoad);
         } else {
           console.error("No valid conversation data found in storage");
+          showNotification("No conversation data found. Try exporting again.", "error");
         }
       });
     }
@@ -365,9 +369,12 @@ function showImportOptionsDialog(conversation) {
 // Function to import the conversation using multiple methods
 async function importConversationToOpenWebUI(conversation) {
   // Show a processing notification
-  showNotification("Processing conversation import...", "info");
+  showNotification("Importing conversation from Sparrow...", "info");
   
   try {
+    // Make sure the page is ready for input
+    await new Promise(r => setTimeout(r, 1000));
+    
     // Method 1: Try to find and use New Chat button if we're not already in a chat
     const newChatButton = findNewChatButton();
     if (newChatButton) {
@@ -378,25 +385,30 @@ async function importConversationToOpenWebUI(conversation) {
       await waitForElement('textarea, [contenteditable="true"]', 3000);
     }
     
-    // Method 2: Try sending messages one by one (most compatible)
+    // Ensure we're starting fresh
+    const inputElement = findInputElement();
+    if (inputElement) {
+      // Clear any existing text
+      inputElement.value = '';
+      if (inputElement.innerHTML) {
+        inputElement.innerHTML = '';
+      }
+    }
+    
+    // Method 2: Try sending messages one by one
     const success = await sendMessagesSequentially(conversation.messages);
     
     if (success) {
       showNotification("Conversation imported successfully!", "success");
-      
-      // Hide the import button after successful import
-      const importButton = document.getElementById('sparrow-import-button');
-      if (importButton) {
-        importButton.remove();
-      }
     } else {
-      // Method 3: Fallback to copying everything at once
-      showNotification("Automatic import failed. Copying to clipboard instead.", "info");
-      copyConversationToClipboard(conversation);
+      // Method 3: Fallback to copying everything to clipboard
+      showNotification("Automatic import failed. Copying full conversation to clipboard.", "info");
+      await copyConversationToClipboard(conversation);
     }
   } catch (error) {
     console.error("Error during import:", error);
-    showNotification("Import failed. Please try copying to clipboard instead.", "error");
+    showNotification("Import failed. Copying conversation to clipboard as fallback.", "error");
+    await copyConversationToClipboard(conversation);
   }
 }
 
@@ -534,7 +546,7 @@ function showImportNotification(messageCount) {
     <div style="display: flex; align-items: center; margin-bottom: 10px;">
       <div style="background-color: #2980b9; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; margin-right: 10px;">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
         </svg>
       </div>
       <h3 style="margin: 0; color: #2980b9; font-size: 16px;">Sparrow Export</h3>
@@ -629,47 +641,76 @@ function showImportNotification(messageCount) {
 async function sendMessagesSequentially(messages) {
   let success = true;
   
+  // First, check if we have messages
+  if (!messages || messages.length === 0) {
+    showNotification("No messages to import", "error");
+    return false;
+  }
+  
+  // Wait for initial page load
+  await new Promise(r => setTimeout(r, CONFIG.waitTimes.initialLoad));
+  
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
     
-    // Skip if empty message
-    if (!message.content.trim()) continue;
+    // Skip empty messages
+    if (!message.content || !message.content.trim()) {
+      continue;
+    }
     
     // Only send user messages - AI responses should be generated by OpenWebUI
     if (message.role === 'user') {
       try {
         // Find input element each time as it might change
-        const inputElement = findInputElement();
+        let inputElement = findInputElement();
         if (!inputElement) {
           console.error("Cannot find input element for message:", message);
-          success = false;
-          continue;
+          // Try multiple times with delay
+          let retries = 3;
+          while (retries > 0 && !inputElement) {
+            await new Promise(r => setTimeout(r, 500));
+            inputElement = findInputElement();
+            retries--;
+          }
+          
+          if (!inputElement) {
+            success = false;
+            continue;
+          }
         }
         
-        // Type message into input
+        // Clear any existing text first
+        inputElement.value = '';
+        if (inputElement.innerHTML) {
+          inputElement.innerHTML = '';
+        }
+        
+        // Type message into input with a slight delay
+        await new Promise(r => setTimeout(r, 300));
         await typeIntoElement(inputElement, message.content);
+        
+        // Allow UI to update
+        await new Promise(r => setTimeout(r, 300));
         
         // Find and click send button
         const sendButton = findSendButton();
         if (sendButton) {
+          // Ensure button is clickable
+          sendButton.disabled = false;
           sendButton.click();
           
-          // Show progress notification for long conversations
-          if (i < messages.length - 1) {
-            showNotification(`Sending message ${Math.floor(i/2) + 1}/${Math.ceil(messages.length/2)}...`, "info");
-          }
+          // Show progress notification
+          showNotification(`Sending message ${Math.floor(i/2) + 1}/${Math.ceil(messages.length/2)}...`, "info");
           
-          // Wait for the assistant response to be generated
-          // Use a dynamic wait time based on message length
-          const waitTime = Math.max(
+          // Wait longer for the response to be generated
+          await waitForResponseCompletion(Math.max(
             CONFIG.waitTimes.responseGeneration,
-            Math.min(10000, message.content.length * 5) // 5ms per character, max 10 seconds
-          );
-          
-          await waitForResponseCompletion(waitTime);
+            Math.min(15000, message.content.length * 10)
+          ));
         } else {
-          // Try to simulate Enter key if no send button found
-          const event = new KeyboardEvent('keydown', {
+          // Try multiple methods to send the message
+          // 1. Simulate Enter key
+          const enterEvent = new KeyboardEvent('keydown', {
             key: 'Enter',
             code: 'Enter',
             which: 13,
@@ -677,15 +718,22 @@ async function sendMessagesSequentially(messages) {
             bubbles: true
           });
           
-          inputElement.dispatchEvent(event);
+          inputElement.dispatchEvent(enterEvent);
           
-          // Wait for the assistant response to be generated
-          await waitForResponseCompletion(CONFIG.waitTimes.responseGeneration);
+          // 2. Try dispatching input and change events
+          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+          inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          // Wait longer for processing
+          await waitForResponseCompletion(CONFIG.waitTimes.responseGeneration * 2);
         }
       } catch (e) {
         console.error("Error sending message:", e);
         success = false;
       }
+    } else if (message.role === 'assistant') {
+      // For assistant messages, we just need to wait before sending the next user message
+      await new Promise(r => setTimeout(r, CONFIG.waitTimes.betweenMessages));
     }
   }
   
@@ -820,54 +868,51 @@ function findSendButton() {
   
   // Look for buttons with text suggesting sending
   for (const button of buttons) {
-    const text = button.textContent.toLowerCase();
+    const text = (button.textContent || '').toLowerCase();
     if (text.includes('send') || text.includes('submit')) {
       return button;
     }
   }
   
-  // Look for buttons with paper plane icons (common send icon)
-  const svgButtons = Array.from(buttons).filter(btn => btn.querySelector('svg'));
-  for (const button of svgButtons) {
-    const svg = button.querySelector('svg');
-    const svgContent = svg.innerHTML;
-    
-    // Check for common paper plane icon paths
-    if (svgContent.includes('M22 2L11 13') || // Paper plane shape
-        svgContent.includes('M2 21l7-7 9 9') || // Paper plane shape
-        svgContent.includes('M21.44 11.05l-9.19 9.19')) { // Paper plane shape
-      return button;
-    }
-  }
-  
-  // Look for buttons positioned near the input element
+  // Look for buttons adjacent to input elements
   const inputElement = findInputElement();
   if (inputElement) {
+    // Find closest buttons
     const inputRect = inputElement.getBoundingClientRect();
     
-    // Find buttons that are positioned to the right of the input
+    // Try to find the closest button that's to the right of the input
     const potentialSendButtons = Array.from(buttons).filter(btn => {
-      const buttonRect = btn.getBoundingClientRect();
-      
-      // Button should be close to the input horizontally and aligned vertically
-      const horizontallyClose = Math.abs(buttonRect.left - inputRect.right) < 100;
-      const verticallyAligned = Math.abs(buttonRect.top - inputRect.top) < 50;
-      
-      return horizontallyClose && verticallyAligned;
+      const btnRect = btn.getBoundingClientRect();
+      // Button should be to the right of the input and roughly aligned vertically
+      return btnRect.left >= inputRect.right - 50 && 
+             Math.abs(btnRect.top - inputRect.top) < 100;
     });
     
     if (potentialSendButtons.length > 0) {
-      // Return the closest button to the input
-      return potentialSendButtons.reduce((closest, current) => {
-        const closestRect = closest.getBoundingClientRect();
-        const currentRect = current.getBoundingClientRect();
+      // Sort by proximity to input
+      return potentialSendButtons.sort((a, b) => {
+        const aRect = a.getBoundingClientRect();
+        const bRect = b.getBoundingClientRect();
         
-        const closestDistance = Math.abs(closestRect.left - inputRect.right);
-        const currentDistance = Math.abs(currentRect.left - inputRect.right);
+        const aDist = Math.hypot(aRect.left - inputRect.right, aRect.top - inputRect.top);
+        const bDist = Math.hypot(bRect.left - inputRect.right, bRect.top - inputRect.top);
         
-        return currentDistance < closestDistance ? current : closest;
-      });
+        return aDist - bDist;
+      })[0];
     }
+    
+    // Look for any button inside the same form
+    const form = inputElement.closest('form');
+    if (form) {
+      const formButtons = form.querySelectorAll('button:not([type="button"]), [type="submit"]');
+      if (formButtons.length > 0) return formButtons[0];
+    }
+  }
+  
+  // Look for buttons with paper plane icons
+  const svgButtons = Array.from(buttons).filter(btn => btn.querySelector('svg'));
+  for (const button of svgButtons) {
+    return button; // Return the first button with an SVG, as it's likely to be the send button
   }
   
   return null;

@@ -991,7 +991,6 @@ async function exportToOpenWebUI(conversation) {
 
     // Ensure the URL doesn't end with a slash
     const baseUrl = settings.openWebUIUrl.replace(/\/+$/, '');
-    console.log("Using OpenWebUI base URL:", baseUrl);
     
     // Format conversation for OpenWebUI
     const formattedConversation = {
@@ -1010,21 +1009,23 @@ async function exportToOpenWebUI(conversation) {
       }, resolve);
     });
     
-    // Create a initial prompt that clearly indicates what we're doing
-    const initialPrompt = "This is a conversation imported from Sparrow";
+    // Prepare conversation data as URL-safe string
+    const conversationSummary = conversation.map(msg => {
+      const prefix = msg.role === 'user' ? 'User:' : 'AI:';
+      // Only include first 30 chars of each message to keep URL reasonable
+      const shortContent = msg.content.substring(0, 30) + (msg.content.length > 30 ? '...' : '');
+      return `${prefix} ${shortContent}`;
+    }).join(' | ').substring(0, 200) + '...';
     
-    // Build the URL with parameters
-    let openWebUIUrl = `${baseUrl}/?q=${encodeURIComponent(initialPrompt)}`;
-    openWebUIUrl += `&sparrow-export=true`;
+    // Build the URL with parameters that provide context
+    let openWebUIUrl = `${baseUrl}/?sparrow-export=true&timestamp=${Date.now()}`;
+    openWebUIUrl += `&context=${encodeURIComponent(conversationSummary)}`;
     
     // Open OpenWebUI with the constructed URL
     chrome.tabs.create({
       url: openWebUIUrl
-    }, function(tab) {
-      console.log("Opened OpenWebUI tab with parameters:", tab.id);
     });
     
-    // Return success
     return { success: true, message: "Opened OpenWebUI with conversation data" };
   } catch (error) {
     console.error("Export to OpenWebUI failed:", error);
