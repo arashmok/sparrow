@@ -38,6 +38,32 @@ window.addEventListener('load', function() {
       }
     });
   }
+  
+  // Check if we're on an OpenWebUI page with our export parameter
+  try {
+    if (url.searchParams.has('sparrow-export') && url.searchParams.get('sparrow-export') === 'true') {
+      console.log("Detected Sparrow export in URL parameters");
+      
+      // Get the conversation data from storage
+      chrome.storage.local.get(['openwebui_export_data'], function(result) {
+        if (result && result.openwebui_export_data && result.openwebui_export_data.messages) {
+          // Skip the first message as it's already in the chat via the 'q' parameter
+          const remainingMessages = result.openwebui_export_data.messages.slice(1);
+          
+          if (remainingMessages.length > 0) {
+            // Check if there are more messages to import
+            // Show a notification to the user
+            showImportNotification(remainingMessages.length);
+          } else {
+            // If there's only one message, just show a success notification
+            showSuccessNotification();
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.error("Error checking for Sparrow export:", e);
+  }
 });
 
 // Function to show import dialog
@@ -245,4 +271,161 @@ function showCopiedNotification() {
       notification.remove();
     }, 300);
   }, 3000);
+}
+
+// Function to show a notification about remaining messages
+function showImportNotification(messageCount) {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    color: #333;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10001;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    max-width: 300px;
+  `;
+  
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+      <div style="background-color: #2980b9; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; margin-right: 10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+        </svg>
+      </div>
+      <h3 style="margin: 0; color: #2980b9; font-size: 16px;">Sparrow Export</h3>
+    </div>
+    <p style="margin: 0 0 10px 0; font-size: 14px;">
+      First message imported successfully. There are ${messageCount} more messages in the conversation.
+    </p>
+    <div style="display: flex; justify-content: flex-end;">
+      <button id="sparrow-copy-all" style="
+        background: #2980b9;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+      ">Copy All Messages</button>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Add event listener to copy button
+  document.getElementById('sparrow-copy-all').addEventListener('click', function() {
+    chrome.storage.local.get(['openwebui_export_data'], function(result) {
+      if (result && result.openwebui_export_data) {
+        // Format the messages for copying
+        const messages = result.openwebui_export_data.messages;
+        let formattedText = `# ${result.openwebui_export_data.title}\n\n`;
+        
+        messages.forEach(msg => {
+          const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
+          formattedText += `**${role}:** ${msg.content}\n\n`;
+        });
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(formattedText)
+          .then(() => {
+            // Show success notification
+            notification.innerHTML = `
+              <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <div style="background-color: #27ae60; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; margin-right: 10px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <h3 style="margin: 0; color: #27ae60; font-size: 16px;">Success!</h3>
+              </div>
+              <p style="margin: 0 0 10px 0; font-size: 14px;">
+                All messages copied to clipboard.
+              </p>
+              <div style="display: flex; justify-content: flex-end;">
+                <button id="sparrow-close-notification" style="
+                  background: #e0e0e0;
+                  color: #333;
+                  border: none;
+                  padding: 6px 12px;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 13px;
+                ">Close</button>
+              </div>
+            `;
+            
+            document.getElementById('sparrow-close-notification').addEventListener('click', function() {
+              notification.remove();
+            });
+          })
+          .catch(err => {
+            console.error("Failed to copy to clipboard:", err);
+            notification.innerHTML = `
+              <div style="color: #e74c3c; font-weight: bold; margin-bottom: 10px;">Failed to copy to clipboard</div>
+              <button id="sparrow-close-notification">Close</button>
+            `;
+            document.getElementById('sparrow-close-notification').addEventListener('click', function() {
+              notification.remove();
+            });
+          });
+      }
+    });
+  });
+  
+  // Auto-hide after 20 seconds
+  setTimeout(() => {
+    if (document.body.contains(notification)) {
+      notification.remove();
+    }
+  }, 20000);
+}
+
+// Function to show a success notification
+function showSuccessNotification() {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    color: #333;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10001;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  `;
+  
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center;">
+      <div style="background-color: #27ae60; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; margin-right: 10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <div>
+        <h3 style="margin: 0; color: #27ae60; font-size: 16px;">Success!</h3>
+        <p style="margin: 5px 0 0 0; font-size: 14px;">Message imported from Sparrow</p>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transition = 'opacity 0.5s ease-out';
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        notification.remove();
+      }
+    }, 500);
+  }, 5000);
 }

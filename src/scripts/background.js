@@ -985,9 +985,6 @@ async function exportToOpenWebUI(conversation) {
       ], resolve);
     });
     
-    // Get API key (if needed)
-    const apiKey = secureKeyStore.getKey('openwebui');
-    
     if (!settings.enableOpenWebUI || !settings.openWebUIUrl) {
       throw new Error('OpenWebUI integration is not properly configured');
     }
@@ -1005,7 +1002,7 @@ async function exportToOpenWebUI(conversation) {
       }))
     };
     
-    // Save the conversation data to local storage
+    // Save the conversation data to local storage (in case we need it for later)
     await new Promise(resolve => {
       chrome.storage.local.set({
         'openwebui_export_data': formattedConversation,
@@ -1013,47 +1010,41 @@ async function exportToOpenWebUI(conversation) {
       }, resolve);
     });
     
-    // Open OpenWebUI main page
+    // Create a URL with parameters using the 'q' parameter for the initial query
+    // Also include a custom header to identify this as a Sparrow export
+    let openWebUIUrl = baseUrl;
+    
+    // If there are messages, use the first user message as the initial query
+    // Otherwise, use a placeholder
+    let initialQuery = "This is a conversation imported from Sparrow";
+    
+    // Find the first user message to use as the initial query
+    if (conversation && conversation.length > 0) {
+      // Find the first user message
+      const userMessage = conversation.find(msg => msg.role === 'user');
+      if (userMessage) {
+        initialQuery = userMessage.content;
+      }
+    }
+    
+    // Build the URL with parameters
+    openWebUIUrl += `/?q=${encodeURIComponent(initialQuery)}`;
+    
+    // Add a custom parameter to identify this as a Sparrow export
+    openWebUIUrl += `&sparrow-export=true`;
+    
+    // Add a title parameter (this might not be directly supported but we can try)
+    openWebUIUrl += `&title=${encodeURIComponent(formattedConversation.title)}`;
+    
+    // Open OpenWebUI with the constructed URL
     chrome.tabs.create({
-      url: baseUrl
+      url: openWebUIUrl
     }, function(tab) {
-      console.log("Opened OpenWebUI tab:", tab.id);
-      
-      // Add a listener for tab updates to inject our content script
-      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-        // Only proceed when the tab has finished loading
-        if (tabId === tab.id && changeInfo.status === 'complete') {
-          // Remove the listener to avoid multiple executions
-          chrome.tabs.onUpdated.removeListener(listener);
-          
-          // Wait a short moment for the page to stabilize
-          setTimeout(() => {
-            // Execute a simple script to update the document title with our export info
-            chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              function: (conversationTitle) => {
-                // Create a custom event that our content script can listen for
-                const event = new CustomEvent('sparrow-export-ready', { 
-                  detail: { title: conversationTitle } 
-                });
-                document.dispatchEvent(event);
-                
-                // Also attempt to store the title in localStorage as a backup
-                try {
-                  localStorage.setItem('sparrow_export_title', conversationTitle);
-                } catch (e) {
-                  console.error("Could not save title to localStorage:", e);
-                }
-              },
-              args: [formattedConversation.title]
-            });
-          }, 1000);
-        }
-      });
+      console.log("Opened OpenWebUI tab with parameters:", tab.id);
     });
     
-    // Return success synchronously
-    return { success: true, message: "Opened OpenWebUI in a new tab" };
+    // Return success
+    return { success: true, message: "Opened OpenWebUI with conversation data" };
   } catch (error) {
     console.error("Export to OpenWebUI failed:", error);
     throw error;
