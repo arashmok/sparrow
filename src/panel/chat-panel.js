@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chatMessages: document.getElementById('chat-messages'),
     chatInput: document.getElementById('chat-input'),
     sendButton: document.getElementById('send-button'),
-    apiIndicator: document.getElementById('api-indicator')
+    apiIndicator: document.getElementById('api-indicator'),
+    exportOpenWebUIBtn: document.getElementById('export-openwebui-btn')
   };
   
   // =========================================================================
@@ -143,6 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sendMessage();
       }
     });
+    
+    // Export to OpenWebUI button click event
+    UI.exportOpenWebUIBtn.addEventListener('click', exportToOpenWebUI);
   }
   
   /**
@@ -571,6 +575,62 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+  
+  // =========================================================================
+  // EXPORT FUNCTIONALITY
+  // =========================================================================
+  
+  /**
+   * Export conversation history to OpenWebUI
+   */
+  async function exportToOpenWebUI() {
+    try {
+      // Disable the button and show loading state
+      UI.exportOpenWebUIBtn.disabled = true;
+      UI.exportOpenWebUIBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';
+      
+      // Get OpenWebUI settings
+      const settings = await new Promise(resolve => {
+        chrome.storage.local.get([
+          'openWebUIUrl', 
+          'enableOpenWebUI'
+        ], resolve);
+      });
+      
+      // Check if OpenWebUI integration is enabled
+      if (!settings.enableOpenWebUI || !settings.openWebUIUrl) {
+        throw new Error('OpenWebUI integration is not properly configured');
+      }
+      
+      // Send conversation to background script for handling
+      chrome.runtime.sendMessage({
+        action: 'export-to-openwebui',
+        conversation: conversationHistory
+      }, function(response) {
+        if (response.success) {
+          // Show success message
+          addMessage('Chat exported successfully to OpenWebUI.', 'assistant');
+        } else {
+          // Show error message
+          addMessage(`Failed to export chat: ${response.error}`, 'assistant');
+        }
+        
+        // Reset button state
+        UI.exportOpenWebUIBtn.disabled = false;
+        UI.exportOpenWebUIBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Export to OpenWebUI';
+      });
+      
+    } catch (error) {
+      console.error('Error exporting to OpenWebUI:', error);
+      
+      // Show error in chat
+      addMessage(`Error exporting to OpenWebUI: ${error.message}`, 'assistant');
+      
+      // Reset button state
+      UI.exportOpenWebUIBtn.disabled = false;
+      UI.exportOpenWebUIBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Export to OpenWebUI';
+    }
   }
   
   // =========================================================================

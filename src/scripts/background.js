@@ -115,7 +115,7 @@ const secureKeyStore = {
   },
   
   initialize() {
-    ['openai', 'openrouter', 'lmstudio', 'ollama'].forEach(service => {
+    ['openai', 'openrouter', 'lmstudio', 'ollama', 'openwebui'].forEach(service => {
       this.loadKeyFromStorageAsync(service);
     });
   }
@@ -971,6 +971,67 @@ function extractPageContent() {
 }
 
 // ==========================================================================================
+// EXPORT TO OPENWEBUI
+// ==========================================================================================
+
+/**
+ * Export conversation to OpenWebUI
+ * @param {Array<{role: string, content: string}>} conversation - The conversation history
+ * @returns {Promise<Object>} - The API response from OpenWebUI
+ */
+async function exportToOpenWebUI(conversation) {
+  // Get OpenWebUI settings
+  const settings = await new Promise(resolve => {
+    chrome.storage.local.get([
+      'openWebUIUrl',
+      'enableOpenWebUI'
+    ], resolve);
+  });
+  
+  // Get API key
+  const apiKey = secureKeyStore.getKey('openwebui');
+  
+  if (!settings.enableOpenWebUI || !settings.openWebUIUrl) {
+    throw new Error('OpenWebUI integration is not properly configured');
+  }
+  
+  // Format conversation for OpenWebUI
+  const formattedConversation = {
+    title: `Sparrow Export - ${new Date().toLocaleString()}`,
+    messages: conversation.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    })),
+    model: "Unknown", // Can be improved to include the actual model used
+    created_at: new Date().toISOString()
+  };
+  
+  // Prepare headers
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  
+  // Add API key if available
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+  
+  // Make the API request to OpenWebUI to create a new conversation
+  const response = await fetch(`${settings.openWebUIUrl}/api/conversations`, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(formattedConversation)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Server responded with status ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+// ==========================================================================================
 // MESSAGE HANDLERS
 // ==========================================================================================
 
@@ -1067,6 +1128,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true;
     }
+  }
+  
+  // Handle OpenWebUI export requests
+  if (request.action === 'export-to-openwebui') {
+    exportToOpenWebUI(request.conversation)
+      .then(result => sendResponse({ success: true }))
+      .catch(error => {
+        console.error('Error exporting to OpenWebUI:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
   }
 });
 
