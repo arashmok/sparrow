@@ -992,7 +992,7 @@ async function exportToOpenWebUI(conversation) {
     // Ensure the URL doesn't end with a slash
     const baseUrl = settings.openWebUIUrl.replace(/\/+$/, '');
     
-    // Format conversation for OpenWebUI
+    // Format conversation for OpenWebUI export
     const formattedConversation = {
       title: `Sparrow Export - ${new Date().toLocaleString()}`,
       messages: conversation.map(msg => ({
@@ -1001,25 +1001,20 @@ async function exportToOpenWebUI(conversation) {
       }))
     };
     
-    // Save the conversation data to local storage
+    // Generate a unique export ID for this conversation
+    const exportId = Date.now().toString() + Math.floor(Math.random() * 1000);
+    
+    // Save the conversation data to local storage with the ID
     await new Promise(resolve => {
       chrome.storage.local.set({
         'openwebui_export_data': formattedConversation,
+        'openwebui_export_id': exportId,
         'openwebui_export_timestamp': Date.now()
       }, resolve);
     });
     
-    // Prepare conversation data as URL-safe string
-    const conversationSummary = conversation.map(msg => {
-      const prefix = msg.role === 'user' ? 'User:' : 'AI:';
-      // Only include first 30 chars of each message to keep URL reasonable
-      const shortContent = msg.content.substring(0, 30) + (msg.content.length > 30 ? '...' : '');
-      return `${prefix} ${shortContent}`;
-    }).join(' | ').substring(0, 200) + '...';
-    
-    // Build the URL with parameters that provide context
-    let openWebUIUrl = `${baseUrl}/?sparrow-export=true&timestamp=${Date.now()}`;
-    openWebUIUrl += `&context=${encodeURIComponent(conversationSummary)}`;
+    // Build the URL with the export ID to ensure we can find our data
+    let openWebUIUrl = `${baseUrl}/?sparrow-export=true&export-id=${exportId}`;
     
     // Open OpenWebUI with the constructed URL
     chrome.tabs.create({
@@ -1145,21 +1140,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   // Handle requests for OpenWebUI export data
   if (request.action === 'get-openwebui-export-data') {
-    chrome.storage.local.get(['openwebui_export_data', 'openwebui_export_timestamp'], (result) => {
-      if (result.openwebui_export_data && result.openwebui_export_timestamp) {
-        // Check if the timestamp matches
-        if (request.timestamp && request.timestamp == result.openwebui_export_timestamp) {
-          sendResponse({ data: result.openwebui_export_data });
-        } else {
-          // If no timestamp or it doesn't match, still send the data but warn
-          console.warn("Timestamp mismatch or missing:", request.timestamp, result.openwebui_export_timestamp);
-          sendResponse({ data: result.openwebui_export_data });
+    chrome.storage.local.get(['openwebui_export_data', 'openwebui_export_id'], (result) => {
+      if (result.openwebui_export_data) {
+        // Check if the ID matches if provided
+        if (request.exportId && request.exportId !== result.openwebui_export_id) {
+          console.warn("Export ID mismatch, but still sending data");
         }
+        
+        // Always return the data if we have it
+        sendResponse({ data: result.openwebui_export_data });
       } else {
-        sendResponse({ error: "No export data found" });
+        console.error("No export data found in storage");
+        sendResponse({ error: "No conversation data found" });
       }
     });
-    return true; // Indicates async response
+    return true;
   }
 });
 

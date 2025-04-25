@@ -44,72 +44,314 @@ function initializeImport() {
     const url = new URL(window.location.href);
     
     // Check if this is a Sparrow export
-    if (url.searchParams.has('sparrow-export') && url.searchParams.get('sparrow-export') === 'true') {
+    if (url.searchParams.has('sparrow-export')) {
       console.log("Detected Sparrow export in URL parameters");
       
-      // Get the conversation data from storage
-      chrome.storage.local.get(['openwebui_export_data', 'openwebui_export_timestamp'], function(result) {
-        if (result && result.openwebui_export_data && result.openwebui_export_data.messages) {
-          // Analyze the DOM to better understand OpenWebUI's structure
-          analyzeOpenWebUIDOM();
-          
-          // Set up mutation observers to track UI changes
-          setupMutationObservers();
-          
-          // Auto-import instead of showing a button
-          setTimeout(() => {
-            importConversationToOpenWebUI(result.openwebui_export_data);
-          }, CONFIG.waitTimes.initialLoad);
-        } else {
-          console.error("No valid conversation data found in storage");
-          showNotification("No conversation data found. Try exporting again.", "error");
-        }
-      });
+      // Get the export ID if available
+      const exportId = url.searchParams.get('export-id');
+      
+      // Show initial notification
+      showNotification("Preparing to import conversation from Sparrow...", "info");
+      
+      // Delay to ensure page is fully loaded before accessing Chrome storage
+      setTimeout(() => {
+        // Get the conversation data from chrome.storage.local
+        chrome.runtime.sendMessage({
+          action: 'get-openwebui-export-data',
+          exportId: exportId
+        }, function(response) {
+          if (response && response.data && response.data.messages && response.data.messages.length > 0) {
+            console.log("Retrieved conversation data:", response.data);
+            
+            // We'll try direct import as first approach
+            directImportToUI(response.data);
+          } else {
+            console.error("No valid conversation data found in storage");
+            showNotification("No conversation data found. Please try exporting again.", "error");
+          }
+        });
+      }, 1000);
     }
-    
-    // Also check for other import methods
-    checkForOtherImportMethods();
   } catch (e) {
     console.error("Error initializing import:", e);
   }
 }
 
-// Check for other import methods (localStorage, events, etc.)
-function checkForOtherImportMethods() {
-  // Check localStorage as a backup method
+// New function to directly import conversation to OpenWebUI interface
+async function directImportToUI(conversation) {
   try {
-    const title = localStorage.getItem('sparrow_export_title');
-    if (title) {
-      console.log("Found export title in localStorage:", title);
-      
-      // Request the conversation data from the extension
-      chrome.runtime.sendMessage({
-        action: "get-openwebui-export-data"
-      }, function(response) {
-        if (response && response.data) {
-          console.log("Received conversation data from storage");
-          displayImportButton(response.data);
-        }
-      });
-      
-      // Clear it after use
-      localStorage.removeItem('sparrow_export_title');
+    showNotification("Importing conversation to OpenWebUI...", "info");
+    
+    // First, create a new chat if needed
+    await createNewChat();
+    
+    // Find the conversation input area where we'll insert our data
+    const textarea = await waitForInputElement(10); // Try up to 10 attempts
+    
+    if (!textarea) {
+      console.error("Could not find input element");
+      showNotification("Could not find chat input. Using clipboard method instead.", "error");
+      await copyConversationToClipboard(conversation);
+      return;
     }
-  } catch (e) {
-    console.error("Error checking localStorage:", e);
+    
+    // Build a formatted version of the conversation for insertion
+    let formattedText = formatConversationForUI(conversation);
+    
+    // Insert the formatted conversation directly
+    if (textarea.tagName.toLowerCase() === 'textarea' || textarea.tagName.toLowerCase() === 'input') {
+      textarea.value = formattedText;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    } else if (textarea.getAttribute('contenteditable') === 'true') {
+      textarea.innerHTML = formattedText;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    // Try to find and click any "submit" or special import buttons
+    const importButton = findImportButton();
+    if (importButton) {
+      importButton.click();
+      showNotification("Conversation imported to OpenWebUI!", "success");
+    } else {
+      // If no special import button found, try to send messages sequentially as fallback
+      showNotification("No import button found. Trying sequential import...", "info");
+      const success = await sendMessagesSequentially(conversation.messages);
+      
+      if (!success) {
+        showNotification("Automatic import failed. Copying to clipboard as fallback.", "info");
+        await copyConversationToClipboard(conversation);
+      }
+    }
+  } catch (error) {
+    console.error("Error during direct import:", error);
+    showNotification("Import failed. Falling back to clipboard method.", "error");
+    await copyConversationToClipboard(conversation);
+  }
+}
+
+// Wait for input element with multiple attempts
+async function waitForInputElement(maxAttempts = 5) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const element = findInputElement();
+    if (element) return element;
+    await new Promise(r => setTimeout(r, 500));
+  }
+  return null;
+}
+
+// Create a new chat if needed
+async function createNewChat() {
+  const newChatButton = findNewChatButton();
+  if (newChatButton) {
+    newChatButton.click();
+    await new Promise(r => setTimeout(r, 1000));
+    return true;
+  }
+  return false;
+}
+
+// Format conversation for UI insertion
+function formatConversationForUI(conversation) {
+  // Most chat UIs accept the first user message as the starting point
+  const userMessages = conversation.messages.filter(msg => msg.role === 'user');
+  return userMessages.length > 0 ? userMessages[0].content : "Imported from Sparrow";
+}
+
+// Find any import button or special paste handler in OpenWebUI
+function findImportButton() {
+  // Look for buttons that might be used for importing/submitting
+  const buttons = document.querySelectorAll('button, [role="button"], [type="submit"]');
+  
+  for (const button of buttons) {
+    const buttonText = (button.textContent || '').toLowerCase();
+    if (
+      buttonText.includes('import') || 
+      buttonText.includes('submit') || 
+      buttonText.includes('send') || 
+      buttonText.includes('create')
+    ) {
+      return button;
+    }
   }
   
-  // Add a listener for our custom event
-  document.addEventListener('sparrow-export-ready', function(e) {
-    console.log("Received sparrow-export-ready event", e.detail);
-    if (e.detail && e.detail.title) {
-      chrome.storage.local.get(['openwebui_export_data'], function(result) {
-        if (result && result.openwebui_export_data) {
-          displayImportButton(result.openwebui_export_data);
-        }
-      });
+  return null;
+}
+
+// Function to copy conversation to clipboard - fixed to handle clipboard API absence
+async function copyConversationToClipboard(conversation) {
+  try {
+    // Format the messages for copying
+    const messages = conversation.messages;
+    let formattedText = `# ${conversation.title || 'Conversation from Sparrow'}\n\n`;
+    
+    messages.forEach(msg => {
+      const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
+      formattedText += `**${role}:** ${msg.content}\n\n`;
+    });
+    
+    // Try to use clipboard API if available
+    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(formattedText);
+      showNotification("Conversation copied to clipboard! Paste it into the chat input.", "success");
+    } else {
+      // Use fallback method if clipboard API not available
+      fallbackClipboardCopy(formattedText);
+      showNotification("Conversation copied to clipboard using fallback method!", "success");
     }
-  });
+    
+    // Find the message input field and focus it to help user
+    const inputElement = findInputElement();
+    if (inputElement) {
+      inputElement.focus();
+    }
+  } catch (err) {
+    console.error("Failed to copy to clipboard:", err);
+    fallbackClipboardCopy(formattedText);
+    showNotification("Please paste the conversation manually.", "info");
+  }
+}
+
+// Forcefully try multiple import strategies
+async function forceImportConversation(conversation) {
+  showNotification("Importing conversation from Sparrow...", "info");
+  
+  try {
+    // Strategy 1: Force creation of a new chat
+    let success = await forceNewChat();
+    if (!success) {
+      showNotification("Could not create a new chat. Trying alternative methods...", "info");
+    }
+    
+    // Strategy 2: Try to send the messages with aggressive retries
+    success = await forceMessageSending(conversation.messages);
+    
+    if (success) {
+      showNotification("Conversation successfully imported!", "success");
+    } else {
+      // Strategy 3: Fallback to copying messages to clipboard
+      showNotification("Automatic import failed. Copying conversation to clipboard instead.", "info");
+      await copyConversationToClipboard(conversation);
+    }
+  } catch (error) {
+    console.error("Error during forced import:", error);
+    showNotification("Import failed. Please try manual methods.", "error");
+  }
+}
+
+// Force creation of a new chat
+async function forceNewChat() {
+  // Try multiple strategies to create a new chat
+  
+  // 1. Look for a dedicated "New Chat" button
+  const newChatButton = findNewChatButton();
+  if (newChatButton) {
+    console.log("Found New Chat button - clicking it");
+    newChatButton.click();
+    await new Promise(r => setTimeout(r, 1500));
+    return true;
+  }
+  
+  // 2. Try to find any menu buttons that might lead to a new chat option
+  const menuButtons = document.querySelectorAll('button, [role="button"]');
+  for (const button of menuButtons) {
+    if (button.querySelector('svg') && isElementVisible(button)) {
+      console.log("Trying potential menu button");
+      button.click();
+      await new Promise(r => setTimeout(r, 500));
+      
+      // Look for "New Chat" option in any opened menu
+      const menuOptions = document.querySelectorAll('li, [role="menuitem"], button');
+      for (const option of menuOptions) {
+        const text = option.textContent.toLowerCase();
+        if (text.includes('new') && (text.includes('chat') || text.includes('conversation'))) {
+          console.log("Found New Chat option in menu");
+          option.click();
+          await new Promise(r => setTimeout(r, 1500));
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+// Force sending messages with more aggressive approach
+async function forceMessageSending(messages) {
+  if (!messages || messages.length === 0) return false;
+  
+  let success = false;
+  
+  // Filter to just include user messages - in most chat UIs, we only need to send these
+  // and the AI responses will be generated
+  const userMessages = messages.filter(msg => msg.role === 'user');
+  
+  if (userMessages.length === 0) {
+    showNotification("No user messages found in conversation", "error");
+    return false;
+  }
+  
+  for (let i = 0; i < userMessages.length; i++) {
+    const message = userMessages[i];
+    
+    // Try multiple times to find and use the input element
+    let inputElement = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      inputElement = findInputElement();
+      if (inputElement) break;
+      await new Promise(r => setTimeout(r, 500));
+    }
+    
+    if (!inputElement) {
+      console.error("Failed to find input element after multiple attempts");
+      return false;
+    }
+    
+    // Clear any existing text with multiple approaches
+    if (inputElement.tagName.toLowerCase() === 'textarea' || inputElement.tagName.toLowerCase() === 'input') {
+      inputElement.value = '';
+    } else if (inputElement.getAttribute('contenteditable') === 'true') {
+      inputElement.innerHTML = '';
+    }
+    
+    // Ensure the element is focused
+    inputElement.focus();
+    await new Promise(r => setTimeout(r, 300));
+    
+    // Type the message content with a more reliable approach
+    if (inputElement.tagName.toLowerCase() === 'textarea' || inputElement.tagName.toLowerCase() === 'input') {
+      inputElement.value = message.content;
+      inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+      inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (inputElement.getAttribute('contenteditable') === 'true') {
+      inputElement.innerHTML = message.content;
+      inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    // Try multiple send button approaches
+    const sendButton = findSendButton();
+    if (sendButton && !sendButton.disabled) {
+      sendButton.click();
+      success = true;
+    } else {
+      // Try pressing Enter as a fallback
+      const enterEvent = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        code: 'Enter',
+        which: 13,
+        keyCode: 13,
+        bubbles: true
+      });
+      inputElement.dispatchEvent(enterEvent);
+    }
+    
+    // Wait for response to complete before sending next message
+    await new Promise(r => setTimeout(r, Math.max(2000, message.content.length * 20)));
+    
+    showNotification(`Imported message ${i+1}/${userMessages.length}`, "info");
+  }
+  
+  return success;
 }
 
 // Function to analyze the DOM structure of OpenWebUI
