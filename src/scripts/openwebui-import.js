@@ -1,21 +1,93 @@
 // This content script runs on OpenWebUI to handle the import
 console.log("OpenWebUI import content script loaded");
 
-// Add a listener for our custom event
-document.addEventListener('sparrow-export-ready', function(e) {
-  console.log("Received sparrow-export-ready event", e.detail);
-  if (e.detail && e.detail.title) {
-    showImportDialog(e.detail.title);
+// Configuration
+const CONFIG = {
+  waitTimes: {
+    domReady: 1800,
+    betweenMessages: 1200,
+    responseGeneration: 2500
+  },
+  selectors: {
+    // Add more specific selectors based on OpenWebUI's structure
+    inputElements: [
+      'textarea[placeholder*="message" i]',
+      'textarea[placeholder*="chat" i]',
+      'textarea[placeholder*="send" i]',
+      'textarea[placeholder*="type" i]',
+      'textarea:not([disabled])',
+      '[contenteditable="true"]',
+      '.chat-input',
+      '.message-input',
+      'form textarea'
+    ],
+    chatContainers: [
+      '.chat-container',
+      '.conversation-container',
+      '.message-list',
+      '[role="log"]',
+      '[aria-live="polite"]'
+    ]
   }
+};
+
+// DOM Ready handler with improved timing
+window.addEventListener('load', function() {
+  // Give extra time for dynamic content to load
+  setTimeout(initializeImport, CONFIG.waitTimes.domReady);
 });
 
-// Also check localStorage as a backup method
-window.addEventListener('load', function() {
+// Initialize the import functionality
+function initializeImport() {
+  try {
+    const url = new URL(window.location.href);
+    
+    // Check if this is a Sparrow export
+    if (url.searchParams.has('sparrow-export') && url.searchParams.get('sparrow-export') === 'true') {
+      console.log("Detected Sparrow export in URL parameters");
+      
+      // Get the conversation data from storage
+      chrome.storage.local.get(['openwebui_export_data'], function(result) {
+        if (result && result.openwebui_export_data && result.openwebui_export_data.messages) {
+          // Create the import button
+          displayImportButton(result.openwebui_export_data);
+          
+          // Analyze the DOM to better understand OpenWebUI's structure
+          analyzeOpenWebUIDOM();
+          
+          // Set up mutation observers to track UI changes
+          setupMutationObservers();
+        } else {
+          console.error("No valid conversation data found in storage");
+        }
+      });
+    }
+    
+    // Also check for other import methods
+    checkForOtherImportMethods();
+  } catch (e) {
+    console.error("Error initializing import:", e);
+  }
+}
+
+// Check for other import methods (localStorage, events, etc.)
+function checkForOtherImportMethods() {
+  // Check localStorage as a backup method
   try {
     const title = localStorage.getItem('sparrow_export_title');
     if (title) {
       console.log("Found export title in localStorage:", title);
-      showImportDialog(title);
+      
+      // Request the conversation data from the extension
+      chrome.runtime.sendMessage({
+        action: "get-openwebui-export-data"
+      }, function(response) {
+        if (response && response.data) {
+          console.log("Received conversation data from storage");
+          displayImportButton(response.data);
+        }
+      });
+      
       // Clear it after use
       localStorage.removeItem('sparrow_export_title');
     }
@@ -23,129 +95,147 @@ window.addEventListener('load', function() {
     console.error("Error checking localStorage:", e);
   }
   
-  // Check URL parameters as well (third backup method)
-  const url = new URL(window.location.href);
-  if (url.searchParams.has('source') && url.searchParams.get('source') === 'sparrow') {
-    console.log("Detected Sparrow import request from URL");
-    
-    // Request the conversation data from the extension
-    chrome.runtime.sendMessage({
-      action: "get-openwebui-export-data"
-    }, function(response) {
-      if (response && response.data) {
-        console.log("Received conversation data from storage");
-        showImportDialog(response.data.title);
-      }
-    });
-  }
-});
-
-// Check if we're on an OpenWebUI page with our export parameter
-window.addEventListener('load', function() {
-  setTimeout(() => {
-    try {
-      const url = new URL(window.location.href);
-      
-      // Check if this is a Sparrow export
-      if (url.searchParams.has('sparrow-export') && url.searchParams.get('sparrow-export') === 'true') {
-        console.log("Detected Sparrow export in URL parameters");
-        
-        // Get the conversation data from storage
-        chrome.storage.local.get(['openwebui_export_data'], function(result) {
-          if (result && result.openwebui_export_data && result.openwebui_export_data.messages) {
-            // Create the one-click import button
-            displayImportButton(result.openwebui_export_data);
-          }
-        });
-      }
-    } catch (e) {
-      console.error("Error checking for Sparrow export:", e);
-    }
-  }, 1000); // Delay to ensure page is loaded
-});
-
-// Function to show import dialog
-function showImportDialog(title) {
-  // Get conversation data from storage
-  chrome.storage.local.get(['openwebui_export_data'], function(result) {
-    if (result && result.openwebui_export_data) {
-      const conversationData = result.openwebui_export_data;
-      
-      // Try multiple clipboard methods
-      try {
-        const jsonData = JSON.stringify(conversationData, null, 2);
-        
-        // Method 1: Try the standard clipboard API first
-        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-          navigator.clipboard.writeText(jsonData)
-            .then(() => console.log("Successfully copied to clipboard using Clipboard API"))
-            .catch(e => {
-              console.error("Clipboard API failed:", e);
-              fallbackClipboardCopy(jsonData);
-            });
-        } else {
-          // Method 2: Try the fallback method
-          fallbackClipboardCopy(jsonData);
+  // Add a listener for our custom event
+  document.addEventListener('sparrow-export-ready', function(e) {
+    console.log("Received sparrow-export-ready event", e.detail);
+    if (e.detail && e.detail.title) {
+      chrome.storage.local.get(['openwebui_export_data'], function(result) {
+        if (result && result.openwebui_export_data) {
+          displayImportButton(result.openwebui_export_data);
         }
-        
-        // Create and show dialog regardless of clipboard success
-        createImportDialog(title);
-      } catch (error) {
-        console.error("Error in clipboard operation:", error);
-        // Show dialog anyway
-        createImportDialog(title);
-      }
+      });
     }
   });
 }
 
-// Add this fallback clipboard function
-function fallbackClipboardCopy(text) {
-  try {
-    // Method 1: Create a temporary textarea element
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    
-    // Hide the element
-    textArea.style.position = 'fixed';
-    textArea.style.opacity = '0';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    // Execute the copy command
-    const successful = document.execCommand('copy');
-    
-    // Remove the temporary element
-    document.body.removeChild(textArea);
-    
-    if (successful) {
-      console.log("Successfully copied to clipboard using execCommand");
-      return true;
-    } else {
-      console.warn("execCommand copy failed");
-      return false;
+// Function to analyze the DOM structure of OpenWebUI
+function analyzeOpenWebUIDOM() {
+  console.log("Analyzing OpenWebUI DOM structure...");
+  
+  // Look for messaging components
+  CONFIG.selectors.chatContainers.forEach(selector => {
+    const containers = document.querySelectorAll(selector);
+    if (containers.length > 0) {
+      console.log(`Found ${containers.length} potential chat containers with selector: ${selector}`);
     }
-  } catch (err) {
-    console.error("Fallback clipboard method failed:", err);
-    return false;
+  });
+  
+  // Look for input elements
+  const inputElement = findInputElement();
+  if (inputElement) {
+    console.log("Found input element:", inputElement);
+    console.log("Input element properties:", {
+      tagName: inputElement.tagName,
+      id: inputElement.id,
+      className: inputElement.className,
+      placeholder: inputElement.placeholder,
+      contentEditable: inputElement.contentEditable
+    });
+  }
+  
+  // Look for submit/send buttons
+  const sendButton = findSendButton();
+  if (sendButton) {
+    console.log("Found send button:", sendButton);
+    console.log("Send button properties:", {
+      tagName: sendButton.tagName,
+      id: sendButton.id,
+      className: sendButton.className,
+      textContent: sendButton.textContent.trim()
+    });
+  }
+  
+  // Look for new chat button
+  const newChatButton = findNewChatButton();
+  if (newChatButton) {
+    console.log("Found new chat button:", newChatButton);
   }
 }
 
-// Function to create and inject dialog
-function createImportDialog(title) {
-  // Remove any existing dialog first
-  const existingDialog = document.getElementById('sparrow-import-dialog');
-  if (existingDialog) {
-    existingDialog.remove();
+// Set up mutation observers to track UI changes
+function setupMutationObservers() {
+  // Watch for changes in the chat container
+  CONFIG.selectors.chatContainers.forEach(selector => {
+    const containers = document.querySelectorAll(selector);
+    containers.forEach(container => {
+      const observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            console.log("Chat container updated with new content");
+          }
+        }
+      });
+      
+      observer.observe(container, { childList: true, subtree: true });
+    });
+  });
+}
+
+// Function to display the import button
+function displayImportButton(conversation) {
+  // Remove any existing button first
+  const existingButton = document.getElementById('sparrow-import-button');
+  if (existingButton) {
+    existingButton.remove();
   }
   
+  // Create a floating button
+  const importButton = document.createElement('div');
+  importButton.id = 'sparrow-import-button';
+  importButton.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: #2980b9;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  `;
+  
+  importButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="17 8 12 3 7 8"></polyline>
+      <line x1="12" y1="3" x2="12" y2="15"></line>
+    </svg>
+    Import Sparrow Chat (${conversation.messages.length} messages)
+  `;
+  
+  document.body.appendChild(importButton);
+  
+  // Add hover effect
+  importButton.addEventListener('mouseenter', function() {
+    this.style.transform = 'translateY(-2px)';
+    this.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
+  });
+  
+  importButton.addEventListener('mouseleave', function() {
+    this.style.transform = 'translateY(0)';
+    this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+  });
+  
+  // Add click event to insert all messages
+  importButton.addEventListener('click', function() {
+    // Show options dialog
+    showImportOptionsDialog(conversation);
+  });
+}
+
+// Function to show import options dialog
+function showImportOptionsDialog(conversation) {
   // Create dialog element
   const dialog = document.createElement('div');
-  dialog.id = 'sparrow-import-dialog';
+  dialog.id = 'sparrow-import-options-dialog';
   dialog.style.cssText = `
     position: fixed;
     top: 50%;
@@ -155,7 +245,7 @@ function createImportDialog(title) {
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
+    z-index: 10001;
     width: 450px;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     color: #333;
@@ -166,109 +256,261 @@ function createImportDialog(title) {
     <div style="display: flex; align-items: center; margin-bottom: 16px;">
       <div style="background-color: #2980b9; border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; margin-right: 12px;">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
         </svg>
       </div>
-      <h3 style="margin: 0; color: #2980b9; font-size: 20px;">Import from Sparrow</h3>
+      <h3 style="margin: 0; color: #2980b9; font-size: 20px;">Import Options</h3>
     </div>
     
-    <div style="display: flex; align-items: center; margin-bottom: 12px; background-color: #e8f4fc; padding: 8px 12px; border-radius: 6px;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-      </svg>
-      <span style="color: #2980b9; font-weight: 500;">Conversation data copied to clipboard</span>
-    </div>
+    <p style="margin-top: 0;">Choose how to import ${conversation.messages.length} messages from Sparrow:</p>
     
-    <p style="margin-top: 0; font-weight: 500;">Please follow these steps:</p>
-    <ol style="padding-left: 24px; margin-bottom: 20px;">
-      <li style="margin-bottom: 8px;">Click "New Chat" in OpenWebUI</li>
-      <li style="margin-bottom: 8px;">Name your conversation: <br><strong style="color: #2980b9; display: block; margin-top: 4px; padding: 8px; background: #f5f5f5; border-radius: 4px;">${title}</strong></li>
-      <li>If needed, paste the copied data in the import field</li>
-    </ol>
-    
-    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-      <button id="sparrow-recopy-data" style="
+    <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+      <button id="sparrow-import-auto" style="
+        background: #2980b9;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"></path>
+          <path d="M12 5v14"></path>
+        </svg>
+        Automatic Import (Recommended)
+      </button>
+      
+      <button id="sparrow-import-clipboard" style="
         background: #f5f5f5;
-        color: #555;
+        color: #333;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+        </svg>
+        Copy to Clipboard
+      </button>
+      
+      <button id="sparrow-import-first" style="
+        background: #f5f5f5;
+        color: #333;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 10 4 15 9 20"></polyline>
+          <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+        </svg>
+        Import First Message Only
+      </button>
+    </div>
+    
+    <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+      <button id="sparrow-import-cancel" style="
+        background: #e0e0e0;
+        color: #333;
         border: none;
         padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
         font-weight: 500;
-      ">Re-copy Data</button>
-      
-      <button id="sparrow-import-close" style="
-        background: #2980b9;
-        color: white;
-        border: none;
-        padding: 8px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-      ">OK</button>
+      ">Cancel</button>
     </div>
   `;
   
   // Add dialog to page
   document.body.appendChild(dialog);
   
-  // Add event listener to close button
-  document.getElementById('sparrow-import-close').addEventListener('click', function() {
+  // Add event listeners
+  document.getElementById('sparrow-import-auto').addEventListener('click', function() {
     dialog.remove();
+    importConversationToOpenWebUI(conversation);
   });
   
-  // Add event listener to re-copy button
-  document.getElementById('sparrow-recopy-data').addEventListener('click', function() {
-    chrome.storage.local.get(['openwebui_export_data'], function(result) {
-      if (result && result.openwebui_export_data) {
-        const jsonData = JSON.stringify(result.openwebui_export_data, null, 2);
-        
-        // Try both clipboard methods
-        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-          navigator.clipboard.writeText(jsonData)
-            .then(() => {
-              // Show a small notification
-              showCopiedNotification();
-            })
-            .catch(e => {
-              fallbackClipboardCopy(jsonData);
-              showCopiedNotification();
-            });
-        } else {
-          fallbackClipboardCopy(jsonData);
-          showCopiedNotification();
-        }
-      }
-    });
+  document.getElementById('sparrow-import-clipboard').addEventListener('click', function() {
+    dialog.remove();
+    copyConversationToClipboard(conversation);
+  });
+  
+  document.getElementById('sparrow-import-first').addEventListener('click', function() {
+    dialog.remove();
+    importFirstMessageOnly(conversation);
+  });
+  
+  document.getElementById('sparrow-import-cancel').addEventListener('click', function() {
+    dialog.remove();
   });
 }
 
-// Add a small notification that appears briefly
-function showCopiedNotification() {
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(41, 128, 185, 0.9);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-size: 14px;
-    z-index: 10001;
-    transition: opacity 0.3s ease-in-out;
-  `;
-  notification.textContent = 'Conversation data copied!';
-  document.body.appendChild(notification);
+// Function to import the conversation using multiple methods
+async function importConversationToOpenWebUI(conversation) {
+  // Show a processing notification
+  showNotification("Processing conversation import...", "info");
   
-  // Remove after 3 seconds
-  setTimeout(() => {
-    notification.style.opacity = '0';
-    setTimeout(() => {
-      notification.remove();
-    }, 300);
-  }, 3000);
+  try {
+    // Method 1: Try to find and use New Chat button if we're not already in a chat
+    const newChatButton = findNewChatButton();
+    if (newChatButton) {
+      console.log("Found New Chat button - clicking it first");
+      newChatButton.click();
+      
+      // Wait for the chat input to appear
+      await waitForElement('textarea, [contenteditable="true"]', 3000);
+    }
+    
+    // Method 2: Try sending messages one by one (most compatible)
+    const success = await sendMessagesSequentially(conversation.messages);
+    
+    if (success) {
+      showNotification("Conversation imported successfully!", "success");
+      
+      // Hide the import button after successful import
+      const importButton = document.getElementById('sparrow-import-button');
+      if (importButton) {
+        importButton.remove();
+      }
+    } else {
+      // Method 3: Fallback to copying everything at once
+      showNotification("Automatic import failed. Copying to clipboard instead.", "info");
+      copyConversationToClipboard(conversation);
+    }
+  } catch (error) {
+    console.error("Error during import:", error);
+    showNotification("Import failed. Please try copying to clipboard instead.", "error");
+  }
+}
+
+// Function to copy conversation to clipboard
+async function copyConversationToClipboard(conversation) {
+  try {
+    // Format the messages for copying
+    const messages = conversation.messages;
+    let formattedText = `# ${conversation.title || 'Conversation from Sparrow'}\n\n`;
+    
+    messages.forEach(msg => {
+      const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
+      formattedText += `**${role}:** ${msg.content}\n\n`;
+    });
+    
+    // Copy to clipboard
+    await navigator.clipboard.writeText(formattedText);
+    
+    // Show success notification
+    showNotification("Conversation copied to clipboard!", "success");
+    
+    // Find the message input field
+    const inputElement = findInputElement();
+    if (inputElement) {
+      // Focus the input element
+      inputElement.focus();
+      
+      // Show guidance message
+      showNotification("Paste the conversation into the input field and press Enter to send.", "info");
+    }
+  } catch (err) {
+    console.error("Failed to copy to clipboard:", err);
+    
+    // Try fallback method
+    const success = fallbackClipboardCopy(formattedText);
+    if (success) {
+      showNotification("Conversation copied to clipboard using fallback method!", "success");
+    } else {
+      showNotification("Failed to copy conversation. Please try another method.", "error");
+    }
+  }
+}
+
+// Function to import only the first message
+async function importFirstMessageOnly(conversation) {
+  try {
+    // Find the first user message
+    const userMessages = conversation.messages.filter(msg => msg.role === 'user');
+    if (userMessages.length === 0) {
+      showNotification("No user messages found in the conversation.", "error");
+      return;
+    }
+    
+    const firstUserMessage = userMessages[0];
+    
+    // Method 1: Try to find and use New Chat button if we're not already in a chat
+    const newChatButton = findNewChatButton();
+    if (newChatButton) {
+      console.log("Found New Chat button - clicking it first");
+      newChatButton.click();
+      
+      // Wait for the chat input to appear
+      await waitForElement('textarea, [contenteditable="true"]', 3000);
+    }
+    
+    // Find input element
+    const inputElement = findInputElement();
+    if (!inputElement) {
+      showNotification("Cannot find input element. Copying to clipboard instead.", "info");
+      
+      // Copy to clipboard as fallback
+      await navigator.clipboard.writeText(firstUserMessage.content);
+      showNotification("First message copied to clipboard!", "success");
+      return;
+    }
+    
+    // Type message into input
+    await typeIntoElement(inputElement, firstUserMessage.content);
+    
+    // Find and click send button
+    const sendButton = findSendButton();
+    if (sendButton) {
+      sendButton.click();
+      showNotification("First message sent successfully!", "success");
+    } else {
+      // Try to simulate Enter key if no send button found
+      const event = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        code: 'Enter',
+        which: 13,
+        keyCode: 13,
+        bubbles: true
+      });
+      
+      inputElement.dispatchEvent(event);
+      showNotification("First message sent successfully!", "success");
+    }
+    
+    // Show notification about remaining messages
+    if (conversation.messages.length > 1) {
+      setTimeout(() => {
+        showImportNotification(conversation.messages.length - 1);
+      }, 2000);
+    }
+    
+    // Hide the import button after successful import
+    const importButton = document.getElementById('sparrow-import-button');
+    if (importButton) {
+      importButton.remove();
+    }
+  } catch (error) {
+    console.error("Error importing first message:", error);
+    showNotification("Failed to import first message. Please try copying to clipboard.", "error");
+  }
 }
 
 // Function to show a notification about remaining messages
@@ -321,7 +563,7 @@ function showImportNotification(messageCount) {
       if (result && result.openwebui_export_data) {
         // Format the messages for copying
         const messages = result.openwebui_export_data.messages;
-        let formattedText = `# ${result.openwebui_export_data.title}\n\n`;
+        let formattedText = `# ${result.openwebui_export_data.title || 'Conversation from Sparrow'}\n\n`;
         
         messages.forEach(msg => {
           const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
@@ -383,192 +625,368 @@ function showImportNotification(messageCount) {
   }, 20000);
 }
 
-// Function to show a success notification
-function showSuccessNotification() {
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: white;
-    color: #333;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10001;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  `;
+// Function to send messages sequentially with improved timing
+async function sendMessagesSequentially(messages) {
+  let success = true;
   
-  notification.innerHTML = `
-    <div style="display: flex; align-items: center;">
-      <div style="background-color: #27ae60; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; margin-right: 10px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      </div>
-      <div>
-        <h3 style="margin: 0; color: #27ae60; font-size: 16px;">Success!</h3>
-        <p style="margin: 5px 0 0 0; font-size: 14px;">Message imported from Sparrow</p>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(notification);
-  
-  // Auto-hide after 5 seconds
-  setTimeout(() => {
-    notification.style.opacity = '0';
-    notification.style.transition = 'opacity 0.5s ease-out';
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
     
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        notification.remove();
-      }
-    }, 500);
-  }, 5000);
-}
-
-// Function to display the import button
-function displayImportButton(conversation) {
-  // Create a floating button
-  const importButton = document.createElement('div');
-  importButton.style.cssText = `
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    background: #2980b9;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 50px;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: transform 0.2s ease;
-  `;
-  
-  importButton.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-      <polyline points="17 8 12 3 7 8"></polyline>
-      <line x1="12" y1="3" x2="12" y2="15"></line>
-    </svg>
-    Import Sparrow Chat
-  `;
-  
-  document.body.appendChild(importButton);
-  
-  // Add hover effect
-  importButton.addEventListener('mouseenter', function() {
-    this.style.transform = 'translateY(-2px)';
-    this.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
-  });
-  
-  importButton.addEventListener('mouseleave', function() {
-    this.style.transform = 'translateY(0)';
-    this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-  });
-  
-  // Add click event to insert all messages
-  importButton.addEventListener('click', function() {
-    // Format conversation for easy pasting
-    const messages = conversation.messages;
-    let formattedText = "";
+    // Skip if empty message
+    if (!message.content.trim()) continue;
     
-    messages.forEach(msg => {
-      // Format based on role
-      const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
-      formattedText += `${role}: ${msg.content}\n\n`;
-    });
-    
-    // Copy to clipboard
-    navigator.clipboard.writeText(formattedText)
-      .then(() => {
-        console.log("Copied formatted conversation to clipboard");
-        
-        // Find the message input field
+    // Only send user messages - AI responses should be generated by OpenWebUI
+    if (message.role === 'user') {
+      try {
+        // Find input element each time as it might change
         const inputElement = findInputElement();
-        if (inputElement) {
-          // Focus the input element
-          inputElement.focus();
-          
-          // Try to directly set the value for textarea elements
-          if (inputElement.tagName.toLowerCase() === 'textarea') {
-            inputElement.value = formattedText;
-            
-            // Trigger an input event to update any listeners
-            const event = new Event('input', { bubbles: true });
-            inputElement.dispatchEvent(event);
-          } 
-          // Or try execCommand for contenteditable
-          else if (inputElement.getAttribute('contenteditable') === 'true') {
-            inputElement.textContent = formattedText;
-          }
-          // Fallback to clipboard paste
-          else {
-            document.execCommand('paste');
-          }
-          
-          // Show success notification
-          showNotification("Conversation imported successfully!", "success");
-          
-          // Remove the button
-          setTimeout(() => {
-            importButton.remove();
-          }, 1000);
-        } else {
-          showNotification("Conversation copied to clipboard! Please paste it manually.", "info");
+        if (!inputElement) {
+          console.error("Cannot find input element for message:", message);
+          success = false;
+          continue;
         }
-      })
-      .catch(err => {
-        console.error("Failed to copy to clipboard:", err);
-        showNotification("Failed to copy conversation. Please try again.", "error");
-      });
-  });
+        
+        // Type message into input
+        await typeIntoElement(inputElement, message.content);
+        
+        // Find and click send button
+        const sendButton = findSendButton();
+        if (sendButton) {
+          sendButton.click();
+          
+          // Show progress notification for long conversations
+          if (i < messages.length - 1) {
+            showNotification(`Sending message ${Math.floor(i/2) + 1}/${Math.ceil(messages.length/2)}...`, "info");
+          }
+          
+          // Wait for the assistant response to be generated
+          // Use a dynamic wait time based on message length
+          const waitTime = Math.max(
+            CONFIG.waitTimes.responseGeneration,
+            Math.min(10000, message.content.length * 5) // 5ms per character, max 10 seconds
+          );
+          
+          await waitForResponseCompletion(waitTime);
+        } else {
+          // Try to simulate Enter key if no send button found
+          const event = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            code: 'Enter',
+            which: 13,
+            keyCode: 13,
+            bubbles: true
+          });
+          
+          inputElement.dispatchEvent(event);
+          
+          // Wait for the assistant response to be generated
+          await waitForResponseCompletion(CONFIG.waitTimes.responseGeneration);
+        }
+      } catch (e) {
+        console.error("Error sending message:", e);
+        success = false;
+      }
+    }
+  }
+  
+  return success;
 }
 
-// Function to find the input element
-function findInputElement() {
-  // Common patterns for chat input elements
-  const inputSelectors = [
-    'textarea[placeholder*="message"]',
-    'textarea[placeholder*="Message"]',
-    'textarea[placeholder*="chat"]',
-    'textarea[placeholder*="Chat"]',
-    'textarea[placeholder*="send"]',
-    'textarea[placeholder*="Send"]',
-    'textarea[placeholder*="type"]',
-    'textarea[placeholder*="Type"]',
-    'div[contenteditable="true"]',
-    'textarea',
-    '.chat-input',
-    '.message-input'
+// Function to wait for response completion
+async function waitForResponseCompletion(baseWaitTime) {
+  // First, wait for the base time
+  await new Promise(resolve => setTimeout(resolve, baseWaitTime));
+  
+  // Then check if there's any loading indicator
+  const loadingIndicators = [
+    '.loading',
+    '.typing',
+    '.thinking',
+    '[role="status"]',
+    '.spinner',
+    '.dots',
+    '.progress'
   ];
   
-  for (const selector of inputSelectors) {
+  // Check for any visible loading indicators
+  for (const selector of loadingIndicators) {
     const elements = document.querySelectorAll(selector);
-    if (elements.length > 0) {
-      // Return the largest textarea (most likely the main input)
-      if (elements.length > 1) {
-        return Array.from(elements).reduce((largest, current) => {
-          return (current.offsetHeight > largest.offsetHeight) ? current : largest;
+    for (const element of elements) {
+      if (isElementVisible(element)) {
+        console.log("Found active loading indicator, waiting for completion");
+        
+        // Wait for the loading indicator to disappear
+        await new Promise(resolve => {
+          const observer = new MutationObserver(() => {
+            if (!isElementVisible(element)) {
+              observer.disconnect();
+              resolve();
+            }
+          });
+          
+          observer.observe(element, { 
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+            childList: true
+          });
+          
+          // Timeout after 30 seconds
+          setTimeout(() => {
+            observer.disconnect();
+            resolve();
+          }, 30000);
         });
+        
+        // Add a small buffer time
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return;
       }
-      return elements[0];
+    }
+  }
+  
+  // If no loading indicator found, just add a small additional wait
+  await new Promise(resolve => setTimeout(resolve, 500));
+}
+
+// Check if an element is visible
+function isElementVisible(element) {
+  if (!element) return false;
+  
+  const style = window.getComputedStyle(element);
+  return style.display !== 'none' && 
+         style.visibility !== 'hidden' && 
+         style.opacity !== '0' &&
+         element.offsetWidth > 0 &&
+         element.offsetHeight > 0;
+}
+
+// Function to find a "New Chat" button
+function findNewChatButton() {
+  // Look for buttons with text containing "new chat" or "new conversation"
+  const buttons = document.querySelectorAll('button, a, [role="button"]');
+  for (const button of buttons) {
+    const text = button.textContent.toLowerCase();
+    if (text.includes('new chat') || text.includes('new conversation')) {
+      return button;
+    }
+  }
+  
+  // Look for elements with + icon that might be new chat buttons
+  const plusIcons = document.querySelectorAll('svg');
+  for (const icon of plusIcons) {
+    // Check if it looks like a plus icon
+    if (icon.innerHTML.includes('M12 5v14m-7-7h14') || 
+        icon.innerHTML.includes('M12 5v14') || 
+        icon.innerHTML.includes('M5 12h14')) {
+      // This is likely a + icon
+      const button = icon.closest('button') || icon.closest('a') || icon.closest('[role="button"]');
+      if (button) return button;
     }
   }
   
   return null;
 }
 
+// Function to wait for an element to appear
+function waitForElement(selector, timeout = 5000) {
+  return new Promise((resolve) => {
+    if (document.querySelector(selector)) {
+      return resolve(document.querySelector(selector));
+    }
+    
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(selector)) {
+        observer.disconnect();
+        resolve(document.querySelector(selector));
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    setTimeout(() => {
+      observer.disconnect();
+      resolve(null);
+    }, timeout);
+  });
+}
+
+// Function to find the send button with improved detection
+function findSendButton() {
+  // Common patterns for send buttons
+  const buttons = document.querySelectorAll('button, [role="button"]');
+  
+  // Look for buttons with text suggesting sending
+  for (const button of buttons) {
+    const text = button.textContent.toLowerCase();
+    if (text.includes('send') || text.includes('submit')) {
+      return button;
+    }
+  }
+  
+  // Look for buttons with paper plane icons (common send icon)
+  const svgButtons = Array.from(buttons).filter(btn => btn.querySelector('svg'));
+  for (const button of svgButtons) {
+    const svg = button.querySelector('svg');
+    const svgContent = svg.innerHTML;
+    
+    // Check for common paper plane icon paths
+    if (svgContent.includes('M22 2L11 13') || // Paper plane shape
+        svgContent.includes('M2 21l7-7 9 9') || // Paper plane shape
+        svgContent.includes('M21.44 11.05l-9.19 9.19')) { // Paper plane shape
+      return button;
+    }
+  }
+  
+  // Look for buttons positioned near the input element
+  const inputElement = findInputElement();
+  if (inputElement) {
+    const inputRect = inputElement.getBoundingClientRect();
+    
+    // Find buttons that are positioned to the right of the input
+    const potentialSendButtons = Array.from(buttons).filter(btn => {
+      const buttonRect = btn.getBoundingClientRect();
+      
+      // Button should be close to the input horizontally and aligned vertically
+      const horizontallyClose = Math.abs(buttonRect.left - inputRect.right) < 100;
+      const verticallyAligned = Math.abs(buttonRect.top - inputRect.top) < 50;
+      
+      return horizontallyClose && verticallyAligned;
+    });
+    
+    if (potentialSendButtons.length > 0) {
+      // Return the closest button to the input
+      return potentialSendButtons.reduce((closest, current) => {
+        const closestRect = closest.getBoundingClientRect();
+        const currentRect = current.getBoundingClientRect();
+        
+        const closestDistance = Math.abs(closestRect.left - inputRect.right);
+        const currentDistance = Math.abs(currentRect.left - inputRect.right);
+        
+        return currentDistance < closestDistance ? current : closest;
+      });
+    }
+  }
+  
+  return null;
+}
+
+// Function to find the input element with improved detection
+function findInputElement() {
+  // Try all selectors from the config
+  for (const selector of CONFIG.selectors.inputElements) {
+    const elements = document.querySelectorAll(selector);
+    if (elements.length > 0) {
+      // Filter for visible elements
+      const visibleElements = Array.from(elements).filter(el => isElementVisible(el));
+      
+      if (visibleElements.length > 0) {
+        // Return the largest visible element (most likely the main input)
+        return visibleElements.reduce((largest, current) => {
+          return (current.offsetHeight > largest.offsetHeight) ? current : largest;
+        });
+      }
+      
+      return elements[0];
+    }
+  }
+  
+  // Look for any textarea or contenteditable div that's visible
+  const allInputs = [
+    ...document.querySelectorAll('textarea'),
+    ...document.querySelectorAll('[contenteditable="true"]')
+  ];
+  
+  const visibleInputs = allInputs.filter(el => isElementVisible(el));
+  if (visibleInputs.length > 0) {
+    // Return the largest visible input
+    return visibleInputs.reduce((largest, current) => {
+      return (current.offsetHeight > largest.offsetHeight) ? current : largest;
+    });
+  }
+  
+  return null;
+}
+
+// Function to simulate typing into an element
+async function typeIntoElement(element, text) {
+  // Clear existing content first
+  if (element.tagName.toLowerCase() === 'textarea' || element.tagName.toLowerCase() === 'input') {
+    element.value = '';
+    
+    // Focus the element
+    element.focus();
+    
+    // Set the value
+    element.value = text;
+    
+    // Trigger input event
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  } 
+  else if (element.getAttribute('contenteditable') === 'true') {
+    // For contenteditable elements
+    element.innerHTML = '';
+    element.focus();
+    
+    // Insert text
+    document.execCommand('insertText', false, text);
+    
+    // Trigger input event
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+// Add this fallback clipboard function
+function fallbackClipboardCopy(text) {
+  try {
+    // Method 1: Create a temporary textarea element
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // Hide the element
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    // Execute the copy command
+    const successful = document.execCommand('copy');
+    
+    // Remove the temporary element
+    document.body.removeChild(textArea);
+    
+    if (successful) {
+      console.log("Successfully copied to clipboard using execCommand");
+      return true;
+    } else {
+      console.warn("execCommand copy failed");
+      return false;
+    }
+  } catch (err) {
+    console.error("Fallback clipboard method failed:", err);
+    return false;
+  }
+}
+
 // Function to show notification
 function showNotification(message, type = "info") {
+  // Remove any existing notification with the same message
+  const existingNotifications = document.querySelectorAll('.sparrow-notification');
+  existingNotifications.forEach(notification => {
+    if (notification.textContent.includes(message)) {
+      notification.remove();
+    }
+  });
+  
   const notification = document.createElement('div');
+  notification.className = 'sparrow-notification';
   
   // Set colors based on type
   let bgColor, iconColor, iconSvg;
@@ -605,25 +1023,42 @@ function showNotification(message, type = "info") {
     display: flex;
     align-items: center;
     gap: 10px;
-    animation: slideIn 0.3s ease;
+    animation: sparrowSlideIn 0.3s ease;
+    max-width: 80%;
   `;
   
   notification.innerHTML = `
     <div style="color: ${iconColor};">${iconSvg}</div>
-    <div>${message}</div>
+    <div style="word-break: break-word;">${message}</div>
   `;
   
   // Add animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-  `;
-  document.head.appendChild(style);
+  if (!document.getElementById('sparrow-notification-style')) {
+    const style = document.createElement('style');
+    style.id = 'sparrow-notification-style';
+    style.textContent = `
+      @keyframes sparrowSlideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
   
   document.body.appendChild(notification);
+  
+  // Position multiple notifications
+  const notifications = document.querySelectorAll('.sparrow-notification');
+  let offset = 0;
+  
+  notifications.forEach((notif, index) => {
+    if (index > 0) {
+      const prevNotif = notifications[index - 1];
+      const prevHeight = prevNotif.offsetHeight;
+      offset += prevHeight + 10; // 10px gap
+      notif.style.bottom = `${20 + offset}px`;
+    }
+  });
   
   // Auto-hide after 5 seconds
   setTimeout(() => {
