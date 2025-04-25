@@ -996,14 +996,21 @@ async function exportToOpenWebUI(conversation) {
         const baseUrl = settings.openWebUIUrl.replace(/\/+$/, '');
         console.log("Using OpenWebUI base URL:", baseUrl);
         
-        // Alternative format for OpenWebUI that seems more compatible
+        // Check if URL is valid
+        try {
+            new URL(baseUrl);
+        } catch (e) {
+            throw new Error(`Invalid OpenWebUI URL: ${baseUrl}`);
+        }
+        
+        // Format conversation for OpenWebUI
         const formattedConversation = {
             conversation_id: `sparrow_${Date.now()}`,
             title: `Sparrow Export - ${new Date().toLocaleString()}`,
             messages: conversation.map(msg => ({
                 role: msg.role,
                 content: msg.content,
-                timestamp: new Date().toISOString()
+                timestamp: Date.now()
             })),
             model: {
                 id: "default",
@@ -1011,83 +1018,28 @@ async function exportToOpenWebUI(conversation) {
             }
         };
         
-        // Standard format as fallback
-        const standardFormat = {
-            title: `Sparrow Export - ${new Date().toLocaleString()}`,
-            messages: conversation.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            })),
-            model: "Unknown",
-            created_at: new Date().toISOString()
-        };
+        console.log("Attempting direct browser navigation to OpenWebUI");
         
-        // Prepare headers
-        const headers = {
-            'Content-Type': 'application/json'
-        };
+        // Instead of using fetch, create a new tab with OpenWebUI and pass data via localStorage
+        // This bypasses CORS issues completely
         
-        // Add API key if available
-        if (apiKey) {
-            headers['Authorization'] = `Bearer ${apiKey}`;
-        }
+        // First, save the conversation data to local storage
+        await new Promise(resolve => {
+            chrome.storage.local.set({
+                'openwebui_export_data': formattedConversation,
+                'openwebui_export_timestamp': Date.now()
+            }, resolve);
+        });
         
-        // Define the endpoints to try
-        const endpoints = [
-            { method: 'POST', url: `${baseUrl}/api/conversation`, name: "Standard API", format: formattedConversation },
-            { method: 'POST', url: `${baseUrl}/api/conversations`, name: "Conversations API", format: formattedConversation },
-            { method: 'POST', url: `${baseUrl}/api/v1/conversations`, name: "V1 API", format: formattedConversation },
-            { method: 'POST', url: `${baseUrl}/api/v2/conversations`, name: "V2 API", format: standardFormat },
-            { method: 'POST', url: `${baseUrl}/api/chat/conversations`, name: "Chat API", format: formattedConversation },
-            { method: 'PUT', url: `${baseUrl}/api/conversations/new`, name: "New Conversation API", format: formattedConversation }
-        ];
+        // Open OpenWebUI in a new tab with a special parameter
+        chrome.tabs.create({
+            url: `${baseUrl}/import?source=sparrow&timestamp=${Date.now()}`
+        }, function(tab) {
+            console.log("Opened OpenWebUI tab:", tab);
+        });
         
-        // Try each endpoint until one works
-        let lastError = null;
-        for (const endpoint of endpoints) {
-            console.log(`Trying ${endpoint.name} at ${endpoint.url}`);
-            try {
-                const response = await fetch(endpoint.url, {
-                    method: endpoint.method,
-                    headers: headers,
-                    body: JSON.stringify(endpoint.format)
-                });
-                
-                console.log(`Response from ${endpoint.name}: ${response.status}`);
-                
-                // Check if the response is OK
-                if (response.ok) {
-                    // Try to parse as JSON, but don't fail if it's not JSON
-                    try {
-                        const jsonResponse = await response.json();
-                        console.log("Success with endpoint:", endpoint.name);
-                        return jsonResponse;
-                    } catch (e) {
-                        // If it's not JSON but the response was OK, consider it a success
-                        console.log("Response wasn't JSON but was successful");
-                        return { success: true, message: "Export successful" };
-                    }
-                }
-                
-                // If we get here, the request failed
-                const responseText = await response.text().catch(e => "Unable to read response");
-                
-                // Check if we got HTML instead of JSON (common error for wrong endpoints)
-                if (responseText.includes('<!DOCTYPE html>') || responseText.includes('<html')) {
-                    console.log(`${endpoint.name} returned HTML instead of JSON. This is likely a wrong endpoint.`);
-                    lastError = new Error(`${endpoint.name} returned a web page instead of API data`);
-                } else {
-                    lastError = new Error(`${endpoint.name} failed with status ${response.status}: ${responseText}`);
-                }
-            } catch (error) {
-                console.error(`Error with ${endpoint.name}:`, error);
-                lastError = error;
-                // Continue to the next endpoint
-            }
-        }
-        
-        // If we get here, all endpoints failed
-        throw lastError || new Error("All export attempts failed");
+        // Return success
+        return { success: true, message: "Opened OpenWebUI in a new tab" };
         
     } catch (error) {
         console.error("Export to OpenWebUI failed:", error);
@@ -1203,6 +1155,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       });
     return true;
+  }
+  
+  // Handle requests for OpenWebUI export data
+  if (request.action === 'get-openwebui-export-data') {
+    chrome.storage.local.get(['openwebui_export_data', 'openwebui_export_timestamp'], (result) => {
+      if (result.openwebui_export_data && result.openwebui_export_timestamp) {
+        // Check if the timestamp matches
+        if (request.timestamp && request.timestamp == result.openwebui_export_timestamp) {
+          sendResponse({ data: result.openwebui_export_data });
+        } else {
+          // If no timestamp or it doesn't match, still send the data but warn
+          console.warn("Timestamp mismatch or missing:", request.timestamp, result.openwebui_export_timestamp);
+          sendResponse({ data: result.openwebui_export_data });
+        }
+      } else {
+        sendResponse({ error: "No export data found" });
+      }
+    });
+    return true; // Indicates async response
   }
 });
 

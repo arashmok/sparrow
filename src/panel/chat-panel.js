@@ -604,9 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Add debug info in the chat
-      addMessage('Attempting to export chat to OpenWebUI...', 'assistant');
-      console.log('OpenWebUI URL:', settings.openWebUIUrl);
-      console.log('Exporting conversation with', conversationHistory.length, 'messages');
+      addMessage('Preparing to export chat to OpenWebUI...', 'assistant');
       
       // Send conversation to background script for handling
       chrome.runtime.sendMessage({
@@ -615,18 +613,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }, function(response) {
         if (response && response.success) {
           // Show success message
-          addMessage('Chat exported successfully to OpenWebUI.', 'assistant');
+          addMessage('Chat export prepared. OpenWebUI should open in a new tab. Please follow the instructions there to complete the import.', 'assistant');
         } else {
           // Show detailed error message
           const errorMsg = response && response.error ? response.error : 'Unknown error occurred';
           addMessage(`Failed to export chat: ${errorMsg}`, 'assistant');
           console.error('OpenWebUI export error:', errorMsg);
-          
-          // Add technical details if available
-          if (response && response.details) {
-            addMessage(`Technical details: ${response.details}`, 'assistant');
-            console.error('OpenWebUI error details:', response.details);
-          }
         }
         
         // Reset button state
