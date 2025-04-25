@@ -47,16 +47,24 @@ function showImportDialog(title) {
     if (result && result.openwebui_export_data) {
       const conversationData = result.openwebui_export_data;
       
-      // Try to copy to clipboard (this should work in content scripts)
+      // Try multiple clipboard methods
       try {
         const jsonData = JSON.stringify(conversationData, null, 2);
         
-        // Use the clipboard API
-        navigator.clipboard.writeText(jsonData)
-          .then(() => console.log("Successfully copied to clipboard"))
-          .catch(e => console.error("Clipboard write failed:", e));
-          
-        // Create and show dialog
+        // Method 1: Try the standard clipboard API first
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(jsonData)
+            .then(() => console.log("Successfully copied to clipboard using Clipboard API"))
+            .catch(e => {
+              console.error("Clipboard API failed:", e);
+              fallbackClipboardCopy(jsonData);
+            });
+        } else {
+          // Method 2: Try the fallback method
+          fallbackClipboardCopy(jsonData);
+        }
+        
+        // Create and show dialog regardless of clipboard success
         createImportDialog(title);
       } catch (error) {
         console.error("Error in clipboard operation:", error);
@@ -65,6 +73,42 @@ function showImportDialog(title) {
       }
     }
   });
+}
+
+// Add this fallback clipboard function
+function fallbackClipboardCopy(text) {
+  try {
+    // Method 1: Create a temporary textarea element
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // Hide the element
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    // Execute the copy command
+    const successful = document.execCommand('copy');
+    
+    // Remove the temporary element
+    document.body.removeChild(textArea);
+    
+    if (successful) {
+      console.log("Successfully copied to clipboard using execCommand");
+      return true;
+    } else {
+      console.warn("execCommand copy failed");
+      return false;
+    }
+  } catch (err) {
+    console.error("Fallback clipboard method failed:", err);
+    return false;
+  }
 }
 
 // Function to create and inject dialog
