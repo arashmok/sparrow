@@ -276,7 +276,8 @@
   .api-indicator-container {
     padding: 12px 16px;
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
+    align-items: center;
     background-color: #f8f9fb;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
   }
@@ -306,6 +307,31 @@
   
   .indicator-openrouter {
     background-color: #FF6B00; /* OpenRouter orange */
+  }
+  
+  /* Export button styling */
+  .export-button {
+    margin-left: auto;
+    background-color: #38726a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .export-button:hover {
+    background-color: #2c5a54;
+  }
+  
+  .export-button:disabled {
+    background-color: #8ab3ad;
+    cursor: not-allowed;
   }
   
   /* =============================================================================
