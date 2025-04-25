@@ -38,32 +38,30 @@ window.addEventListener('load', function() {
       }
     });
   }
-  
-  // Check if we're on an OpenWebUI page with our export parameter
-  try {
-    if (url.searchParams.has('sparrow-export') && url.searchParams.get('sparrow-export') === 'true') {
-      console.log("Detected Sparrow export in URL parameters");
+});
+
+// Check if we're on an OpenWebUI page with our export parameter
+window.addEventListener('load', function() {
+  setTimeout(() => {
+    try {
+      const url = new URL(window.location.href);
       
-      // Get the conversation data from storage
-      chrome.storage.local.get(['openwebui_export_data'], function(result) {
-        if (result && result.openwebui_export_data && result.openwebui_export_data.messages) {
-          // Skip the first message as it's already in the chat via the 'q' parameter
-          const remainingMessages = result.openwebui_export_data.messages.slice(1);
-          
-          if (remainingMessages.length > 0) {
-            // Check if there are more messages to import
-            // Show a notification to the user
-            showImportNotification(remainingMessages.length);
-          } else {
-            // If there's only one message, just show a success notification
-            showSuccessNotification();
+      // Check if this is a Sparrow export
+      if (url.searchParams.has('sparrow-export') && url.searchParams.get('sparrow-export') === 'true') {
+        console.log("Detected Sparrow export in URL parameters");
+        
+        // Get the conversation data from storage
+        chrome.storage.local.get(['openwebui_export_data'], function(result) {
+          if (result && result.openwebui_export_data && result.openwebui_export_data.messages) {
+            // Create the one-click import button
+            displayImportButton(result.openwebui_export_data);
           }
-        }
-      });
+        });
+      }
+    } catch (e) {
+      console.error("Error checking for Sparrow export:", e);
     }
-  } catch (e) {
-    console.error("Error checking for Sparrow export:", e);
-  }
+  }, 1000); // Delay to ensure page is loaded
 });
 
 // Function to show import dialog
@@ -427,5 +425,216 @@ function showSuccessNotification() {
         notification.remove();
       }
     }, 500);
+  }, 5000);
+}
+
+// Function to display the import button
+function displayImportButton(conversation) {
+  // Create a floating button
+  const importButton = document.createElement('div');
+  importButton.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: #2980b9;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s ease;
+  `;
+  
+  importButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="17 8 12 3 7 8"></polyline>
+      <line x1="12" y1="3" x2="12" y2="15"></line>
+    </svg>
+    Import Sparrow Chat
+  `;
+  
+  document.body.appendChild(importButton);
+  
+  // Add hover effect
+  importButton.addEventListener('mouseenter', function() {
+    this.style.transform = 'translateY(-2px)';
+    this.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
+  });
+  
+  importButton.addEventListener('mouseleave', function() {
+    this.style.transform = 'translateY(0)';
+    this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+  });
+  
+  // Add click event to insert all messages
+  importButton.addEventListener('click', function() {
+    // Format conversation for easy pasting
+    const messages = conversation.messages;
+    let formattedText = "";
+    
+    messages.forEach(msg => {
+      // Format based on role
+      const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
+      formattedText += `${role}: ${msg.content}\n\n`;
+    });
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(formattedText)
+      .then(() => {
+        console.log("Copied formatted conversation to clipboard");
+        
+        // Find the message input field
+        const inputElement = findInputElement();
+        if (inputElement) {
+          // Focus the input element
+          inputElement.focus();
+          
+          // Try to directly set the value for textarea elements
+          if (inputElement.tagName.toLowerCase() === 'textarea') {
+            inputElement.value = formattedText;
+            
+            // Trigger an input event to update any listeners
+            const event = new Event('input', { bubbles: true });
+            inputElement.dispatchEvent(event);
+          } 
+          // Or try execCommand for contenteditable
+          else if (inputElement.getAttribute('contenteditable') === 'true') {
+            inputElement.textContent = formattedText;
+          }
+          // Fallback to clipboard paste
+          else {
+            document.execCommand('paste');
+          }
+          
+          // Show success notification
+          showNotification("Conversation imported successfully!", "success");
+          
+          // Remove the button
+          setTimeout(() => {
+            importButton.remove();
+          }, 1000);
+        } else {
+          showNotification("Conversation copied to clipboard! Please paste it manually.", "info");
+        }
+      })
+      .catch(err => {
+        console.error("Failed to copy to clipboard:", err);
+        showNotification("Failed to copy conversation. Please try again.", "error");
+      });
+  });
+}
+
+// Function to find the input element
+function findInputElement() {
+  // Common patterns for chat input elements
+  const inputSelectors = [
+    'textarea[placeholder*="message"]',
+    'textarea[placeholder*="Message"]',
+    'textarea[placeholder*="chat"]',
+    'textarea[placeholder*="Chat"]',
+    'textarea[placeholder*="send"]',
+    'textarea[placeholder*="Send"]',
+    'textarea[placeholder*="type"]',
+    'textarea[placeholder*="Type"]',
+    'div[contenteditable="true"]',
+    'textarea',
+    '.chat-input',
+    '.message-input'
+  ];
+  
+  for (const selector of inputSelectors) {
+    const elements = document.querySelectorAll(selector);
+    if (elements.length > 0) {
+      // Return the largest textarea (most likely the main input)
+      if (elements.length > 1) {
+        return Array.from(elements).reduce((largest, current) => {
+          return (current.offsetHeight > largest.offsetHeight) ? current : largest;
+        });
+      }
+      return elements[0];
+    }
+  }
+  
+  return null;
+}
+
+// Function to show notification
+function showNotification(message, type = "info") {
+  const notification = document.createElement('div');
+  
+  // Set colors based on type
+  let bgColor, iconColor, iconSvg;
+  
+  switch (type) {
+    case "success":
+      bgColor = "#27ae60";
+      iconColor = "#fff";
+      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+      break;
+    case "error":
+      bgColor = "#e74c3c";
+      iconColor = "#fff";
+      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
+      break;
+    default: // info
+      bgColor = "#3498db";
+      iconColor = "#fff";
+      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+  }
+  
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: ${bgColor};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.3s ease;
+  `;
+  
+  notification.innerHTML = `
+    <div style="color: ${iconColor};">${iconSvg}</div>
+    <div>${message}</div>
+  `;
+  
+  // Add animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  document.body.appendChild(notification);
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(100%)';
+    notification.style.transition = 'all 0.3s ease';
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        notification.remove();
+      }
+    }, 300);
   }, 5000);
 }

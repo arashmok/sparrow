@@ -1002,7 +1002,7 @@ async function exportToOpenWebUI(conversation) {
       }))
     };
     
-    // Save the conversation data to local storage (in case we need it for later)
+    // Save the conversation data to local storage
     await new Promise(resolve => {
       chrome.storage.local.set({
         'openwebui_export_data': formattedConversation,
@@ -1010,31 +1010,12 @@ async function exportToOpenWebUI(conversation) {
       }, resolve);
     });
     
-    // Create a URL with parameters using the 'q' parameter for the initial query
-    // Also include a custom header to identify this as a Sparrow export
-    let openWebUIUrl = baseUrl;
-    
-    // If there are messages, use the first user message as the initial query
-    // Otherwise, use a placeholder
-    let initialQuery = "This is a conversation imported from Sparrow";
-    
-    // Find the first user message to use as the initial query
-    if (conversation && conversation.length > 0) {
-      // Find the first user message
-      const userMessage = conversation.find(msg => msg.role === 'user');
-      if (userMessage) {
-        initialQuery = userMessage.content;
-      }
-    }
+    // Create a initial prompt that clearly indicates what we're doing
+    const initialPrompt = "This is a conversation imported from Sparrow";
     
     // Build the URL with parameters
-    openWebUIUrl += `/?q=${encodeURIComponent(initialQuery)}`;
-    
-    // Add a custom parameter to identify this as a Sparrow export
+    let openWebUIUrl = `${baseUrl}/?q=${encodeURIComponent(initialPrompt)}`;
     openWebUIUrl += `&sparrow-export=true`;
-    
-    // Add a title parameter (this might not be directly supported but we can try)
-    openWebUIUrl += `&title=${encodeURIComponent(formattedConversation.title)}`;
     
     // Open OpenWebUI with the constructed URL
     chrome.tabs.create({
