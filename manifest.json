@@ -37,10 +37,10 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/scripts/content.js"]
+      "js": ["src/scripts/content.js", "src/scripts/selection-menu.js"]
     },
     {
-      "matches": ["*://*/import*"],
+      "matches": ["*://*/import*", "*://*/import?source=sparrow*"],
       "js": ["src/scripts/openwebui-import.js"]
     }
   ],

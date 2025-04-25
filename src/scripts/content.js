@@ -171,7 +171,3 @@ function findParentOfType(element, selectors) {
   // No matching parent found
   return null;
 }
-
-// Import selection menu functionality
-// This enables the text selection menu for chatting about selected text
-importScripts('selection-menu.js');
