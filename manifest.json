@@ -25,7 +25,8 @@
     "scripting",
     "storage",
     "tabs",
-    "sidePanel"
+    "sidePanel",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "https://*/*",
@@ -40,7 +41,7 @@
       "js": ["src/scripts/content.js"]
     },
     {
-      "matches": ["http://*/*/import*", "https://*/*/import*", "http://*/*", "https://*/*"],
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["src/scripts/openwebui-import.js"]
     }
   ],

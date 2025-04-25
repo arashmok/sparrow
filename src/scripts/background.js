@@ -1013,33 +1013,47 @@ async function exportToOpenWebUI(conversation) {
       }, resolve);
     });
     
-    // Copy the conversation data to clipboard as a fallback
-    try {
-      const dialogTitle = `Sparrow Export - ${new Date().toLocaleString()}`;
-      await navigator.clipboard.writeText(JSON.stringify(formattedConversation, null, 2));
-      console.log("Copied conversation data to clipboard as fallback");
-    } catch (e) {
-      console.error("Could not copy to clipboard:", e);
-    }
-    
-    // Open OpenWebUI main page instead of trying to hit a specific API endpoint
+    // Open OpenWebUI main page
     chrome.tabs.create({
       url: baseUrl
     }, function(tab) {
-      console.log("Opened OpenWebUI tab:", tab);
+      console.log("Opened OpenWebUI tab:", tab.id);
       
-      // Wait a moment then inject a message to show user what to do
-      setTimeout(() => {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'show-import-instructions',
-          title: formattedConversation.title
-        });
-      }, 1500);
+      // Add a listener for tab updates to inject our content script
+      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+        // Only proceed when the tab has finished loading
+        if (tabId === tab.id && changeInfo.status === 'complete') {
+          // Remove the listener to avoid multiple executions
+          chrome.tabs.onUpdated.removeListener(listener);
+          
+          // Wait a short moment for the page to stabilize
+          setTimeout(() => {
+            // Execute a simple script to update the document title with our export info
+            chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              function: (conversationTitle) => {
+                // Create a custom event that our content script can listen for
+                const event = new CustomEvent('sparrow-export-ready', { 
+                  detail: { title: conversationTitle } 
+                });
+                document.dispatchEvent(event);
+                
+                // Also attempt to store the title in localStorage as a backup
+                try {
+                  localStorage.setItem('sparrow_export_title', conversationTitle);
+                } catch (e) {
+                  console.error("Could not save title to localStorage:", e);
+                }
+              },
+              args: [formattedConversation.title]
+            });
+          }, 1000);
+        }
+      });
     });
     
-    // Return success
+    // Return success synchronously
     return { success: true, message: "Opened OpenWebUI in a new tab" };
-    
   } catch (error) {
     console.error("Export to OpenWebUI failed:", error);
     throw error;
