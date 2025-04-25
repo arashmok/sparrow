@@ -976,75 +976,74 @@ function extractPageContent() {
 
 // Function to handle exporting to OpenWebUI
 async function exportToOpenWebUI(conversation) {
-    try {
-        // Get OpenWebUI settings
-        const settings = await new Promise(resolve => {
-            chrome.storage.local.get([
-                'openWebUIUrl',
-                'enableOpenWebUI'
-            ], resolve);
-        });
-        
-        // Get API key
-        const apiKey = secureKeyStore.getKey('openwebui');
-        
-        if (!settings.enableOpenWebUI || !settings.openWebUIUrl) {
-            throw new Error('OpenWebUI integration is not properly configured');
-        }
-
-        // Ensure the URL doesn't end with a slash
-        const baseUrl = settings.openWebUIUrl.replace(/\/+$/, '');
-        console.log("Using OpenWebUI base URL:", baseUrl);
-        
-        // Check if URL is valid
-        try {
-            new URL(baseUrl);
-        } catch (e) {
-            throw new Error(`Invalid OpenWebUI URL: ${baseUrl}`);
-        }
-        
-        // Format conversation for OpenWebUI
-        const formattedConversation = {
-            conversation_id: `sparrow_${Date.now()}`,
-            title: `Sparrow Export - ${new Date().toLocaleString()}`,
-            messages: conversation.map(msg => ({
-                role: msg.role,
-                content: msg.content,
-                timestamp: Date.now()
-            })),
-            model: {
-                id: "default",
-                name: "Imported from Sparrow"
-            }
-        };
-        
-        console.log("Attempting direct browser navigation to OpenWebUI");
-        
-        // Instead of using fetch, create a new tab with OpenWebUI and pass data via localStorage
-        // This bypasses CORS issues completely
-        
-        // First, save the conversation data to local storage
-        await new Promise(resolve => {
-            chrome.storage.local.set({
-                'openwebui_export_data': formattedConversation,
-                'openwebui_export_timestamp': Date.now()
-            }, resolve);
-        });
-        
-        // Open OpenWebUI in a new tab with a special parameter
-        chrome.tabs.create({
-            url: `${baseUrl}/import?source=sparrow&timestamp=${Date.now()}`
-        }, function(tab) {
-            console.log("Opened OpenWebUI tab:", tab);
-        });
-        
-        // Return success
-        return { success: true, message: "Opened OpenWebUI in a new tab" };
-        
-    } catch (error) {
-        console.error("Export to OpenWebUI failed:", error);
-        throw error;
+  try {
+    // Get OpenWebUI settings
+    const settings = await new Promise(resolve => {
+      chrome.storage.local.get([
+        'openWebUIUrl',
+        'enableOpenWebUI'
+      ], resolve);
+    });
+    
+    // Get API key (if needed)
+    const apiKey = secureKeyStore.getKey('openwebui');
+    
+    if (!settings.enableOpenWebUI || !settings.openWebUIUrl) {
+      throw new Error('OpenWebUI integration is not properly configured');
     }
+
+    // Ensure the URL doesn't end with a slash
+    const baseUrl = settings.openWebUIUrl.replace(/\/+$/, '');
+    console.log("Using OpenWebUI base URL:", baseUrl);
+    
+    // Format conversation for OpenWebUI
+    const formattedConversation = {
+      title: `Sparrow Export - ${new Date().toLocaleString()}`,
+      messages: conversation.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+    };
+    
+    // Save the conversation data to local storage
+    await new Promise(resolve => {
+      chrome.storage.local.set({
+        'openwebui_export_data': formattedConversation,
+        'openwebui_export_timestamp': Date.now()
+      }, resolve);
+    });
+    
+    // Copy the conversation data to clipboard as a fallback
+    try {
+      const dialogTitle = `Sparrow Export - ${new Date().toLocaleString()}`;
+      await navigator.clipboard.writeText(JSON.stringify(formattedConversation, null, 2));
+      console.log("Copied conversation data to clipboard as fallback");
+    } catch (e) {
+      console.error("Could not copy to clipboard:", e);
+    }
+    
+    // Open OpenWebUI main page instead of trying to hit a specific API endpoint
+    chrome.tabs.create({
+      url: baseUrl
+    }, function(tab) {
+      console.log("Opened OpenWebUI tab:", tab);
+      
+      // Wait a moment then inject a message to show user what to do
+      setTimeout(() => {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'show-import-instructions',
+          title: formattedConversation.title
+        });
+      }, 1500);
+    });
+    
+    // Return success
+    return { success: true, message: "Opened OpenWebUI in a new tab" };
+    
+  } catch (error) {
+    console.error("Export to OpenWebUI failed:", error);
+    throw error;
+  }
 }
 
 // ==========================================================================================
