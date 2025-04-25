@@ -980,55 +980,215 @@ function extractPageContent() {
  * @returns {Promise<Object>} - The API response from OpenWebUI
  */
 async function exportToOpenWebUI(conversation) {
-  // Get OpenWebUI settings
-  const settings = await new Promise(resolve => {
-    chrome.storage.local.get([
-      'openWebUIUrl',
-      'enableOpenWebUI'
-    ], resolve);
-  });
-  
-  // Get API key
-  const apiKey = secureKeyStore.getKey('openwebui');
-  
-  if (!settings.enableOpenWebUI || !settings.openWebUIUrl) {
-    throw new Error('OpenWebUI integration is not properly configured');
-  }
-  
-  // Format conversation for OpenWebUI
-  const formattedConversation = {
-    title: `Sparrow Export - ${new Date().toLocaleString()}`,
-    messages: conversation.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    })),
-    model: "Unknown", // Can be improved to include the actual model used
-    created_at: new Date().toISOString()
-  };
-  
-  // Prepare headers
-  const headers = {
-    'Content-Type': 'application/json'
-  };
-  
-  // Add API key if available
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
-  
-  // Make the API request to OpenWebUI to create a new conversation
-  const response = await fetch(`${settings.openWebUIUrl}/api/conversations`, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(formattedConversation)
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Server responded with status ${response.status}`);
-  }
-  
-  return await response.json();
+    try {
+        // Get OpenWebUI settings
+        const settings = await new Promise(resolve => {
+            chrome.storage.local.get([
+                'openWebUIUrl',
+                'enableOpenWebUI'
+            ], resolve);
+        });
+        
+        // Get API key
+        const apiKey = secureKeyStore.getKey('openwebui');
+        
+        if (!settings.enableOpenWebUI || !settings.openWebUIUrl) {
+            throw new Error('OpenWebUI integration is not properly configured');
+        }
+
+        // Ensure the URL doesn't end with a slash
+        const baseUrl = settings.openWebUIUrl.replace(/\/+$/, '');
+        console.log("OpenWebUI export using base URL:", baseUrl);
+        
+        // Format conversation for OpenWebUI (standard format)
+        const formattedConversation = {
+            title: `Sparrow Export - ${new Date().toLocaleString()}`,
+            messages: conversation.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            })),
+            model: "Unknown", // This can be improved to include actual model
+            created_at: new Date().toISOString()
+        };
+        
+        // Alternative format for OpenWebUI
+        const alternativeFormat = {
+            conversation_id: `sparrow_${Date.now()}`,
+            title: `Sparrow Export - ${new Date().toLocaleString()}`,
+            messages: conversation.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: new Date().toISOString()
+            })),
+            model: {
+                id: "default",
+                name: "Imported from Sparrow"
+            }
+        };
+        
+        // Prepare headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Add API key if available
+        if (apiKey) {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+            console.log("Using API key for OpenWebUI authentication");
+        } else {
+            console.log("No API key provided for OpenWebUI");
+        }
+        
+        // First, check if we need to get the current API endpoint structure
+        // by making a GET request to the API info endpoint
+        console.log("Attempting to fetch API info from OpenWebUI...");
+        const infoResponse = await fetch(`${baseUrl}/api/info`, {
+            method: 'GET',
+            headers: headers
+        }).catch(error => {
+            console.error("Error fetching API info:", error);
+            return { ok: false };
+        });
+        
+        console.log(`OpenWebUI info response: Status ${infoResponse.status || 'unknown'}`);
+        if (!infoResponse.ok) {
+            // Try to get more detailed error information
+            const errorText = await infoResponse.text().catch(() => "Could not read error response");
+            console.error("Error details:", errorText);
+        }
+        
+        // If we can't get info, try both endpoints
+        if (!infoResponse.ok) {
+            // Try the newer API endpoint first (v2 style)
+            console.log("Trying v2 conversation endpoint...");
+            const v2Response = await fetch(`${baseUrl}/api/v2/conversations`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(formattedConversation)
+            });
+            
+            console.log(`OpenWebUI v2 export response: Status ${v2Response.status}`);
+            if (!v2Response.ok) {
+                // Try to get more detailed error information
+                const errorText = await v2Response.text().catch(() => "Could not read error response");
+                console.error("Error details:", errorText);
+            }
+            
+            if (v2Response.ok) {
+                return await v2Response.json();
+            }
+            
+            // If v2 fails, try the v1 endpoint
+            console.log("Trying v1 conversation endpoint...");
+            const v1Response = await fetch(`${baseUrl}/api/conversations`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(formattedConversation)
+            });
+            
+            console.log(`OpenWebUI v1 export response: Status ${v1Response.status}`);
+            if (!v1Response.ok) {
+                // Try to get more detailed error information
+                const errorText = await v1Response.text().catch(() => "Could not read error response");
+                console.error("Error details:", errorText);
+            }
+            
+            if (v1Response.ok) {
+                return await v1Response.json();
+            }
+            
+            // If both fail, try a PUT method instead of POST
+            console.log("Trying PUT method...");
+            const putResponse = await fetch(`${baseUrl}/api/conversations/new`, {
+                method: 'PUT',
+                headers: headers,
+                body: JSON.stringify(formattedConversation)
+            });
+            
+            console.log(`OpenWebUI PUT export response: Status ${putResponse.status}`);
+            if (!putResponse.ok) {
+                // Try to get more detailed error information
+                const errorText = await putResponse.text().catch(() => "Could not read error response");
+                console.error("Error details:", errorText);
+            }
+            
+            if (putResponse.ok) {
+                return await putResponse.json();
+            }
+            
+            // If standard format fails, try with alternative format
+            console.log("Trying alternative conversation format...");
+            const altFormatResponse = await fetch(`${baseUrl}/api/conversations`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(alternativeFormat)
+            });
+            
+            console.log(`OpenWebUI alternative format response: Status ${altFormatResponse.status}`);
+            if (!altFormatResponse.ok) {
+                // Try to get more detailed error information
+                const errorText = await altFormatResponse.text().catch(() => "Could not read error response");
+                console.error("Alternative format error details:", errorText);
+            }
+            
+            if (altFormatResponse.ok) {
+                return await altFormatResponse.json();
+            }
+            
+            // If all attempts fail, throw an error with detailed information
+            const errorText = await v2Response.text().catch(() => "Could not read error response");
+            throw new Error(`Unable to export conversation. Status: ${v2Response.status}, Details: ${errorText}`);
+        } else {
+            // If we got API info, use the recommended endpoint
+            const apiInfo = await infoResponse.json();
+            console.log("API info:", apiInfo);
+            
+            // Determine the appropriate endpoint based on API info
+            const endpoint = apiInfo.hasOwnProperty('conversations_endpoint') 
+                ? apiInfo.conversations_endpoint 
+                : '/api/conversations';
+            
+            console.log(`Using endpoint from API info: ${endpoint}`);
+            const response = await fetch(`${baseUrl}${endpoint}`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(formattedConversation)
+            });
+            
+            console.log(`OpenWebUI export response: Status ${response.status}`);
+            if (!response.ok) {
+                // Try to get more detailed error information
+                const errorText = await response.text().catch(() => "Could not read error response");
+                console.error("Error details:", errorText);
+                
+                // Try with alternative format if standard format fails
+                console.log("Trying alternative conversation format with detected endpoint...");
+                const altResponse = await fetch(`${baseUrl}${endpoint}`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(alternativeFormat)
+                });
+                
+                console.log(`OpenWebUI alternative format response: Status ${altResponse.status}`);
+                if (!altResponse.ok) {
+                    const altErrorText = await altResponse.text().catch(() => "Could not read error response");
+                    console.error("Alternative format error details:", altErrorText);
+                }
+                
+                if (altResponse.ok) {
+                    return await altResponse.json();
+                }
+                
+                const errorData = await response.text().catch(() => "Unknown error");
+                throw new Error(`Server responded with status ${response.status}. Details: ${errorData}`);
+            }
+            
+            return await response.json();
+        }
+    } catch (error) {
+        console.error("Export to OpenWebUI failed:", error);
+        throw error;
+    }
 }
 
 // ==========================================================================================
