@@ -561,9 +561,9 @@ footer {
 
 /* ========== CHAT BUTTON ========== */
 /* Chat initiation button */
+
+/* Chat button styling - base style */
 .chat-button {
-  background-color: #2b7de9;
-  color: white;
   border-radius: 8px;
   padding: 6px 16px;
   font-size: 14px;
@@ -572,6 +572,14 @@ footer {
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Normal chat button style */
+.chat-button {
+  background-color: #2b7de9;
+  color: white;
 }
 
 .chat-button:hover {
@@ -581,23 +589,22 @@ footer {
 /* Style for when button is in saved chats mode */
 .chat-button.saved-mode {
   background-color: #5f6368;
+  color: white;
 }
 
 .chat-button.saved-mode:hover {
   background-color: #4d5156;
 }
 
-/* Add badge styling for saved count */
+/* Badge styling for saved count */
 .saved-count {
   font-size: 11px;
   background-color: white;
   color: #5f6368;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 10px;
-  margin-left: 2px;
   font-weight: bold;
 }
-
 
 /* Disabled state for chat button */
 .chat-button.disabled {

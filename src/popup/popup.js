@@ -564,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * Updates the chat button state based on whether content exists
-   * Transforms button to "Saved Chats" when no content available
+   * Completely transforms button to "Saved Chats" when no content available
    * 
    * @param {boolean} hasContent - Whether content exists to chat about
    */
@@ -572,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!elements.chatBtn) return;
     
     if (hasContent) {
-      // Normal chat mode - enable the chat button
+      // Content available - normal chat mode
       elements.chatBtn.disabled = false;
       elements.chatBtn.classList.remove('disabled');
       elements.chatBtn.classList.remove('saved-mode');
@@ -587,19 +587,18 @@ document.addEventListener('DOMContentLoaded', () => {
       elements.chatBtn.removeEventListener('click', openSavedChatsPanel);
       elements.chatBtn.addEventListener('click', handleChatButtonClick);
     } else {
-      // No content - switch to saved chats mode
-      // First check if there are any saved chats
+      // No content - check for saved chats
       chrome.storage.local.get(['sparrowSavedChats'], function(result) {
         const savedChats = result.sparrowSavedChats || [];
         const chatCount = savedChats.length;
         
         if (chatCount > 0) {
-          // Enable button and switch to saved mode
+          // Saved chats exist - transform button completely to saved chats mode
           elements.chatBtn.disabled = false;
           elements.chatBtn.classList.remove('disabled');
           elements.chatBtn.classList.add('saved-mode');
           
-          // Set bookmark icon and saved chats text with count
+          // Set bookmark icon and "Saved Chats" text with count
           elements.chatBtn.innerHTML = `
             <i class="fa-solid fa-bookmark"></i>
             Saved Chats <span class="saved-count">${chatCount}</span>

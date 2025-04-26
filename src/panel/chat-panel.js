@@ -409,8 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const showSaved = urlParams.get('showSaved');
     
     if (showSaved === 'true') {
-      // Load and display saved chats
-      loadSavedChatsAndShow();
+      // Show saved chats view
+      showSavedChatsView();
     }
   }
 
@@ -622,24 +622,39 @@ document.addEventListener('DOMContentLoaded', () => {
       savedChats.forEach(chat => {
         const lastUpdated = new Date(chat.lastUpdated);
         const formattedDate = lastUpdated.toLocaleDateString() + ' ' + 
-                             lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
         const chatItem = document.createElement('div');
         chatItem.className = 'saved-chat-item';
         chatItem.dataset.sessionId = chat.sessionId;
         
         // Create title from page title or first message
-        let chatTitle = chat.title;
-        if (!chatTitle && chat.messages.length > 0) {
+        let chatTitle = chat.title || '';
+        if (!chatTitle && chat.messages && chat.messages.length > 0) {
           // Use first few words of first message
           const firstMsg = chat.messages[0].content;
           chatTitle = firstMsg.split(' ').slice(0, 7).join(' ') + '...';
         }
         
+        // Fallback if still no title
+        if (!chatTitle) {
+          chatTitle = 'Chat from ' + formattedDate;
+        }
+        
+        // Get domain from URL if available
+        let domain = '';
+        try {
+          if (chat.url) {
+            domain = new URL(chat.url).hostname;
+          }
+        } catch (e) {
+          domain = 'Unknown site';
+        }
+        
         chatItem.innerHTML = `
           <div class="saved-chat-title">${chatTitle}</div>
           <div class="saved-chat-info">
-            <span>${new URL(chat.url).hostname || 'Unknown site'}</span>
+            <span>${domain || 'Unknown site'}</span>
             <span>${formattedDate}</span>
           </div>
           <button class="saved-chat-delete" title="Delete this chat">
@@ -674,6 +689,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
               `;
             }
+            
+            // Update saved count in popup if possible
+            updateSavedChatsCount(savedChats.length - 1);
           }
         });
         
