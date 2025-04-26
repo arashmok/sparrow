@@ -593,29 +593,34 @@ footer {
 /* ========== SAVED CHAT BUTTON ========== */
 /* Button for saved chat functionality */
 .saved-button {
-  background-color: #f0f0f0;
-  color: #555;
-  border-radius: 8px;
-  padding: 6px 12px;
-  margin-right: 8px;
-  font-size: 14px;
+  background-color: transparent;
+  color: #666;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-right: 6px;
+  font-size: 13px;
   font-weight: 500;
-  border: none;
+  border: 1px solid #e0e0e0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .saved-button:hover {
-  background-color: #e0e0e0;
+  background-color: #f5f5f5;
   color: #2980b9;
+  border-color: #d0d0d0;
 }
 
 .saved-count {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 11px;
+  background-color: #f0f0f0;
+  color: #555;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 2px;
 }
 
 .action-buttons {
