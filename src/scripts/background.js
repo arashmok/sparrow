@@ -976,25 +976,38 @@ function extractPageContent() {
 
 // Handle side panel and chat requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle request to open chat panel with saved chats view
   if (request.action === 'open-chat-panel') {
+    // Check if we should show saved chats view
+    const showSavedChats = request.showSavedChats === true;
+    const urlParams = showSavedChats ? '?showSaved=true' : '';
+    
+    // For an existing chat session
+    if (request.sessionId) {
+      urlParams += (urlParams ? '&' : '?') + 'session=' + request.sessionId;
+    }
+    
+    // Store any generated text to use in the chat
     if (request.generatedText) {
       chrome.storage.local.set({ latestSummary: request.generatedText });
-      
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const tabId = tabs[0].id;
-        chrome.sidePanel.open({ tabId: tabId }).then(() => {
-          chrome.sidePanel.setOptions({
-            path: 'src/panel/chat-panel.html',
-            enabled: true
-          });
-          
-          sendResponse({ success: true });
-        }).catch(error => {
-          console.error("Error opening side panel:", error);
-          sendResponse({ success: false, error: error.message });
-        });
-      });
     }
+    
+    // Open the side panel with appropriate URL parameters
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs[0].id;
+      chrome.sidePanel.open({ tabId: tabId }).then(() => {
+        chrome.sidePanel.setOptions({
+          path: 'src/panel/chat-panel.html' + urlParams,
+          enabled: true
+        });
+        
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error("Error opening side panel:", error);
+        sendResponse({ success: false, error: error.message });
+      });
+    });
+    
     return true;
   }
   

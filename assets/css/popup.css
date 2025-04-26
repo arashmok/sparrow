@@ -590,15 +590,47 @@ footer {
   background-color: #a0b4d3;
 }
 
+/* ========== SAVED CHAT BUTTON ========== */
+/* Button for saved chat functionality */
+.saved-button {
+  background-color: #f0f0f0;
+  color: #555;
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin-right: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.saved-button:hover {
+  background-color: #e0e0e0;
+  color: #2980b9;
+}
+
+.saved-count {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+}
+
 /* ========== BOTTOM ACTION BAR ========== */
 /* Container for bottom actions (API indicator and buttons) */
 .bottom-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: calc(100% - 8px);
-  padding: 0;
-  margin: 0 4px 4px 4px;
+  width: 100%;
+  padding: 8px 0;
 }
 
 /* ========== UTILITY CLASSES ========== */

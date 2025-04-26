@@ -21,6 +21,14 @@
         <h1>Sparrow Chat</h1>
         <p>AI-powered assistant</p>
       </div>
+      <div class="header-actions">
+        <button id="view-toggle-btn" class="view-toggle-btn" title="View saved chats">
+          <i class="fa-solid fa-list"></i>
+        </button>
+        <button id="save-chat-btn" class="save-chat-btn" title="Save this chat">
+          <i class="fa-regular fa-bookmark"></i>
+        </button>
+      </div>
     </header>
     
     <!-- Container for showing the current page content (hidden by default) -->
@@ -49,6 +57,22 @@
         aria-label="Send message">
         <i class="fa-solid fa-paper-plane"></i>
       </button>
+    </div>
+    <!-- Saved chats view (hidden by default) -->
+    <div id="saved-chats-container" class="saved-chats-container hidden">
+      <div class="saved-chats-header">
+        <h2>Saved Conversations</h2>
+        <button id="back-to-chat-btn" class="back-button">
+          <i class="fa-solid fa-arrow-left"></i> Back to Chat
+        </button>
+      </div>
+      <div id="saved-chats-list" class="saved-chats-list">
+        <!-- Saved chats will be populated here -->
+        <div class="empty-saved-chats">
+          <i class="fa-solid fa-bookmark empty-icon"></i>
+          <p>No saved conversations yet</p>
+        </div>
+      </div>
     </div>
   </div>
   

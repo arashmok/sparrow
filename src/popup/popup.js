@@ -19,7 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     apiIndicator: document.getElementById('api-indicator'),
     apiMethodIndicator: document.getElementById('api-method-indicator'),
     chatBtn: document.getElementById('chat-btn'),
-    expandBtn: document.getElementById('expand-btn')
+    expandBtn: document.getElementById('expand-btn'),
+    savedChatsBtn: document.getElementById('saved-chats-btn'),
+    savedCountSpan: document.getElementById('saved-count')
   };
 
   // =====================================================================
@@ -32,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function init() {
     checkForExistingSummary();
     initializePopup();
+    
+    // Load saved chats count
+    updateSavedChatsCount();
   }
   
   init(); // Run initialization on load
@@ -67,6 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
         adjustFooterPlacement();
       }, 50);
     });
+    
+    // Add saved chats button click handler
+    if (elements.savedChatsBtn) {
+      elements.savedChatsBtn.addEventListener('click', openSavedChatsPanel);
+    }
   }
   
   setupEventListeners();
@@ -1543,4 +1553,53 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  /**
+   * Update the saved chats count display
+   */
+  function updateSavedChatsCount() {
+    chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+      const savedChats = result.sparrowSavedChats || [];
+      if (elements.savedCountSpan) {
+        elements.savedCountSpan.textContent = `(${savedChats.length})`;
+      }
+    });
+  }
+
+  /**
+   * Open the side panel showing saved chats
+   */
+  function openSavedChatsPanel() {
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (!tabs || !tabs[0]) return;
+      
+      // Open side panel with parameter to show saved chats view
+      chrome.runtime.sendMessage({
+        action: 'open-chat-panel',
+        tabId: tabs[0].id,
+        showSavedChats: true
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error opening side panel:", chrome.runtime.lastError);
+          return;
+        }
+        
+        if (response && response.success) {
+          // Close popup
+          window.close();
+        }
+      });
+    });
+  }
+
+  // Add message listener for saved chats count updates
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'update-saved-count') {
+      // Update the count in UI
+      if (elements.savedCountSpan) {
+        elements.savedCountSpan.textContent = `(${request.count})`;
+      }
+      sendResponse({ success: true });
+    }
+  });
 });
