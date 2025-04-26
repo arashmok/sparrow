@@ -77,6 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check if the panel should open directly to saved chats view
     checkForSavedChatsView();
+
+    // Load and display the stored summary if we're not in saved chats view
+    const urlParams = new URLSearchParams(window.location.search);
+    const showSaved = urlParams.get('showSaved');
+
+    if (showSaved !== 'true') {
+      // Normal initialization - show the latest summary if available
+      chrome.storage.local.get(['latestSummary'], function(result) {
+        if (result.latestSummary) {
+          // Display stored summary
+          // ... existing summary display code ...
+        }
+      });
+    }
     
     // Load and display the stored summary
     chrome.storage.local.get(['latestSummary'], function(result) {
@@ -395,6 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const showSaved = urlParams.get('showSaved');
     
     if (showSaved === 'true') {
+      // Load and display saved chats
       loadSavedChatsAndShow();
     }
   }

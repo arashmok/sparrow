@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkForExistingSummary();
     initializePopup();
     
-    // Load saved chats count
+    // Update chat button state based on content and saved chats
     updateSavedChatsCount();
   }
   
@@ -175,12 +175,14 @@ document.addEventListener('DOMContentLoaded', () => {
           if (currentUrl === storedUrl) {
             displayExistingSummary(result.latestSummary);
           } else {
-            disableChatForNoContent();
+            // Update button state to show saved chats if available
+            updateSavedChatsCount();
           }
         });
       } else {
         console.log("No saved summary found in storage");
-        disableChatForNoContent();
+        // Update button state to show saved chats if available
+        updateSavedChatsCount();
       }
     });
   }
@@ -562,14 +564,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * Updates the chat button state based on whether content exists
+   * Transforms button to "Saved Chats" when no content available
+   * 
    * @param {boolean} hasContent - Whether content exists to chat about
    */
   function updateChatButtonState(hasContent) {
-    elements.chatBtn.disabled = !hasContent;
-    if (!hasContent) {
-      elements.chatBtn.classList.add('disabled');
-    } else {
+    if (!elements.chatBtn) return;
+    
+    if (hasContent) {
+      // Normal chat mode - enable the chat button
+      elements.chatBtn.disabled = false;
       elements.chatBtn.classList.remove('disabled');
+      elements.chatBtn.classList.remove('saved-mode');
+      
+      // Set chat icon and text
+      elements.chatBtn.innerHTML = `
+        <i class="fa-solid fa-comment"></i>
+        Chat
+      `;
+      
+      // Set the click handler for chat functionality
+      elements.chatBtn.removeEventListener('click', openSavedChatsPanel);
+      elements.chatBtn.addEventListener('click', handleChatButtonClick);
+    } else {
+      // No content - switch to saved chats mode
+      // First check if there are any saved chats
+      chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+        const savedChats = result.sparrowSavedChats || [];
+        const chatCount = savedChats.length;
+        
+        if (chatCount > 0) {
+          // Enable button and switch to saved mode
+          elements.chatBtn.disabled = false;
+          elements.chatBtn.classList.remove('disabled');
+          elements.chatBtn.classList.add('saved-mode');
+          
+          // Set bookmark icon and saved chats text with count
+          elements.chatBtn.innerHTML = `
+            <i class="fa-solid fa-bookmark"></i>
+            Saved Chats <span class="saved-count">${chatCount}</span>
+          `;
+          
+          // Set the click handler for saved chats
+          elements.chatBtn.removeEventListener('click', handleChatButtonClick);
+          elements.chatBtn.addEventListener('click', openSavedChatsPanel);
+        } else {
+          // No saved chats either - disable button
+          elements.chatBtn.disabled = true;
+          elements.chatBtn.classList.add('disabled');
+          
+          // Keep it as "Chat" but disabled
+          elements.chatBtn.innerHTML = `
+            <i class="fa-solid fa-comment"></i>
+            Chat
+          `;
+        }
+      });
     }
   }
 
@@ -1555,14 +1605,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Update the saved chats count display
+   * Update the saved chats count and refresh button state if needed
    */
   function updateSavedChatsCount() {
-    chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+    chrome.storage.local.get(['sparrowSavedChats', 'latestSummary'], function(result) {
       const savedChats = result.sparrowSavedChats || [];
-      if (elements.savedCountSpan) {
-        elements.savedCountSpan.textContent = `(${savedChats.length})`;
-      }
+      const hasContent = !!result.latestSummary;
+      
+      // Update button state based on content availability
+      updateChatButtonState(hasContent);
     });
   }
 
@@ -1595,10 +1646,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add message listener for saved chats count updates
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'update-saved-count') {
-      // Update the count in UI
-      if (elements.savedCountSpan) {
-        elements.savedCountSpan.textContent = `(${request.count})`;
-      }
+      // Update UI state in case button is in saved mode
+      updateSavedChatsCount();
       sendResponse({ success: true });
     }
   });

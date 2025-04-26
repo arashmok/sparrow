@@ -1095,38 +1095,37 @@ function getDefaultOpenAIModels() {
 
 // Handle summarization requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "summarize") {
-    chrome.storage.local.get([
-      'apiMode', 
-      'apiKey', 
-      'openaiModel',
-      'lmstudioApiUrl',
-      'lmstudioApiKey',
-      'lmstudioModel',
-      'ollamaApiUrl',
-      'ollamaModel',
-      'openrouterApiKey',
-      'openrouterModel'
-    ], async (settings) => {
-      try {
-        const apiMode = settings.apiMode || 'openai';
-        console.log("Using API mode:", apiMode);
+  if (request.action === 'open-chat-panel') {
+    // Check if we should show saved chats view
+    const showSavedChats = request.showSavedChats === true;
+    let urlParams = showSavedChats ? '?showSaved=true' : '';
+    
+    // For an existing chat session
+    if (request.sessionId) {
+      urlParams += (urlParams ? '&' : '?') + 'session=' + request.sessionId;
+    }
+    
+    // Store any generated text to use in the chat
+    if (request.generatedText) {
+      chrome.storage.local.set({ latestSummary: request.generatedText });
+    }
+    
+    // Open the side panel with appropriate URL parameters
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs[0].id;
+      chrome.sidePanel.open({ tabId: tabId }).then(() => {
+        chrome.sidePanel.setOptions({
+          path: 'src/panel/chat-panel.html' + urlParams,
+          enabled: true
+        });
         
-        const summary = await summarizationService.generateSummary(
-          request.text, 
-          request.format, 
-          apiMode, 
-          settings, 
-          request.translateToEnglish
-        );
-        
-        sendResponse({ summary });
-      } catch (error) {
-        console.error('Error generating summary:', error);
-        sendResponse({ error: error.message });
-      }
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error("Error opening side panel:", error);
+        sendResponse({ success: false, error: error.message });
+      });
     });
     
     return true;
-  }
+}
 });

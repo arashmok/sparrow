@@ -574,10 +574,30 @@ footer {
   gap: 6px;
 }
 
-/* Hover state for chat button */
 .chat-button:hover {
   background-color: #1c6fd4;
 }
+
+/* Style for when button is in saved chats mode */
+.chat-button.saved-mode {
+  background-color: #5f6368;
+}
+
+.chat-button.saved-mode:hover {
+  background-color: #4d5156;
+}
+
+/* Add badge styling for saved count */
+.saved-count {
+  font-size: 11px;
+  background-color: white;
+  color: #5f6368;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 2px;
+  font-weight: bold;
+}
+
 
 /* Disabled state for chat button */
 .chat-button.disabled {
