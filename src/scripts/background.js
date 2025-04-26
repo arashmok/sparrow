@@ -974,13 +974,13 @@ function extractPageContent() {
 // MESSAGE HANDLERS
 // ==========================================================================================
 
-// Handle side panel and chat requests
+// Handle all message requests in a single listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Handle request to open chat panel with saved chats view
+  // Handle side panel and chat requests
   if (request.action === 'open-chat-panel') {
     // Check if we should show saved chats view
     const showSavedChats = request.showSavedChats === true;
-    const urlParams = showSavedChats ? '?showSaved=true' : '';
+    let urlParams = showSavedChats ? '?showSaved=true' : '';
     
     // For an existing chat session
     if (request.sessionId) {
@@ -1011,6 +1011,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   
+  // Handle chat message processing
   if (request.action === 'chat-message') {
     chrome.storage.local.get([
       'apiMode', 
@@ -1035,6 +1036,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   
+  // Handle API key management
   if (request.action === 'store-api-key') {
     secureKeyStore.storeKey(request.service, request.key);
     sendResponse({ success: true });
@@ -1081,51 +1083,49 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
   }
+  
+  // Handle update-saved-count message
+  if (request.action === 'update-saved-count') {
+    // This is handled by the popup, just send success response
+    sendResponse({ success: true });
+    return true;
+  }
 });
-
-// Default models to use when API call fails
-function getDefaultOpenAIModels() {
-  return [
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-    { id: 'gpt-4', name: 'GPT-4' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' }
-  ];
-}
 
 // Handle summarization requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'open-chat-panel') {
-    // Check if we should show saved chats view
-    const showSavedChats = request.showSavedChats === true;
-    let urlParams = showSavedChats ? '?showSaved=true' : '';
-    
-    // For an existing chat session
-    if (request.sessionId) {
-      urlParams += (urlParams ? '&' : '?') + 'session=' + request.sessionId;
-    }
-    
-    // Store any generated text to use in the chat
-    if (request.generatedText) {
-      chrome.storage.local.set({ latestSummary: request.generatedText });
-    }
-    
-    // Open the side panel with appropriate URL parameters
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = tabs[0].id;
-      chrome.sidePanel.open({ tabId: tabId }).then(() => {
-        chrome.sidePanel.setOptions({
-          path: 'src/panel/chat-panel.html' + urlParams,
-          enabled: true
-        });
+  if (request.action === "summarize") {
+    chrome.storage.local.get([
+      'apiMode', 
+      'apiKey', 
+      'openaiModel',
+      'lmstudioApiUrl',
+      'lmstudioApiKey',
+      'lmstudioModel',
+      'ollamaApiUrl',
+      'ollamaModel',
+      'openrouterApiKey',
+      'openrouterModel'
+    ], async (settings) => {
+      try {
+        const apiMode = settings.apiMode || 'openai';
+        console.log("Using API mode:", apiMode);
         
-        sendResponse({ success: true });
-      }).catch(error => {
-        console.error("Error opening side panel:", error);
-        sendResponse({ success: false, error: error.message });
-      });
+        const summary = await summarizationService.generateSummary(
+          request.text, 
+          request.format, 
+          apiMode, 
+          settings, 
+          request.translateToEnglish
+        );
+        
+        sendResponse({ summary });
+      } catch (error) {
+        console.error('Error generating summary:', error);
+        sendResponse({ error: error.message });
+      }
     });
     
     return true;
-}
+  }
 });

@@ -562,7 +562,7 @@ footer {
 /* ========== CHAT BUTTON ========== */
 /* Chat initiation button */
 
-/* Chat button styling - base style */
+/* Chat/Saved button styling */
 .chat-button {
   border-radius: 8px;
   padding: 6px 16px;
@@ -576,7 +576,7 @@ footer {
   transition: all 0.2s ease;
 }
 
-/* Normal chat button style */
+/* When in chat mode */
 .chat-button {
   background-color: #2b7de9;
   color: white;
@@ -586,9 +586,9 @@ footer {
   background-color: #1c6fd4;
 }
 
-/* Style for when button is in saved chats mode */
+/* When in saved chats mode */
 .chat-button.saved-mode {
-  background-color: #5f6368;
+  background-color: #5f6368; /* Different color to indicate different function */
   color: white;
 }
 
@@ -606,7 +606,7 @@ footer {
   font-weight: bold;
 }
 
-/* Disabled state for chat button */
+/* Disabled state */
 .chat-button.disabled {
   background-color: #a0b4d3;
   cursor: not-allowed;

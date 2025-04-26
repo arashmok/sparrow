@@ -564,63 +564,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * Updates the chat button state based on whether content exists
-   * Completely transforms button to "Saved Chats" when no content available
+   * When no content is available, transforms it to a "Saved Chats" button
    * 
    * @param {boolean} hasContent - Whether content exists to chat about
    */
   function updateChatButtonState(hasContent) {
     if (!elements.chatBtn) return;
     
+    // Remove any existing event listeners to prevent duplicates
+    elements.chatBtn.removeEventListener('click', handleChatButtonClick);
+    elements.chatBtn.removeEventListener('click', openSavedChatsPanel);
+    
     if (hasContent) {
-      // Content available - normal chat mode
-      elements.chatBtn.disabled = false;
-      elements.chatBtn.classList.remove('disabled');
+      // Content available - show normal Chat button
       elements.chatBtn.classList.remove('saved-mode');
-      
-      // Set chat icon and text
       elements.chatBtn.innerHTML = `
         <i class="fa-solid fa-comment"></i>
         Chat
       `;
-      
-      // Set the click handler for chat functionality
-      elements.chatBtn.removeEventListener('click', openSavedChatsPanel);
+      elements.chatBtn.title = "Chat about this content";
       elements.chatBtn.addEventListener('click', handleChatButtonClick);
     } else {
-      // No content - check for saved chats
+      // No content - change to Saved Chats button
       chrome.storage.local.get(['sparrowSavedChats'], function(result) {
         const savedChats = result.sparrowSavedChats || [];
         const chatCount = savedChats.length;
         
         if (chatCount > 0) {
-          // Saved chats exist - transform button completely to saved chats mode
-          elements.chatBtn.disabled = false;
-          elements.chatBtn.classList.remove('disabled');
+          // Has saved chats - show Saved Chats button
           elements.chatBtn.classList.add('saved-mode');
-          
-          // Set bookmark icon and "Saved Chats" text with count
           elements.chatBtn.innerHTML = `
             <i class="fa-solid fa-bookmark"></i>
             Saved Chats <span class="saved-count">${chatCount}</span>
           `;
-          
-          // Set the click handler for saved chats
-          elements.chatBtn.removeEventListener('click', handleChatButtonClick);
+          elements.chatBtn.title = "View your saved chats";
+          elements.chatBtn.disabled = false;
+          elements.chatBtn.classList.remove('disabled');
           elements.chatBtn.addEventListener('click', openSavedChatsPanel);
         } else {
-          // No saved chats either - disable button
-          elements.chatBtn.disabled = true;
-          elements.chatBtn.classList.add('disabled');
-          
-          // Keep it as "Chat" but disabled
+          // No saved chats - keep disabled Chat button
+          elements.chatBtn.classList.remove('saved-mode');
           elements.chatBtn.innerHTML = `
             <i class="fa-solid fa-comment"></i>
             Chat
           `;
+          elements.chatBtn.title = "Generate content first to enable chat";
+          elements.chatBtn.disabled = true;
+          elements.chatBtn.classList.add('disabled');
         }
       });
     }
   }
+
 
   /**
    * Show an error message in the popup
