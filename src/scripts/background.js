@@ -978,9 +978,13 @@ function extractPageContent() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle side panel and chat requests
   if (request.action === 'open-chat-panel') {
-    // Check if we should show saved chats view
-    const showSavedChats = request.showSavedChats === true;
-    let urlParams = showSavedChats ? '?showSaved=true' : '';
+    console.log("Opening chat panel with settings:", request);
+    
+    let urlParams = '';
+    if (request.showSavedChats === true) {
+      urlParams = '?showSaved=true';
+      console.log("Opening saved chats view with params:", urlParams);
+    }
     
     // For an existing chat session
     if (request.sessionId) {
@@ -994,7 +998,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     // Open the side panel with appropriate URL parameters
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = tabs[0].id;
+      const tabId = request.tabId || (tabs[0] ? tabs[0].id : null);
+      if (!tabId) {
+        console.error("No tab ID available");
+        sendResponse({ success: false, error: "No tab ID available" });
+        return;
+      }
+      
       chrome.sidePanel.open({ tabId: tabId }).then(() => {
         chrome.sidePanel.setOptions({
           path: 'src/panel/chat-panel.html' + urlParams,
@@ -1008,7 +1018,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     });
     
-    return true;
+    return true; // Keep the message channel open for async response
   }
   
   // Handle chat message processing
