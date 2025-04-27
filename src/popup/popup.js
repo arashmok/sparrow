@@ -66,16 +66,22 @@ document.addEventListener('DOMContentLoaded', () => {
    * Initialize the popup by checking for existing content and loading settings
    */
   function init() {
-    // Uncommenting this line will create a test saved chat for testing
-    // createTestSavedChat(); 
+    // Ensure saved chats array exists
+    ensureSavedChatsExists();
     
+    // Check for existing summary first
     checkForExistingSummary();
+    
+    // Initialize popup settings
     initializePopup();
     
-    // Make sure this runs after a short delay to let storage operations complete
+    // Make sure this runs after storage operations complete with a longer delay
     setTimeout(function() {
       updateSavedChatsCount();
-    }, 200);
+      
+      // Log debug info to help diagnose issues
+      dumpState();
+    }, 300);
   }
 
   // Initialize the popup
@@ -655,31 +661,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log("No content - Saved chats count:", chatCount);
         
-        // Create a test saved chat if none exist (for testing only)
-        if (chatCount === 0 && false) { // Set to true to force test a saved chat
-          const testChat = {
-            sessionId: 'test-session',
-            title: 'Test Saved Chat',
-            messages: [{role: 'assistant', content: 'This is a test chat'}],
-            firstSaved: Date.now(),
-            lastUpdated: Date.now()
-          };
-          
-          chrome.storage.local.set({
-            sparrowSavedChats: [testChat]
-          }, function() {
-            // Update the button after creating test chat
-            updateSavedChatsCount();
-          });
-          
-          return;
-        }
-        
         if (chatCount > 0) {
           // Has saved chats - show Saved Chats button with specific styling
           console.log("Showing saved chats button");
           elements.chatBtn.className = 'chat-button saved-mode'; // Use className to completely replace
-          elements.chatBtn.style.backgroundColor = '#5f6368'; // Backup styling
+          
+          // Apply direct styles to ensure proper appearance
+          elements.chatBtn.style.backgroundColor = '#5f6368'; 
+          elements.chatBtn.style.color = 'white';
+          elements.chatBtn.style.fontWeight = '500';
+          
           elements.chatBtn.innerHTML = `
             <i class="fa-solid fa-bookmark"></i>
             Saved Chats <span class="saved-count">${chatCount}</span>
@@ -714,8 +705,11 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("Saved chats count:", savedChats.length);
       console.log("Has content:", hasContent);
       
-      // Update button state based on content availability
-      updateChatButtonState(hasContent);
+      // Force the update with a small delay to ensure DOM is ready
+      setTimeout(() => {
+        // Update button state based on content availability
+        updateChatButtonState(hasContent);
+      }, 100);
     });
   }
 
