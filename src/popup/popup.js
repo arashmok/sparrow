@@ -1742,7 +1742,8 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.sendMessage({
         action: 'open-chat-panel',
         tabId: tabs[0].id,
-        showSavedChats: true
+        showSavedChats: true,
+        directAccess: true
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error("Error opening side panel:", chrome.runtime.lastError);

@@ -607,6 +607,19 @@ blockquote {
   transition: color 0.3s ease;
 }
 
+/* Disabled back button styling */
+.back-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #999;
+  background-color: transparent !important;
+}
+
+.back-button.disabled:hover {
+  background-color: transparent !important;
+  color: #999 !important;
+}
+
 /* =============================================================================
    CUSTOM DIALOG
    Styled dialog for confirmations

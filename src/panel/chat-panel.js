@@ -50,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Session management variables
   let currentSessionId = null;
   let isChatSaved = false;
+
+  // Flag to indicate if the chat is saved
+  let directSavedChatsAccess = false;
   
   // =========================================================================
   // INITIALIZATION
@@ -408,18 +411,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /**
-   * Check if the panel should show saved chats view immediately
-   */
-  function checkForSavedChatsView() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const showSaved = urlParams.get('showSaved');
-    
-    if (showSaved === 'true') {
-      // Show saved chats view
-      showSavedChatsView();
-    }
+/**
+ * Check if the panel should show saved chats view immediately
+ */
+function checkForSavedChatsView() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const showSaved = urlParams.get('showSaved');
+  const directAccess = urlParams.get('directAccess');
+  
+  // Set the direct access flag if present
+  if (directAccess === 'true') {
+    directSavedChatsAccess = true;
+    console.log("Direct access to saved chats detected");
   }
+  
+  if (showSaved === 'true') {
+    // Show saved chats view
+    showSavedChatsView();
+  }
+}
 
   /**
    * Save the current chat conversation
@@ -590,16 +600,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /**
-   * Show the saved chats view
-   */
-  async function showSavedChatsView() {
-    // Load saved chats
-    await loadSavedChatsAndShow();
-    
-    // Show the container
-    UI.savedChatsContainer.classList.remove('hidden');
+/**
+ * Show the saved chats view
+ */
+async function showSavedChatsView() {
+  // Load saved chats
+  await loadSavedChatsAndShow();
+  
+  // Show the container
+  UI.savedChatsContainer.classList.remove('hidden');
+  
+  // Update the back button based on access context
+  if (directSavedChatsAccess) {
+    // Disable or hide back button when directly accessing saved chats
+    if (UI.backToChatBtn) {
+      UI.backToChatBtn.classList.add('disabled');
+      UI.backToChatBtn.disabled = true;
+      UI.backToChatBtn.title = "No active chat to return to";
+      // Optionally change the text
+      UI.backToChatBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> No active chat';
+    }
+  } else {
+    // Ensure back button is enabled when coming from an active chat
+    if (UI.backToChatBtn) {
+      UI.backToChatBtn.classList.remove('disabled');
+      UI.backToChatBtn.disabled = false;
+      UI.backToChatBtn.title = "Return to chat";
+      UI.backToChatBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Back to Chat';
+    }
   }
+}
 
   /**
    * Load saved chats and display them in the saved chats view

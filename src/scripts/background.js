@@ -983,6 +983,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let urlParams = '';
     if (request.showSavedChats === true) {
       urlParams = '?showSaved=true';
+      if (request.directAccess === true) {
+        urlParams += '&directAccess=true';
+      }
       console.log("Opening saved chats view with params:", urlParams);
     }
     
