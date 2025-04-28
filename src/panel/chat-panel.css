@@ -580,3 +580,22 @@
     color: #ccc;
     margin-bottom: 16px;
   }
+
+/* Auto-save animation */
+@keyframes autosave-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.save-chat-btn.auto-saved {
+  animation: autosave-pulse 0.7s ease-in-out;
+}
+
+.save-chat-btn.has-changes {
+  color: #ff9800; /* Orange color to indicate unsaved changes */
+}
+
+.save-chat-btn.saved {
+  color: #4285f4; /* Return to blue when saved */
+}

@@ -349,11 +349,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call the original function
     originalAddMessage(text, role);
     
-    // Update save button if chat was previously saved
+    // If this is a previously saved chat, automatically save the new content
     if (isChatSaved) {
-      // Visual indication that there are unsaved changes
+      // Visual indication that changes are being saved
       UI.saveChatBtn.classList.add('has-changes');
-      UI.saveChatBtn.title = 'Save changes to this chat';
+      UI.saveChatBtn.title = 'Auto-saving changes...';
+      
+      // Add a small delay before auto-saving to prevent excessive saves during rapid exchanges
+      clearTimeout(window.autoSaveTimeout);
+      window.autoSaveTimeout = setTimeout(() => {
+        // Auto-save the updated chat
+        autoSaveChat();
+      }, 1500); // 1.5 second delay to batch rapid message exchanges
     }
   };
   
@@ -768,6 +775,54 @@ document.addEventListener('DOMContentLoaded', () => {
       toast.style.opacity = '0';
     }, duration);
   }
+
+/**
+ * Automatically save updates to an existing chat
+*/
+async function autoSaveChat() {
+  try {
+    // Get the active tab for URL and title
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTab = tabs[0];
+    
+    // Get existing saved chats
+    const existingSavedChats = await loadSavedChats();
+    const existingIndex = existingSavedChats.findIndex(chat => chat.sessionId === currentSessionId);
+    
+    if (existingIndex !== -1) {
+      // Update existing chat with latest messages
+      const updatedChat = {
+        ...existingSavedChats[existingIndex],
+        messages: conversationHistory,
+        lastUpdated: Date.now()
+      };
+      
+      // Update the chat in the saved chats array
+      existingSavedChats[existingIndex] = updatedChat;
+      
+      // Save back to storage
+      await chrome.storage.local.set({ 'sparrowSavedChats': existingSavedChats });
+      
+      // Update UI to show saved state
+      UI.saveChatBtn.classList.remove('has-changes');
+      UI.saveChatBtn.classList.add('saved');
+      UI.saveChatBtn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
+      UI.saveChatBtn.title = 'Chat auto-saved';
+      
+      // Visual feedback that save completed (subtle animation)
+      UI.saveChatBtn.classList.add('auto-saved');
+      setTimeout(() => {
+        UI.saveChatBtn.classList.remove('auto-saved');
+      }, 1000);
+      
+      console.log('Chat auto-saved successfully');
+    }
+  } catch (error) {
+    console.error('Error auto-saving chat:', error);
+    // Silently fail - we don't want to disturb the user experience
+    UI.saveChatBtn.title = 'Auto-save failed. Click to retry.';
+  }
+}
   
   // =========================================================================
   // UI UTILITIES

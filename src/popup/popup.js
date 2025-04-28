@@ -1730,31 +1730,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /**
-   * This code updates the chat button functionality in the Sparrow extension.
-   * It transforms the chat button into a "Saved Chats" button when no summary is available,
-   * and maintains normal chat functionality when content exists.
-   
-
-  // Add this function to update the saved chats count and refresh button state
-  function updateSavedChatsCount() {
-    chrome.storage.local.get(['sparrowSavedChats', 'latestSummary'], function(result) {
-      const savedChats = result.sparrowSavedChats || [];
-      const hasContent = !!result.latestSummary;
-      
-      // Update button state based on content availability
-      updateChatButtonState(hasContent);
-      
-      // Update saved chats count in the badge if available
-      if (elements.savedCountSpan && savedChats.length > 0) {
-        elements.savedCountSpan.textContent = savedChats.length;
-      }
-    });
-  }*/
-
-  /**
-   * Make sure openSavedChatsPanel is defined properly
-   */
   function openSavedChatsPanel() {
     console.log("openSavedChatsPanel called");
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
