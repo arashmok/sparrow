@@ -7,595 +7,602 @@
 
 /* =============================================================================
    BASE STYLES & RESET
+   Sets foundational styles and normalizes browser defaults
    ============================================================================= */
-   * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
-                 Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: #ffffff;
-    color: #333;
-    line-height: 1.5;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-  }
-  
-  /* =============================================================================
-     LAYOUT CONTAINERS
-     ============================================================================= */
-  #chat-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    max-width: 100%;
-    margin: 0 auto;
-  }
-  
-  /* =============================================================================
-     HEADER STYLES
-     ============================================================================= */
-  header {
-    display: flex;
-    align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    background-color: #f8f9fb;
-  }
-  
-  .logo-container {
-    width: 40px;
-    height: 40px;
-    margin-right: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .logo-img {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .header-text {
-    flex: 1;
-  }
-  
-  h1 {
-    font-size: 20px;
-    color: #4285f4;
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-  
-  header p {
-    font-size: 14px;
-    color: #666;
-  }
-  
-  /* =============================================================================
-     PAGE CONTENT CONTAINER
-     Shows the current webpage content being analyzed
-     ============================================================================= */
-  #page-content-container {
-    margin: 16px;
-    padding: 12px;
-    background-color: #f8f9fb;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    max-height: 150px;
-    overflow-y: auto;
-  }
-  
-  .context-label {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 8px;
-  }
-  
-  #page-content-text {
-    font-size: 14px;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-  }
-  
-  /* =============================================================================
-     CHAT MESSAGES AREA
-     Main area where conversation messages are displayed
-     ============================================================================= */
-  #chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .message {
-    max-width: 85%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 14px;
-    position: relative;
-    line-height: 1.6;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    overflow-wrap: break-word;
-    word-break: break-word; /* Prevents text overflow */
-  }
-  
-  /* AI assistant message (left-aligned) */
-  .message-assistant {
-    background-color: #e8f0fe;
-    align-self: flex-start;
-  }
-  
-  /* User message (right-aligned) */
-  .message-user {
-    background-color: #f0f0f0;
-    align-self: flex-end;
-  }
-  
-  /* =============================================================================
-     MESSAGE CONTENT FORMATTING
-     Styles for formatted message content with markdown support
-     ============================================================================= */
-  .message-content {
-    white-space: normal; /* Changed from pre-wrap to fix truncation */
-    overflow-wrap: break-word;
-    word-break: break-word;
-    line-height: 1.6;
-    max-width: 100%; /* Ensure content doesn't overflow */
-  }
-  
-  .message-content p {
-    margin-bottom: 12px;
-  }
-  
-  .message-content p:last-child {
-    margin-bottom: 0;
-  }
-  
-  /* Heading styles for message content */
-  .message-heading {
-    font-weight: 600;
-    margin: 20px 0 10px 0;
-    color: #333;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-    padding-bottom: 5px;
-  }
-  
-  .message-heading-1 {
-    font-size: 1.5em;
-  }
-  
-  .message-heading-2 {
-    font-size: 1.3em;
-  }
-  
-  .message-heading-3 {
-    font-size: 1.2em;
-  }
-  
-  /* Paragraph spacing */
-  .message-paragraph {
-    margin-bottom: 15px;
-    line-height: 1.6;
-  }
-  
-  /* Code block styling */
-  .code-block-wrapper {
-    position: relative;
-    margin: 16px 0;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .code-lang-label {
-    position: absolute;
-    right: 10px;
-    top: 0;
-    background-color: rgba(0,0,0,0.6);
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 0 0 4px 4px;
-    font-size: 11px;
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    z-index: 1;
-  }
-  
-  .code-block {
-    background-color: #f6f8fa;
-    padding: 16px;
-    border-radius: 8px;
-    border-left: 3px solid #4285f4;
-    overflow-x: auto;
-    width: 100%;
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    tab-size: 2;
-  }
-  
-  .inline-code {
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    background-color: rgba(175, 184, 193, 0.2);
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    white-space: pre-wrap;
-  }
-  
-  /* List styling */
-  .message-list {
-    margin: 15px 0 15px 0;
-    padding-left: 25px;
-  }
-  
-  .message-list li {
-    margin-bottom: 8px;
-    line-height: 1.5;
-  }
-  
-  /* Blockquote styling */
-  blockquote {
-    margin: 15px 0;
-    padding: 10px 15px;
-    border-left: 4px solid #9e9e9e;
-    background-color: rgba(0,0,0,0.03);
-    color: #555;
-    font-style: italic;
-  }
-  
-  /* Link styling */
-  .message-link {
-    color: #0366d6;
-    text-decoration: none;
-  }
-  
-  .message-link:hover {
-    text-decoration: underline;
-  }
-  
-  /* Horizontal rule */
-  .message-hr {
-    margin: 20px 0;
-    height: 1px;
-    background-color: rgba(0,0,0,0.1);
-    border: none;
-  }
-  
-  /* =============================================================================
-     API INDICATOR
-     Shows which API provider is currently being used
-     ============================================================================= */
-  .api-indicator-container {
-    padding: 12px 16px;
-    display: flex;
-    justify-content: flex-start;
-    background-color: #f8f9fb;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-  }
-  
-  .api-method-indicator {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #fff;
-    line-height: 1.2;
-  }
-  
-  /* API provider specific colors */
-  .indicator-openai {
-    background-color: #10a37f; /* OpenAI green */
-  }
-  
-  .indicator-lmstudio {
-    background-color: #0C5460; /* LM Studio blue */
-  }
-  
-  .indicator-ollama {
-    background-color: #6e48aa; /* Ollama purple */
-  }
-  
-  .indicator-openrouter {
-    background-color: #FF6B00; /* OpenRouter orange */
-  }
-  
-  /* =============================================================================
-     CHAT INPUT AREA
-     User input field and send button
-     ============================================================================= */
-  .chat-input-container {
-    display: flex;
-    padding: 12px 16px;
-    gap: 12px;
-    background-color: #f8f9fb;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-    align-items: center;
-  }
-  
-  #chat-input {
-    flex: 1;
-    resize: none;
-    padding: 12px 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 20px;
-    font-size: 14px;
-    min-height: 48px;
-    max-height: 120px;
-    overflow-y: auto;
-    font-family: inherit;
-    line-height: 1.4;
-  }
-  
-  #chat-input:focus {
-    outline: none;
-    border-color: #4285f4;
-  }
-  
-  #send-button {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background-color: #4285f4;
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  #send-button:hover {
-    background-color: #357ae8;
-  }
-  
-  /* =============================================================================
-     UTILITY CLASSES
-     ============================================================================= */
-  .hidden {
-    display: none;
-  }
-  
-  /* =============================================================================
-     LOADING INDICATOR
-     Animated dots to indicate the AI is thinking
-     ============================================================================= */
-  .typing-indicator {
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: row;
-    gap: 5px;
-    align-items: center;
-  }
-  
-  .typing-dot {
-    width: 8px;
-    height: 8px;
-    background-color: #4285f4;
-    border-radius: 50%;
-    opacity: 0.6;
-    animation: typing-animation 1.5s infinite ease-in-out;
-  }
-  
-  .typing-dot:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-  
-  .typing-dot:nth-child(3) {
-    animation-delay: 0.4s;
-  }
-  
-  @keyframes typing-animation {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
-  
-  /* =============================================================================
-     GENERATED CONTENT STYLES
-     Used for content generated by the AI
-     ============================================================================= */
-  .generated-title {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-  
-  .generated-content {
-    font-size: 14px;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-  /* =============================================================================
-     SAVED CHATS
-     Styles for the saved chats feature
-     ============================================================================= */
-  /* Header actions styling */
-  .header-actions {
-    display: flex;
-    gap: 12px;
-    margin-left: auto;
-  }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
+               Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #ffffff;
+  color: #333;
+  line-height: 1.5;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
 
-  .save-chat-btn, .view-toggle-btn {
-    background: none;
-    border: none;
-    color: #666;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-  }
+/* =============================================================================
+   LAYOUT CONTAINERS
+   Primary structural elements for the chat interface
+   ============================================================================= */
+#chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 100%;
+  margin: 0 auto;
+}
 
-  .save-chat-btn:hover, .view-toggle-btn:hover {
-    color: #4285f4;
-    background-color: rgba(66, 133, 244, 0.1);
-  }
+/* =============================================================================
+   HEADER STYLES
+   Top navigation and branding area styling
+   ============================================================================= */
+header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #f8f9fb;
+}
 
-  /* Saved status */
-  .save-chat-btn.saved {
-    color: #4285f4;
-  }
+.logo-container {
+  width: 40px;
+  height: 40px;
+  margin-right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .save-chat-btn.saved i {
-    font-weight: 900;
-  }
+.logo-img {
+  width: 36px;
+  height: 36px;
+}
 
-  /* Saved chats container */
-  .saved-chats-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 16px;
-    background-color: #f8f9fb;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 100;
-    transition: transform 0.3s ease;
-  }
+.header-text {
+  flex: 1;
+}
 
-  .saved-chats-container.hidden {
-    transform: translateX(100%);
-    visibility: hidden;
-  }
+h1 {
+  font-size: 20px;
+  color: #4285f4;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
 
-  .saved-chats-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  }
+header p {
+  font-size: 14px;
+  color: #666;
+}
 
-  .saved-chats-header h2 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-    margin: 0;
-  }
+/* =============================================================================
+   PAGE CONTENT CONTAINER
+   Shows the current webpage content being analyzed
+   ============================================================================= */
+#page-content-container {
+  margin: 16px;
+  padding: 12px;
+  background-color: #f8f9fb;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
 
-  .back-button {
-    background: none;
-    border: none;
-    color: #4285f4;
-    font-size: 14px;
-    cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+.context-label {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
 
-  .back-button:hover {
-    background-color: rgba(66, 133, 244, 0.1);
-  }
+#page-content-text {
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
 
-  /* Saved chats list */
-  .saved-chats-list {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
+/* =============================================================================
+   CHAT MESSAGES AREA
+   Main area where conversation messages are displayed
+   ============================================================================= */
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-  .saved-chat-item {
-    background-color: white;
-    border-radius: 8px;
-    padding: 12px 16px;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    position: relative;
-    transition: all 0.2s ease;
-  }
+.message {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  position: relative;
+  line-height: 1.6;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  overflow-wrap: break-word;
+  word-break: break-word; /* Prevents text overflow */
+}
 
-  .saved-chat-item:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
-  }
+/* AI assistant message (left-aligned) */
+.message-assistant {
+  background-color: #e8f0fe;
+  align-self: flex-start;
+}
 
-  .saved-chat-title {
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 4px;
-    padding-right: 28px; /* Space for delete button */
-  }
+/* User message (right-aligned) */
+.message-user {
+  background-color: #f0f0f0;
+  align-self: flex-end;
+}
 
-  .saved-chat-info {
-    display: flex;
-    justify-content: space-between;
-    color: #777;
-    font-size: 12px;
-  }
+/* =============================================================================
+   MESSAGE CONTENT FORMATTING
+   Styles for formatted message content with markdown support
+   ============================================================================= */
+.message-content {
+  white-space: normal; /* Changed from pre-wrap to fix truncation */
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.6;
+  max-width: 100%; /* Ensure content doesn't overflow */
+}
 
-  .saved-chat-delete {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: none;
-    border: none;
-    color: #999;
-    cursor: pointer;
-    padding: 4px;
-    font-size: 14px;
-    border-radius: 50%;
-    opacity: 0.6;
-    transition: all 0.2s ease;
-  }
+.message-content p {
+  margin-bottom: 12px;
+}
 
-  .saved-chat-delete:hover {
-    color: #d32f2f;
-    background-color: rgba(211, 47, 47, 0.1);
-    opacity: 1;
-  }
+.message-content p:last-child {
+  margin-bottom: 0;
+}
 
-  /* Empty state */
-  .empty-saved-chats {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: #777;
-    height: 100%;
-    min-height: 200px;
-    padding: 20px;
-  }
+/* Heading styles for message content */
+.message-heading {
+  font-weight: 600;
+  margin: 20px 0 10px 0;
+  color: #333;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding-bottom: 5px;
+}
 
-  .empty-saved-chats .empty-icon {
-    font-size: 36px;
-    color: #ccc;
-    margin-bottom: 16px;
-  }
+.message-heading-1 {
+  font-size: 1.5em;
+}
 
-/* Auto-save animation */
+.message-heading-2 {
+  font-size: 1.3em;
+}
+
+.message-heading-3 {
+  font-size: 1.2em;
+}
+
+/* Paragraph spacing */
+.message-paragraph {
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+/* Code block styling */
+.code-block-wrapper {
+  position: relative;
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.code-lang-label {
+  position: absolute;
+  right: 10px;
+  top: 0;
+  background-color: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 0 0 4px 4px;
+  font-size: 11px;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  z-index: 1;
+}
+
+.code-block {
+  background-color: #f6f8fa;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 3px solid #4285f4;
+  overflow-x: auto;
+  width: 100%;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+.inline-code {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  background-color: rgba(175, 184, 193, 0.2);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  white-space: pre-wrap;
+}
+
+/* List styling */
+.message-list {
+  margin: 15px 0 15px 0;
+  padding-left: 25px;
+}
+
+.message-list li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* Blockquote styling */
+blockquote {
+  margin: 15px 0;
+  padding: 10px 15px;
+  border-left: 4px solid #9e9e9e;
+  background-color: rgba(0,0,0,0.03);
+  color: #555;
+  font-style: italic;
+}
+
+/* Link styling */
+.message-link {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.message-link:hover {
+  text-decoration: underline;
+}
+
+/* Horizontal rule */
+.message-hr {
+  margin: 20px 0;
+  height: 1px;
+  background-color: rgba(0,0,0,0.1);
+  border: none;
+}
+
+/* =============================================================================
+   API INDICATOR
+   Visual indicators for different API providers
+   ============================================================================= */
+.api-indicator-container {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-start;
+  background-color: #f8f9fb;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.api-method-indicator {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
+}
+
+/* API provider specific colors */
+.indicator-openai {
+  background-color: #10a37f; /* OpenAI green */
+}
+
+.indicator-lmstudio {
+  background-color: #0C5460; /* LM Studio blue */
+}
+
+.indicator-ollama {
+  background-color: #6e48aa; /* Ollama purple */
+}
+
+.indicator-openrouter {
+  background-color: #FF6B00; /* OpenRouter orange */
+}
+
+/* =============================================================================
+   CHAT INPUT AREA
+   User input field and send button
+   ============================================================================= */
+.chat-input-container {
+  display: flex;
+  padding: 12px 16px;
+  gap: 12px;
+  background-color: #f8f9fb;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  align-items: center;
+}
+
+#chat-input {
+  flex: 1;
+  resize: none;
+  padding: 12px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  font-size: 14px;
+  min-height: 48px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+#chat-input:focus {
+  outline: none;
+  border-color: #4285f4;
+}
+
+#send-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+#send-button:hover {
+  background-color: #357ae8;
+}
+
+/* =============================================================================
+   UTILITY CLASSES
+   Helper classes for common functionality
+   ============================================================================= */
+.hidden {
+  display: none;
+}
+
+/* =============================================================================
+   LOADING INDICATOR
+   Animated dots to indicate the AI is thinking
+   ============================================================================= */
+.typing-indicator {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #4285f4;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: typing-animation 1.5s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing-animation {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* =============================================================================
+   GENERATED CONTENT STYLES
+   Used for content generated by the AI
+   ============================================================================= */
+.generated-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.generated-content {
+  font-size: 14px;
+}
+
+/* =============================================================================
+   SAVED CHATS
+   Styles for the saved chats feature and management
+   ============================================================================= */
+/* Header actions styling */
+.header-actions {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.save-chat-btn, .view-toggle-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.save-chat-btn:hover, .view-toggle-btn:hover {
+  color: #4285f4;
+  background-color: rgba(66, 133, 244, 0.1);
+}
+
+/* Saved status indicators */
+.save-chat-btn.saved {
+  color: #4285f4;
+}
+
+.save-chat-btn.saved i {
+  font-weight: 900;
+}
+
+/* Saved chats container */
+.saved-chats-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  background-color: #f8f9fb;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  transition: transform 0.3s ease;
+}
+
+.saved-chats-container.hidden {
+  transform: translateX(100%);
+  visibility: hidden;
+}
+
+.saved-chats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.saved-chats-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #4285f4;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.back-button:hover {
+  background-color: rgba(66, 133, 244, 0.1);
+}
+
+/* Saved chats list items */
+.saved-chats-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.saved-chat-item {
+  background-color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.saved-chat-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.saved-chat-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+  padding-right: 28px; /* Space for delete button */
+}
+
+.saved-chat-info {
+  display: flex;
+  justify-content: space-between;
+  color: #777;
+  font-size: 12px;
+}
+
+.saved-chat-delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 14px;
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.saved-chat-delete:hover {
+  color: #d32f2f;
+  background-color: rgba(211, 47, 47, 0.1);
+  opacity: 1;
+}
+
+/* Empty state for saved chats */
+.empty-saved-chats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #777;
+  height: 100%;
+  min-height: 200px;
+  padding: 20px;
+}
+
+.empty-saved-chats .empty-icon {
+  font-size: 36px;
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+/* Auto-save animation and state indicators */
+/* Add these updated rules to chat-panel.css */
 @keyframes autosave-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% { transform: scale(1); color: #ff9800; }
+  50% { transform: scale(1.3); color: #4285f4; }
+  100% { transform: scale(1); color: #4285f4; }
 }
 
 .save-chat-btn.auto-saved {
-  animation: autosave-pulse 0.7s ease-in-out;
+  animation: autosave-pulse 1s ease-in-out;
 }
 
 .save-chat-btn.has-changes {
   color: #ff9800; /* Orange color to indicate unsaved changes */
+  transition: color 0.3s ease;
 }
 
 .save-chat-btn.saved {
-  color: #4285f4; /* Return to blue when saved */
+  color: #4285f4; /* Blue when saved */
+  transition: color 0.3s ease;
 }

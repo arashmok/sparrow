@@ -803,17 +803,29 @@ async function autoSaveChat() {
       // Save back to storage
       await chrome.storage.local.set({ 'sparrowSavedChats': existingSavedChats });
       
-      // Update UI to show saved state
+      // Update UI to show saved state - ANIMATION ENHANCEMENT
       UI.saveChatBtn.classList.remove('has-changes');
-      UI.saveChatBtn.classList.add('saved');
+      
+      // Apply the animation class - this will trigger the visual feedback
       UI.saveChatBtn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
       UI.saveChatBtn.title = 'Chat auto-saved';
       
-      // Visual feedback that save completed (subtle animation)
-      UI.saveChatBtn.classList.add('auto-saved');
+      // Make animation more noticeable by removing and re-adding the class
+      UI.saveChatBtn.classList.remove('auto-saved');
+      UI.saveChatBtn.classList.remove('saved');
+      
+      // Force a reflow to ensure animation triggers even when class was previously applied
+      void UI.saveChatBtn.offsetWidth;
+      
+      // Add classes back with a slight delay between them for better visual effect
       setTimeout(() => {
-        UI.saveChatBtn.classList.remove('auto-saved');
-      }, 1000);
+        UI.saveChatBtn.classList.add('auto-saved');
+        
+        // Add saved class after a slight delay
+        setTimeout(() => {
+          UI.saveChatBtn.classList.add('saved');
+        }, 100);
+      }, 10);
       
       console.log('Chat auto-saved successfully');
     }
