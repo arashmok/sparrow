@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
           elements.summaryFormat.value = result.defaultFormat;
         }, 10);
       }
-
+  
       // Reset button/dropdown proportions to default
       elements.summarizeBtn.style.flexGrow = "4";
       elements.summaryFormat.style.flexGrow = "3";
@@ -199,8 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update API indicator with current provider and model name
       updateApiIndicator(apiMode, selectedModel);
       
-      // Update chat button state based on content availability
-      updateChatButtonState(!!result.latestSummary);
+      // REMOVE THIS LINE - Let the updateSavedChatsCount function handle button state
+      // updateChatButtonState(!!result.latestSummary);
     });
   }
   
@@ -711,21 +711,32 @@ document.addEventListener('DOMContentLoaded', () => {
    * Update the saved chats count and refresh button state
    */
   function updateSavedChatsCount() {
-    console.log("updateSavedChatsCount called");
-    chrome.storage.local.get(['sparrowSavedChats', 'latestSummary'], function(result) {
-      const savedChats = result.sparrowSavedChats || [];
-      const hasContent = !!result.latestSummary;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) return;
       
-      console.log("Saved chats count:", savedChats.length);
-      console.log("Has content:", hasContent);
+      const currentUrl = normalizeUrl(tabs[0].url);
       
-      // Update button state based on content availability
-      updateChatButtonState(hasContent);
-      
-      // Update saved chats count in the badge if available
-      if (elements.savedCountSpan && savedChats.length > 0) {
-        elements.savedCountSpan.textContent = savedChats.length;
-      }
+      chrome.storage.local.get(['sparrowSavedChats', 'latestSummary', 'latestUrl'], function(result) {
+        const savedChats = result.sparrowSavedChats || [];
+        let hasContent = false;
+        
+        // Only consider content available if URL matches
+        if (result.latestSummary && result.latestUrl) {
+          const storedUrl = normalizeUrl(result.latestUrl);
+          hasContent = (currentUrl === storedUrl);
+        }
+        
+        console.log("Saved chats count:", savedChats.length);
+        console.log("Has matching content for current URL:", hasContent);
+        
+        // Update button state based on content availability
+        updateChatButtonState(hasContent);
+        
+        // Update saved chats count in badge if available
+        if (elements.savedCountSpan && savedChats.length > 0) {
+          elements.savedCountSpan.textContent = savedChats.length;
+        }
+      });
     });
   }
 
