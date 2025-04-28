@@ -24,19 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
     savedCountSpan: document.getElementById('saved-count')
   };
 
-  // Force create an empty saved chats array if it doesn't exist
-  function ensureSavedChatsExists() {
-    chrome.storage.local.get(['sparrowSavedChats'], function(result) {
-      if (!result.sparrowSavedChats) {
-        console.log("Creating empty sparrowSavedChats array");
-        chrome.storage.local.set({ sparrowSavedChats: [] });
-      }
-    });
-  }
-
-  // Call this function immediately
-  ensureSavedChatsExists();
-
   // =====================================================================
   // DEBUG UTILITIES
   // =====================================================================
@@ -63,25 +50,50 @@ document.addEventListener('DOMContentLoaded', () => {
   // =====================================================================
   
   /**
-   * Initialize the popup by checking for existing content and loading settings
+   * Enhanced storage initialization that returns a Promise
    */
-  function init() {
-    // Ensure saved chats array exists
-    ensureSavedChatsExists();
-    
-    // Check for existing summary first
-    checkForExistingSummary();
-    
-    // Initialize popup settings
-    initializePopup();
-    
-    // Make sure this runs after storage operations complete with a longer delay
-    setTimeout(function() {
-      updateSavedChatsCount();
+  function initializeSavedChatsStorage() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+        console.log("Checking saved chats storage:", result);
+        
+        if (!result || !result.sparrowSavedChats) {
+          console.log("No saved chats found in storage, creating empty array");
+          chrome.storage.local.set({ sparrowSavedChats: [] }, function() {
+            console.log("Empty saved chats array created");
+            resolve([]);
+          });
+        } else {
+          console.log(`Found ${result.sparrowSavedChats.length} saved chats in storage`);
+          resolve(result.sparrowSavedChats);
+        }
+      });
+    });
+  }
+
+  /**
+   * Enhanced initialization function that ensures proper sequence
+   */
+  async function init() {
+    try {
+      // First, make sure storage is properly initialized
+      const savedChats = await initializeSavedChatsStorage();
+      console.log(`Initialization complete, found ${savedChats.length} saved chats`);
       
-      // Log debug info to help diagnose issues
-      dumpState();
-    }, 300);
+      // Check for existing summary
+      checkForExistingSummary();
+      
+      // Initialize popup settings
+      initializePopup();
+      
+      // Make sure this runs after storage operations complete
+      setTimeout(function() {
+        updateSavedChatsCount();
+        dumpState();
+      }, 300);
+    } catch (error) {
+      console.error("Error during initialization:", error);
+    }
   }
 
   // Initialize the popup
@@ -695,7 +707,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Add this to make sure the updateSavedChatsCount function is correctly defined
+  /**
+   * Update the saved chats count and refresh button state
+   */
   function updateSavedChatsCount() {
     console.log("updateSavedChatsCount called");
     chrome.storage.local.get(['sparrowSavedChats', 'latestSummary'], function(result) {
@@ -705,11 +719,13 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("Saved chats count:", savedChats.length);
       console.log("Has content:", hasContent);
       
-      // Force the update with a small delay to ensure DOM is ready
-      setTimeout(() => {
-        // Update button state based on content availability
-        updateChatButtonState(hasContent);
-      }, 100);
+      // Update button state based on content availability
+      updateChatButtonState(hasContent);
+      
+      // Update saved chats count in the badge if available
+      if (elements.savedCountSpan && savedChats.length > 0) {
+        elements.savedCountSpan.textContent = savedChats.length;
+      }
     });
   }
 
@@ -1707,7 +1723,7 @@ document.addEventListener('DOMContentLoaded', () => {
    * This code updates the chat button functionality in the Sparrow extension.
    * It transforms the chat button into a "Saved Chats" button when no summary is available,
    * and maintains normal chat functionality when content exists.
-   */
+   
 
   // Add this function to update the saved chats count and refresh button state
   function updateSavedChatsCount() {
@@ -1723,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.savedCountSpan.textContent = savedChats.length;
       }
     });
-  }
+  }*/
 
   /**
    * Make sure openSavedChatsPanel is defined properly
@@ -1780,6 +1796,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Force button update
         updateSavedChatsCount();
       });
+    });
+  }
+
+  /**
+   * Force refresh the saved chats status regardless of current summary content
+   */
+  function forceRefreshSavedChatsStatus() {
+    chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+      const chats = result.sparrowSavedChats || [];
+      console.log("Force refresh - saved chats count:", chats.length);
+      
+      // Add a test chat if debugging
+      // if (chats.length === 0) createTestSavedChat();
+      
+      setTimeout(() => updateChatButtonState(false), 200);
     });
   }
 
