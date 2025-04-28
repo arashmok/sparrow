@@ -683,7 +683,8 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteBtn.addEventListener('click', async (e) => {
           e.stopPropagation();
           
-          if (confirm('Delete this saved chat?')) {
+          // Use the custom delete confirmation instead of the browser's confirm
+          showDeleteConfirmation(chatTitle, async () => {
             await deleteSavedChat(chat.sessionId);
             chatItem.remove();
             
@@ -699,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Update saved count in popup if possible
             updateSavedChatsCount(savedChats.length - 1);
-          }
+          });
         });
         
         UI.savedChatsList.appendChild(chatItem);
@@ -834,6 +835,76 @@ async function autoSaveChat() {
     // Silently fail - we don't want to disturb the user experience
     UI.saveChatBtn.title = 'Auto-save failed. Click to retry.';
   }
+}
+
+/**
+ * Create a custom delete confirmation dialog
+ * @param {string} chatTitle - The title of the chat being deleted
+ * @param {Function} onConfirm - Callback when deletion is confirmed
+ */
+function showDeleteConfirmation(chatTitle, onConfirm) {
+  // Check if a previous dialog exists and remove it
+  const existingDialog = document.getElementById('custom-delete-dialog');
+  if (existingDialog) {
+    existingDialog.remove();
+  }
+  
+  // Create the dialog container
+  const dialogOverlay = document.createElement('div');
+  dialogOverlay.id = 'custom-delete-dialog';
+  dialogOverlay.className = 'dialog-overlay';
+  
+  // Create the dialog content with the extension logo
+  dialogOverlay.innerHTML = `
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <img src="../../assets/icons/icon48.png" alt="Sparrow logo" class="dialog-logo">
+        <h3>Delete Conversation</h3>
+      </div>
+      <div class="dialog-body">
+        <p>Are you sure you want to delete this saved conversation?</p>
+        <p class="chat-title-preview">"${escapeHtml(chatTitle)}"</p>
+        <p class="dialog-warning">This action cannot be undone.</p>
+      </div>
+      <div class="dialog-buttons">
+        <button class="dialog-btn dialog-cancel">Cancel</button>
+        <button class="dialog-btn dialog-confirm">Delete</button>
+      </div>
+    </div>
+  `;
+  
+  // Add dialog to the DOM
+  document.body.appendChild(dialogOverlay);
+  
+  // Add event listeners
+  const cancelBtn = dialogOverlay.querySelector('.dialog-cancel');
+  const confirmBtn = dialogOverlay.querySelector('.dialog-confirm');
+  
+  // Close dialog when clicking cancel
+  cancelBtn.addEventListener('click', () => {
+    dialogOverlay.classList.add('dialog-closing');
+    setTimeout(() => dialogOverlay.remove(), 300);
+  });
+  
+  // Close dialog and execute callback when clicking delete
+  confirmBtn.addEventListener('click', () => {
+    dialogOverlay.classList.add('dialog-closing');
+    setTimeout(() => {
+      dialogOverlay.remove();
+      onConfirm();
+    }, 300);
+  });
+  
+  // Close dialog when clicking outside
+  dialogOverlay.addEventListener('click', (e) => {
+    if (e.target === dialogOverlay) {
+      dialogOverlay.classList.add('dialog-closing');
+      setTimeout(() => dialogOverlay.remove(), 300);
+    }
+  });
+  
+  // Show dialog with animation
+  setTimeout(() => dialogOverlay.classList.add('dialog-visible'), 10);
 }
   
   // =========================================================================
