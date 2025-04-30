@@ -19,22 +19,85 @@ document.addEventListener('DOMContentLoaded', () => {
     apiIndicator: document.getElementById('api-indicator'),
     apiMethodIndicator: document.getElementById('api-method-indicator'),
     chatBtn: document.getElementById('chat-btn'),
-    expandBtn: document.getElementById('expand-btn')
+    expandBtn: document.getElementById('expand-btn'),
+    savedChatsBtn: document.getElementById('saved-chats-btn'),
+    savedCountSpan: document.getElementById('saved-count')
   };
+
+  // =====================================================================
+  // DEBUG UTILITIES
+  // =====================================================================
+  function debugLog(message, data) {
+    console.log(`%c[DEBUG] ${message}`, 'background: #f0f0f0; color: #0066cc; padding: 2px 5px; border-radius: 3px;', data || '');
+  }
+
+  // Add this function to dump the state of important variables for debugging
+  function dumpState() {
+    chrome.storage.local.get(['latestSummary', 'sparrowSavedChats'], function(result) {
+      debugLog('Current State:', {
+        'Has Summary': !!result.latestSummary,
+        'Summary Length': result.latestSummary ? result.latestSummary.length : 0,
+        'Saved Chats Count': (result.sparrowSavedChats || []).length,
+        'Chat Button Element': !!elements.chatBtn,
+        'Button Classes': elements.chatBtn ? elements.chatBtn.className : 'N/A',
+        'Button Disabled': elements.chatBtn ? elements.chatBtn.disabled : 'N/A'
+      });
+    });
+  }
 
   // =====================================================================
   // INITIALIZATION
   // =====================================================================
   
   /**
-   * Initialize the popup by checking for existing content and loading settings
+   * Enhanced storage initialization that returns a Promise
    */
-  function init() {
-    checkForExistingSummary();
-    initializePopup();
+  function initializeSavedChatsStorage() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+        console.log("Checking saved chats storage:", result);
+        
+        if (!result || !result.sparrowSavedChats) {
+          console.log("No saved chats found in storage, creating empty array");
+          chrome.storage.local.set({ sparrowSavedChats: [] }, function() {
+            console.log("Empty saved chats array created");
+            resolve([]);
+          });
+        } else {
+          console.log(`Found ${result.sparrowSavedChats.length} saved chats in storage`);
+          resolve(result.sparrowSavedChats);
+        }
+      });
+    });
   }
-  
-  init(); // Run initialization on load
+
+  /**
+   * Enhanced initialization function that ensures proper sequence
+   */
+  async function init() {
+    try {
+      // First, make sure storage is properly initialized
+      const savedChats = await initializeSavedChatsStorage();
+      console.log(`Initialization complete, found ${savedChats.length} saved chats`);
+      
+      // Check for existing summary
+      checkForExistingSummary();
+      
+      // Initialize popup settings
+      initializePopup();
+      
+      // Make sure this runs after storage operations complete
+      setTimeout(function() {
+        updateSavedChatsCount();
+        dumpState();
+      }, 300);
+    } catch (error) {
+      console.error("Error during initialization:", error);
+    }
+  }
+
+  // Initialize the popup
+  init();
   
   // =====================================================================
   // EVENT LISTENERS
@@ -67,9 +130,24 @@ document.addEventListener('DOMContentLoaded', () => {
         adjustFooterPlacement();
       }, 50);
     });
+    
+    // Add saved chats button click handler
+    if (elements.savedChatsBtn) {
+      elements.savedChatsBtn.addEventListener('click', openSavedChatsPanel);
+    }
   }
   
   setupEventListeners();
+
+  // Add message listener for saved chats count updates
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'update-saved-count') {
+      debugLog('Received update-saved-count message', request);
+      // Update UI state in case button is in saved mode
+      updateSavedChatsCount();
+      sendResponse({ success: true });
+    }
+  });
 
   // =====================================================================
   // INITIALIZATION FUNCTIONS
@@ -109,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
           elements.summaryFormat.value = result.defaultFormat;
         }, 10);
       }
-
+  
       // Reset button/dropdown proportions to default
       elements.summarizeBtn.style.flexGrow = "4";
       elements.summaryFormat.style.flexGrow = "3";
@@ -121,8 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update API indicator with current provider and model name
       updateApiIndicator(apiMode, selectedModel);
       
-      // Update chat button state based on content availability
-      updateChatButtonState(!!result.latestSummary);
+      // REMOVE THIS LINE - Let the updateSavedChatsCount function handle button state
+      // updateChatButtonState(!!result.latestSummary);
     });
   }
   
@@ -152,10 +230,15 @@ document.addEventListener('DOMContentLoaded', () => {
    * Compares the current URL with the stored URL and displays the summary if they match
    */
   function checkForExistingSummary() {
+    debugLog('Checking for existing summary');
     chrome.storage.local.get(['latestSummary', 'latestUrl'], (result) => {
       if (result.latestSummary && result.latestUrl) {
+        debugLog('Found stored summary and URL');
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (!tabs || !tabs[0]) return;
+          if (!tabs || !tabs[0]) {
+            debugLog('ERROR: No active tab found');
+            return;
+          }
           
           const currentUrl = normalizeUrl(tabs[0].url);
           const storedUrl = normalizeUrl(result.latestUrl);
@@ -163,14 +246,18 @@ document.addEventListener('DOMContentLoaded', () => {
           logUrlComparisonInfo(tabs[0].url, result.latestUrl, currentUrl, storedUrl);
           
           if (currentUrl === storedUrl) {
+            debugLog('URLs match - displaying existing summary');
             displayExistingSummary(result.latestSummary);
           } else {
-            disableChatForNoContent();
+            debugLog('URLs do not match - updating button for saved chats');
+            // Update button state to show saved chats if available
+            updateSavedChatsCount();
           }
         });
       } else {
-        console.log("No saved summary found in storage");
-        disableChatForNoContent();
+        debugLog('No saved summary found in storage');
+        // Update button state to show saved chats if available
+        updateSavedChatsCount();
       }
     });
   }
@@ -219,8 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
    * Disable chat button when there's no content available
    */
   function disableChatForNoContent() {
-    elements.chatBtn.disabled = true;
-    elements.chatBtn.classList.add('disabled');
+    updateChatButtonState(false);
   }
 
   // =====================================================================
@@ -552,15 +638,106 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * Updates the chat button state based on whether content exists
+   * When no content is available, transforms it to a "Saved Chats" button
+   * 
    * @param {boolean} hasContent - Whether content exists to chat about
    */
   function updateChatButtonState(hasContent) {
-    elements.chatBtn.disabled = !hasContent;
-    if (!hasContent) {
-      elements.chatBtn.classList.add('disabled');
-    } else {
-      elements.chatBtn.classList.remove('disabled');
+    console.log("updateChatButtonState called with hasContent =", hasContent);
+    
+    if (!elements.chatBtn) {
+      console.error("Chat button element not found!");
+      return;
     }
+    
+    // Remove any existing event listeners to prevent duplicates
+    elements.chatBtn.removeEventListener('click', handleChatButtonClick);
+    elements.chatBtn.removeEventListener('click', openSavedChatsPanel);
+    
+    if (hasContent) {
+      // Content available - show normal Chat button
+      console.log("Showing normal chat button");
+      elements.chatBtn.className = 'chat-button'; // Reset classes
+      elements.chatBtn.innerHTML = `
+        <i class="fa-solid fa-comment"></i>
+        Chat
+      `;
+      elements.chatBtn.title = "Chat about this content";
+      elements.chatBtn.disabled = false;
+      elements.chatBtn.addEventListener('click', handleChatButtonClick);
+    } else {
+      // Force check for saved chats
+      chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+        const savedChats = result.sparrowSavedChats || [];
+        const chatCount = savedChats.length;
+        
+        console.log("No content - Saved chats count:", chatCount);
+        
+        if (chatCount > 0) {
+          // Has saved chats - show Saved Chats button with specific styling
+          console.log("Showing saved chats button");
+          elements.chatBtn.className = 'chat-button saved-mode'; // Use className to completely replace
+          
+          // Apply direct styles to ensure proper appearance
+          elements.chatBtn.style.backgroundColor = '#5f6368'; 
+          elements.chatBtn.style.color = 'white';
+          elements.chatBtn.style.fontWeight = '500';
+          
+          elements.chatBtn.innerHTML = `
+            <i class="fa-solid fa-bookmark"></i>
+            Saved Chats <span class="saved-count">${chatCount}</span>
+          `;
+          elements.chatBtn.title = "View your saved chats";
+          elements.chatBtn.disabled = false;
+          
+          // Make sure we attach the correct event listener
+          elements.chatBtn.addEventListener('click', openSavedChatsPanel);
+        } else {
+          // No saved chats - keep disabled Chat button
+          console.log("No saved chats - disabling chat button");
+          elements.chatBtn.className = 'chat-button disabled';
+          elements.chatBtn.innerHTML = `
+            <i class="fa-solid fa-comment"></i>
+            Chat
+          `;
+          elements.chatBtn.title = "Generate content first to enable chat";
+          elements.chatBtn.disabled = true;
+        }
+      });
+    }
+  }
+
+  /**
+   * Update the saved chats count and refresh button state
+   */
+  function updateSavedChatsCount() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) return;
+      
+      const currentUrl = normalizeUrl(tabs[0].url);
+      
+      chrome.storage.local.get(['sparrowSavedChats', 'latestSummary', 'latestUrl'], function(result) {
+        const savedChats = result.sparrowSavedChats || [];
+        let hasContent = false;
+        
+        // Only consider content available if URL matches
+        if (result.latestSummary && result.latestUrl) {
+          const storedUrl = normalizeUrl(result.latestUrl);
+          hasContent = (currentUrl === storedUrl);
+        }
+        
+        console.log("Saved chats count:", savedChats.length);
+        console.log("Has matching content for current URL:", hasContent);
+        
+        // Update button state based on content availability
+        updateChatButtonState(hasContent);
+        
+        // Update saved chats count in badge if available
+        if (elements.savedCountSpan && savedChats.length > 0) {
+          elements.savedCountSpan.textContent = savedChats.length;
+        }
+      });
+    });
   }
 
   /**
@@ -575,7 +752,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Reset button state
     resetUIAfterGeneration("Generate");
-
+  
     // Show summary format dropdown after generation
     elements.summaryFormat.classList.remove('hidden-during-generation');
   
@@ -584,19 +761,102 @@ document.addEventListener('DOMContentLoaded', () => {
       elements.expandBtn.style.display = 'none';
     }
     
+    // Initialize variables for error display
+    let errorTitle = "Error";
+    let errorDetails = message;
+    let helpContent = 'Try refreshing the page or checking your settings.';
+    let showCommandSnippet = false;
+    let commandSnippet = '';
+    
+    // Detect and provide specialized messages for different error types
+    
+    // Case 1: Ollama CORS issues
+    if (message.includes('403') || 
+        message.includes('Forbidden') || 
+        message.includes('CORS') || 
+        message.includes('OLLAMA_ORIGINS')) {
+      
+      errorTitle = "CORS Configuration Error";
+      errorDetails = "Ollama needs special permissions to work with browser extensions.";
+      helpContent = "Run Ollama with the following command to fix this issue:";
+      showCommandSnippet = true;
+      commandSnippet = "OLLAMA_ORIGINS=\"*\" ollama serve";
+    }
+    
+    // Case 2: Connection issues
+    else if (message.includes('connect') || 
+             message.includes('Failed to fetch') || 
+             message.includes('NetworkError')) {
+      
+      errorTitle = "Connection Error";
+      errorDetails = "Unable to connect to the AI provider.";
+      
+      // Check if it's an Ollama-specific connection issue
+      if (message.includes('Ollama')) {
+        helpContent = "Make sure Ollama is running and accessible at the configured URL.";
+        showCommandSnippet = true;
+        commandSnippet = "ollama serve";
+      } else {
+        helpContent = "Check your internet connection and the API server status.";
+      }
+    }
+    
+    // Case 3: API Key issues
+    else if (message.includes('API key') || 
+             message.includes('authentication') || 
+             message.includes('401')) {
+      
+      errorTitle = "API Authentication Error";
+      errorDetails = "Your API key appears to be invalid or missing.";
+      helpContent = "Check your API key in the extension settings.";
+    }
+    
     // Format the error message with better styling
     elements.summaryText.innerHTML = `
       <div class="error-container">
         <div class="error-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
         <div class="error-content">
-          <strong>Error:</strong> ${message}
-          <div class="error-help">Try refreshing the page or checking your settings.</div>
+          <strong>${errorTitle}</strong>
+          <div class="error-message">${errorDetails}</div>
+          <div class="error-help">
+            <p>${helpContent}</p>
+            ${showCommandSnippet ? `
+              <div class="error-code-wrapper">
+                <pre class="error-code">${commandSnippet}</pre>
+              </div>
+            ` : ''}
+          </div>
         </div>
       </div>
     `;
     
+    // Adjust window height for the error display
+    adjustWindowHeight(true);
+    
     // Disable chat button
     updateChatButtonState(false);
+  }
+
+  /**
+   * Format Ollama error messages for better user experience
+   * 
+   */
+  function formatOllamaError(error, apiUrl) {
+    // Specific CORS error
+    if (error.message.includes('403') || 
+        error.message.includes('Forbidden') || 
+        error.message.includes('CORS')) {
+      return 'CORS Configuration Error: Ollama requires CORS configuration. Run with: OLLAMA_ORIGINS="*" ollama serve';
+    }
+    
+    // Connection errors
+    if (error.message.includes('Failed to fetch') || 
+        error.message.includes('NetworkError')) {
+      return `Connection Error: Unable to connect to Ollama server at ${apiUrl}. Make sure Ollama is running.`;
+    }
+    
+    // Default: return the original error
+    return error.message;
   }
 
   /**
@@ -1193,9 +1453,11 @@ document.addEventListener('DOMContentLoaded', () => {
    * Opens a chat panel with the latest summary as context
    */
   async function handleChatButtonClick() {
+    debugLog('Chat button clicked');
     try {
       // Get the active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      debugLog('Active tab:', tab ? tab.id : 'none');
       
       // Get the generated text from storage directly rather than from HTML
       let generatedText = '';
@@ -1204,29 +1466,36 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.storage.local.get(['latestSummary'], (result) => {
           if (result.latestSummary) {
             generatedText = result.latestSummary;
+            debugLog('Retrieved summary from storage, length:', generatedText.length);
+          } else {
+            debugLog('WARNING: No summary found in storage');
           }
           resolve();
         });
       });
       
       // Send message to background script to open the chat panel
+      debugLog('Sending open-chat-panel message to background script');
       chrome.runtime.sendMessage({
         action: 'open-chat-panel',
         tabId: tab.id,
         generatedText: generatedText
       }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error("Error opening chat panel:", chrome.runtime.lastError);
+          debugLog('ERROR opening chat panel:', chrome.runtime.lastError.message);
           return;
         }
         
         if (response && response.success) {
+          debugLog('Chat panel opened successfully, closing popup');
           // Close the popup after initiating the chat panel
           window.close();
+        } else {
+          debugLog('WARNING: Received unsuccessful response', response);
         }
       });
     } catch (error) {
-      console.error("Error handling chat button click:", error);
+      debugLog('ERROR in handleChatButtonClick:', error.message);
     }
   }
 
@@ -1543,4 +1812,84 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  function openSavedChatsPanel() {
+    console.log("openSavedChatsPanel called");
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (!tabs || !tabs[0]) {
+        console.error("No active tab found");
+        return;
+      }
+      
+      console.log("Opening side panel with saved chats view");
+      chrome.runtime.sendMessage({
+        action: 'open-chat-panel',
+        tabId: tabs[0].id,
+        showSavedChats: true,
+        directAccess: true
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error opening side panel:", chrome.runtime.lastError);
+          return;
+        }
+        
+        if (response && response.success) {
+          console.log("Side panel opened successfully, closing popup");
+          window.close();
+        } else {
+          console.error("Received unsuccessful response", response);
+        }
+      });
+    });
+  }
+
+  // Add this temporary test function to force save a chat for testing
+  function createTestSavedChat() {
+    const testChat = {
+      sessionId: 'test-session-' + Date.now(),
+      title: 'Test Saved Chat',
+      url: 'https://example.com',
+      messages: [{role: 'assistant', content: 'This is a test chat'}],
+      firstSaved: Date.now(),
+      lastUpdated: Date.now(),
+      lastViewed: Date.now()
+    };
+    
+    chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+      const savedChats = result.sparrowSavedChats || [];
+      savedChats.push(testChat);
+      
+      chrome.storage.local.set({
+        sparrowSavedChats: savedChats
+      }, function() {
+        console.log("Test chat saved, count:", savedChats.length);
+        // Force button update
+        updateSavedChatsCount();
+      });
+    });
+  }
+
+  /**
+   * Force refresh the saved chats status regardless of current summary content
+   */
+  function forceRefreshSavedChatsStatus() {
+    chrome.storage.local.get(['sparrowSavedChats'], function(result) {
+      const chats = result.sparrowSavedChats || [];
+      console.log("Force refresh - saved chats count:", chats.length);
+      
+      // Add a test chat if debugging
+      // if (chats.length === 0) createTestSavedChat();
+      
+      setTimeout(() => updateChatButtonState(false), 200);
+    });
+  }
+
+  // Add event listeners for button clicks
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'update-saved-count') {
+      // Update UI state in case button is in saved mode
+      updateSavedChatsCount();
+      sendResponse({ success: true });
+    }
+  });
 });

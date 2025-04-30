@@ -22,7 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     chatMessages: document.getElementById('chat-messages'),
     chatInput: document.getElementById('chat-input'),
     sendButton: document.getElementById('send-button'),
-    apiIndicator: document.getElementById('api-indicator')
+    apiIndicator: document.getElementById('api-indicator'),
+    saveChatBtn: document.getElementById('save-chat-btn'),
+    viewToggleBtn: document.getElementById('view-toggle-btn'),
+    savedChatsContainer: document.getElementById('saved-chats-container'),
+    savedChatsList: document.getElementById('saved-chats-list'),
+    backToChatBtn: document.getElementById('back-to-chat-btn')
   };
   
   // =========================================================================
@@ -41,16 +46,24 @@ document.addEventListener('DOMContentLoaded', () => {
    * @type {string}
    */
   let pageContent = '';
+
+  // Session management variables
+  let currentSessionId = null;
+  let isChatSaved = false;
+
+  // Flag to indicate if the chat is saved
+  let directSavedChatsAccess = false;
   
   // =========================================================================
   // INITIALIZATION
   // =========================================================================
   
   /**
-   * Initialize the chat panel
-   * - Loads settings from storage
-   * - Sets up event listeners
-   * - Configures API indicators
+   * Initialize the chat panel with session management
+   * - Load settings from storage
+   * - Set up event listeners
+   * - Configure API indicators
+   * - Generate or restore session ID
    */
   async function initializePanel() {
     // Load settings from local storage
@@ -58,6 +71,29 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Configure event listeners for message sending
     setupEventListeners();
+
+    // Setup session ID
+    generateOrRestoreSessionId();
+    
+    // Setup additional event listeners for saving
+    setupSavingEventListeners();
+    
+    // Check if the panel should open directly to saved chats view
+    checkForSavedChatsView();
+
+    // Load and display the stored summary if we're not in saved chats view
+    const urlParams = new URLSearchParams(window.location.search);
+    const showSaved = urlParams.get('showSaved');
+
+    if (showSaved !== 'true') {
+      // Normal initialization - show the latest summary if available
+      chrome.storage.local.get(['latestSummary'], function(result) {
+        if (result.latestSummary) {
+          // Display stored summary
+          // ... existing summary display code ...
+        }
+      });
+    }
     
     // Load and display the stored summary
     chrome.storage.local.get(['latestSummary'], function(result) {
@@ -291,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {string} text - The message text
    * @param {string} role - The role of the message sender ('user' or 'assistant')
    */
-  function addMessage(text, role) {
+  const originalAddMessage = function(text, role) {
     // Create message container
     const messageDiv = document.createElement('div');
     messageDiv.className = `message message-${role}`;
@@ -310,7 +346,596 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Scroll to make the new message visible
     scrollToBottom();
+  };
+
+  addMessage = function(text, role) {
+    // Call the original function
+    originalAddMessage(text, role);
+    
+    // If this is a previously saved chat, automatically save the new content
+    if (isChatSaved) {
+      // Visual indication that changes are being saved
+      UI.saveChatBtn.classList.add('has-changes');
+      UI.saveChatBtn.title = 'Auto-saving changes...';
+      
+      // Add a small delay before auto-saving to prevent excessive saves during rapid exchanges
+      clearTimeout(window.autoSaveTimeout);
+      window.autoSaveTimeout = setTimeout(() => {
+        // Auto-save the updated chat
+        autoSaveChat();
+      }, 1500); // 1.5 second delay to batch rapid message exchanges
+    }
+  };
+  
+  // =========================================================================
+  // SESSION AND SAVING FUNCTIONALITY
+  // =========================================================================
+  
+  /**
+   * Generate a new session ID or restore from storage
+   */
+  function generateOrRestoreSessionId() {
+    // Check for existing session ID in URL params (from popup)
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get('session');
+    
+    if (sessionParam) {
+      // Restore the specified session ID
+      currentSessionId = sessionParam;
+      loadSavedChatSession(currentSessionId);
+    } else {
+      // Generate a new unique session ID
+      currentSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    console.log("Current session ID:", currentSessionId);
   }
+
+  /**
+   * Setup event listeners for save button and view switching
+   */
+  function setupSavingEventListeners() {
+    // Save button click
+    if (UI.saveChatBtn) {
+      UI.saveChatBtn.addEventListener('click', saveCurrentChat);
+    }
+    
+    // View toggle button
+    if (UI.viewToggleBtn) {
+      UI.viewToggleBtn.addEventListener('click', showSavedChatsView);
+    }
+    
+    // Back button
+    if (UI.backToChatBtn) {
+      UI.backToChatBtn.addEventListener('click', showChatView);
+    }
+  }
+
+/**
+ * Check if the panel should show saved chats view immediately
+ */
+function checkForSavedChatsView() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const showSaved = urlParams.get('showSaved');
+  const directAccess = urlParams.get('directAccess');
+  
+  // Set the direct access flag if present
+  if (directAccess === 'true') {
+    directSavedChatsAccess = true;
+    console.log("Direct access to saved chats detected");
+  }
+  
+  if (showSaved === 'true') {
+    // Show saved chats view
+    showSavedChatsView();
+  }
+}
+
+  /**
+   * Save the current chat conversation
+   */
+  async function saveCurrentChat() {
+    // Don't save if there's no conversation
+    if (conversationHistory.length <= 1) {
+      showToast('Nothing to save yet. Start a conversation first!');
+      return;
+    }
+    
+    try {
+      // Get the active tab for URL and title
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const activeTab = tabs[0];
+      
+      // Prepare chat data
+      const chatData = {
+        sessionId: currentSessionId,
+        title: activeTab.title || 'Chat Conversation',
+        url: activeTab.url || '',
+        messages: conversationHistory,
+        firstSaved: Date.now(),
+        lastUpdated: Date.now(),
+        lastViewed: Date.now()
+      };
+      
+      // Check if this session is already saved
+      const existingSavedChats = await loadSavedChats();
+      const existingIndex = existingSavedChats.findIndex(chat => chat.sessionId === currentSessionId);
+      
+      if (existingIndex !== -1) {
+        // Update existing chat
+        chatData.firstSaved = existingSavedChats[existingIndex].firstSaved;
+        existingSavedChats[existingIndex] = chatData;
+        showToast('Chat updated!');
+      } else {
+        // Add as new chat
+        existingSavedChats.push(chatData);
+        showToast('Chat saved!');
+      }
+      
+      // Save back to storage
+      await chrome.storage.local.set({ 'sparrowSavedChats': existingSavedChats });
+      
+      // Update UI to show saved state
+      updateSaveButtonState(true);
+      
+      // Update saved count in popup if possible
+      updateSavedChatsCount(existingSavedChats.length);
+      
+    } catch (error) {
+      console.error('Error saving chat:', error);
+      showToast('Failed to save chat. Please try again.');
+    }
+  }
+
+  /**
+   * Load all saved chats from storage
+   * @returns {Promise<Array>} Array of saved chat objects
+   */
+  async function loadSavedChats() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['sparrowSavedChats'], (result) => {
+        const savedChats = result.sparrowSavedChats || [];
+        resolve(savedChats);
+      });
+    });
+  }
+
+  /**
+   * Load a specific saved chat session
+   * @param {string} sessionId - The session ID to load
+   */
+  async function loadSavedChatSession(sessionId) {
+    try {
+      const savedChats = await loadSavedChats();
+      const savedChat = savedChats.find(chat => chat.sessionId === sessionId);
+      
+      if (savedChat) {
+        // Clear current chat
+        UI.chatMessages.innerHTML = '';
+        
+        // Restore conversation history
+        conversationHistory = savedChat.messages;
+        
+        // Add messages to UI
+        savedChat.messages.forEach(msg => {
+          addMessage(msg.content, msg.role);
+        });
+        
+        // Update session state
+        currentSessionId = sessionId;
+        
+        // Update saved state
+        updateSaveButtonState(true);
+        
+        // Update last viewed timestamp
+        updateLastViewed(sessionId);
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error loading saved chat:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update last viewed timestamp for a saved chat
+   * @param {string} sessionId - The session ID to update
+   */
+  async function updateLastViewed(sessionId) {
+    const savedChats = await loadSavedChats();
+    const chatIndex = savedChats.findIndex(chat => chat.sessionId === sessionId);
+    
+    if (chatIndex !== -1) {
+      savedChats[chatIndex].lastViewed = Date.now();
+      await chrome.storage.local.set({ 'sparrowSavedChats': savedChats });
+    }
+  }
+
+  /**
+   * Delete a saved chat session
+   * @param {string} sessionId - The session ID to delete
+   */
+  async function deleteSavedChat(sessionId) {
+    try {
+      const savedChats = await loadSavedChats();
+      const updatedChats = savedChats.filter(chat => chat.sessionId !== sessionId);
+      
+      await chrome.storage.local.set({ 'sparrowSavedChats': updatedChats });
+      
+      // Update saved count
+      updateSavedChatsCount(updatedChats.length);
+      
+      // If current session was deleted, update state
+      if (currentSessionId === sessionId) {
+        updateSaveButtonState(false);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting saved chat:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update the save button state based on whether current chat is saved
+   * @param {boolean} isSaved - Whether the current chat is saved
+   */
+  function updateSaveButtonState(isSaved) {
+    isChatSaved = isSaved;
+    
+    if (UI.saveChatBtn) {
+      if (isSaved) {
+        UI.saveChatBtn.classList.add('saved');
+        UI.saveChatBtn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
+        UI.saveChatBtn.title = 'Update saved chat';
+      } else {
+        UI.saveChatBtn.classList.remove('saved');
+        UI.saveChatBtn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
+        UI.saveChatBtn.title = 'Save this chat';
+      }
+    }
+  }
+
+/**
+ * Show the saved chats view
+ */
+async function showSavedChatsView() {
+  // Load saved chats
+  await loadSavedChatsAndShow();
+  
+  // Show the container
+  UI.savedChatsContainer.classList.remove('hidden');
+  
+  // Update the back button based on access context
+  if (directSavedChatsAccess) {
+    // Disable or hide back button when directly accessing saved chats
+    if (UI.backToChatBtn) {
+      UI.backToChatBtn.classList.add('disabled');
+      UI.backToChatBtn.disabled = true;
+      UI.backToChatBtn.title = "No active chat to return to";
+      // Optionally change the text
+      UI.backToChatBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> No active chat';
+    }
+  } else {
+    // Ensure back button is enabled when coming from an active chat
+    if (UI.backToChatBtn) {
+      UI.backToChatBtn.classList.remove('disabled');
+      UI.backToChatBtn.disabled = false;
+      UI.backToChatBtn.title = "Return to chat";
+      UI.backToChatBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Back to Chat';
+    }
+  }
+}
+
+  /**
+   * Load saved chats and display them in the saved chats view
+   */
+  async function loadSavedChatsAndShow() {
+    try {
+      const savedChats = await loadSavedChats();
+      
+      // Clear the list
+      UI.savedChatsList.innerHTML = '';
+      
+      if (savedChats.length === 0) {
+        // Show empty state
+        UI.savedChatsList.innerHTML = `
+          <div class="empty-saved-chats">
+            <i class="fa-solid fa-bookmark empty-icon"></i>
+            <p>No saved conversations yet</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Sort by last updated (newest first)
+      savedChats.sort((a, b) => b.lastUpdated - a.lastUpdated);
+      
+      // Add each chat to the list
+      savedChats.forEach(chat => {
+        const lastUpdated = new Date(chat.lastUpdated);
+        const formattedDate = lastUpdated.toLocaleDateString() + ' ' + 
+                            lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        const chatItem = document.createElement('div');
+        chatItem.className = 'saved-chat-item';
+        chatItem.dataset.sessionId = chat.sessionId;
+        
+        // Create title from page title or first message
+        let chatTitle = chat.title || '';
+        if (!chatTitle && chat.messages && chat.messages.length > 0) {
+          // Use first few words of first message
+          const firstMsg = chat.messages[0].content;
+          chatTitle = firstMsg.split(' ').slice(0, 7).join(' ') + '...';
+        }
+        
+        // Fallback if still no title
+        if (!chatTitle) {
+          chatTitle = 'Chat from ' + formattedDate;
+        }
+        
+        // Get domain from URL if available
+        let domain = '';
+        try {
+          if (chat.url) {
+            domain = new URL(chat.url).hostname;
+          }
+        } catch (e) {
+          domain = 'Unknown site';
+        }
+        
+        chatItem.innerHTML = `
+          <div class="saved-chat-title">${chatTitle}</div>
+          <div class="saved-chat-info">
+            <span>${domain || 'Unknown site'}</span>
+            <span>${formattedDate}</span>
+          </div>
+          <button class="saved-chat-delete" title="Delete this chat">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        `;
+        
+        // Add click event to load the chat
+        chatItem.addEventListener('click', (e) => {
+          // Don't handle clicks on the delete button
+          if (e.target.closest('.saved-chat-delete')) return;
+          
+          loadSavedChatSession(chat.sessionId);
+          showChatView();
+        });
+        
+        // Add delete button handler
+        const deleteBtn = chatItem.querySelector('.saved-chat-delete');
+        deleteBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          
+          // Use the custom delete confirmation instead of the browser's confirm
+          showDeleteConfirmation(chatTitle, async () => {
+            await deleteSavedChat(chat.sessionId);
+            chatItem.remove();
+            
+            // If list is now empty, show empty state
+            if (UI.savedChatsList.children.length === 0) {
+              UI.savedChatsList.innerHTML = `
+                <div class="empty-saved-chats">
+                  <i class="fa-solid fa-bookmark empty-icon"></i>
+                  <p>No saved conversations yet</p>
+                </div>
+              `;
+            }
+            
+            // Update saved count in popup if possible
+            updateSavedChatsCount(savedChats.length - 1);
+          });
+        });
+        
+        UI.savedChatsList.appendChild(chatItem);
+      });
+      
+    } catch (error) {
+      console.error('Error loading saved chats:', error);
+      UI.savedChatsList.innerHTML = `
+        <div class="empty-saved-chats">
+          <i class="fa-solid fa-exclamation-circle empty-icon"></i>
+          <p>Error loading saved chats. Please try again.</p>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Show the chat view (hide saved chats)
+   */
+  function showChatView() {
+    UI.savedChatsContainer.classList.add('hidden');
+  }
+
+  /**
+   * Update the saved chats count in the popup if possible
+   * @param {number} count - Number of saved chats
+   */
+  function updateSavedChatsCount(count) {
+    // Attempt to communicate with popup if it's open
+    chrome.runtime.sendMessage({
+      action: 'update-saved-count',
+      count: count
+    }).catch(() => {
+      // Popup might not be open, this is expected
+    });
+  }
+
+  /**
+   * Show a toast message
+   * @param {string} message - Message to show
+   * @param {number} duration - Duration in ms
+   */
+  function showToast(message, duration = 2000) {
+    // Create toast if it doesn't exist
+    let toast = document.getElementById('toast');
+    
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 14px;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+    
+    // Set message and show
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    
+    // Hide after duration
+    setTimeout(() => {
+      toast.style.opacity = '0';
+    }, duration);
+  }
+
+/**
+ * Automatically save updates to an existing chat
+*/
+async function autoSaveChat() {
+  try {
+    // Get the active tab for URL and title
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTab = tabs[0];
+    
+    // Get existing saved chats
+    const existingSavedChats = await loadSavedChats();
+    const existingIndex = existingSavedChats.findIndex(chat => chat.sessionId === currentSessionId);
+    
+    if (existingIndex !== -1) {
+      // Update existing chat with latest messages
+      const updatedChat = {
+        ...existingSavedChats[existingIndex],
+        messages: conversationHistory,
+        lastUpdated: Date.now()
+      };
+      
+      // Update the chat in the saved chats array
+      existingSavedChats[existingIndex] = updatedChat;
+      
+      // Save back to storage
+      await chrome.storage.local.set({ 'sparrowSavedChats': existingSavedChats });
+      
+      // Update UI to show saved state - ANIMATION ENHANCEMENT
+      UI.saveChatBtn.classList.remove('has-changes');
+      
+      // Apply the animation class - this will trigger the visual feedback
+      UI.saveChatBtn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
+      UI.saveChatBtn.title = 'Chat auto-saved';
+      
+      // Make animation more noticeable by removing and re-adding the class
+      UI.saveChatBtn.classList.remove('auto-saved');
+      UI.saveChatBtn.classList.remove('saved');
+      
+      // Force a reflow to ensure animation triggers even when class was previously applied
+      void UI.saveChatBtn.offsetWidth;
+      
+      // Add classes back with a slight delay between them for better visual effect
+      setTimeout(() => {
+        UI.saveChatBtn.classList.add('auto-saved');
+        
+        // Add saved class after a slight delay
+        setTimeout(() => {
+          UI.saveChatBtn.classList.add('saved');
+        }, 100);
+      }, 10);
+      
+      console.log('Chat auto-saved successfully');
+    }
+  } catch (error) {
+    console.error('Error auto-saving chat:', error);
+    // Silently fail - we don't want to disturb the user experience
+    UI.saveChatBtn.title = 'Auto-save failed. Click to retry.';
+  }
+}
+
+/**
+ * Create a custom delete confirmation dialog
+ * @param {string} chatTitle - The title of the chat being deleted
+ * @param {Function} onConfirm - Callback when deletion is confirmed
+ */
+function showDeleteConfirmation(chatTitle, onConfirm) {
+  // Check if a previous dialog exists and remove it
+  const existingDialog = document.getElementById('custom-delete-dialog');
+  if (existingDialog) {
+    existingDialog.remove();
+  }
+  
+  // Create the dialog container
+  const dialogOverlay = document.createElement('div');
+  dialogOverlay.id = 'custom-delete-dialog';
+  dialogOverlay.className = 'dialog-overlay';
+  
+  // Create the dialog content with the extension logo
+  dialogOverlay.innerHTML = `
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <img src="../../assets/icons/icon48.png" alt="Sparrow logo" class="dialog-logo">
+        <h3>Delete Conversation</h3>
+      </div>
+      <div class="dialog-body">
+        <p>Are you sure you want to delete this saved conversation?</p>
+        <p class="chat-title-preview">"${escapeHtml(chatTitle)}"</p>
+        <p class="dialog-warning">This action cannot be undone.</p>
+      </div>
+      <div class="dialog-buttons">
+        <button class="dialog-btn dialog-cancel">Cancel</button>
+        <button class="dialog-btn dialog-confirm">Delete</button>
+      </div>
+    </div>
+  `;
+  
+  // Add dialog to the DOM
+  document.body.appendChild(dialogOverlay);
+  
+  // Add event listeners
+  const cancelBtn = dialogOverlay.querySelector('.dialog-cancel');
+  const confirmBtn = dialogOverlay.querySelector('.dialog-confirm');
+  
+  // Close dialog when clicking cancel
+  cancelBtn.addEventListener('click', () => {
+    dialogOverlay.classList.add('dialog-closing');
+    setTimeout(() => dialogOverlay.remove(), 300);
+  });
+  
+  // Close dialog and execute callback when clicking delete
+  confirmBtn.addEventListener('click', () => {
+    dialogOverlay.classList.add('dialog-closing');
+    setTimeout(() => {
+      dialogOverlay.remove();
+      onConfirm();
+    }, 300);
+  });
+  
+  // Close dialog when clicking outside
+  dialogOverlay.addEventListener('click', (e) => {
+    if (e.target === dialogOverlay) {
+      dialogOverlay.classList.add('dialog-closing');
+      setTimeout(() => dialogOverlay.remove(), 300);
+    }
+  });
+  
+  // Show dialog with animation
+  setTimeout(() => dialogOverlay.classList.add('dialog-visible'), 10);
+}
   
   // =========================================================================
   // UI UTILITIES
@@ -573,10 +1198,19 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, "&#039;");
   }
   
-  // =========================================================================
-  // INITIALIZATION
-  // =========================================================================
-  
+  // Add event listener to handle messages from the popup
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'check-saved-state') {
+      // Check if current session is saved
+      loadSavedChats().then(savedChats => {
+        const isSaved = savedChats.some(chat => chat.sessionId === currentSessionId);
+        updateSaveButtonState(isSaved);
+        sendResponse({ isSaved: isSaved });
+      });
+      return true;
+    }
+  });
+
   // Start the chat panel
   initializePanel();
 });

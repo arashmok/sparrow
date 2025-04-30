@@ -336,6 +336,54 @@ const apiHandler = {
 };
 
 // ==========================================================================================
+// OLLAMA PROXY UTILITY
+// ==========================================================================================
+
+async function proxyOllamaRequest(apiUrl, endpoint, method, body) {
+  const url = `${apiUrl}${endpoint}`;
+  console.log(`Making Ollama request to: ${url}`);
+  
+  try {
+    // Create a direct XMLHttpRequest from extension context
+    const response = await fetch(url, {
+      method: method,
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    
+    if (!response.ok) {
+      if (response.status === 403) {
+        console.error("CORS error detected when connecting to Ollama");
+        throw new Error('CORS Configuration Error: Ollama requires additional configuration to work with browser extensions.');
+      } else {
+        throw new Error(`API error: ${response.status}`);
+      }
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Ollama proxy error:", error.message);
+    
+    // Enhance error messages based on common error patterns
+    if (error.message.includes('Failed to fetch') || 
+        error.message.includes('NetworkError') || 
+        error.message.includes('Network request failed')) {
+      throw new Error('Connection Error: Unable to connect to Ollama server. Make sure Ollama is running.');
+    }
+    
+    // If error contains 403, CORS, or origin keywords, provide helpful message
+    if (error.message.includes('403') || 
+        error.message.includes('Forbidden') || 
+        error.message.includes('CORS') || 
+        error.message.includes('origin')) {
+      throw new Error('CORS Configuration Error: Ollama requires CORS configuration. Run with: OLLAMA_ORIGINS="*" ollama serve');
+    }
+    
+    throw error;
+  }
+}
+
+// ==========================================================================================
 // API PROVIDERS
 // ==========================================================================================
 
@@ -421,18 +469,21 @@ const apiProviders = {
   },
   
   async ollama(messages, apiUrl, model) {
-    const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat`;
-    const headers = { 'Content-Type': 'application/json' };
-    
-    const body = {
-      model: model,
-      messages,
-      options: { temperature: CONFIG.TEMPERATURE },
-      stream: false
-    };
-    
     try {
-      const data = await apiHandler.makeRequest(endpoint, headers, body);
+      const body = {
+        model: model,
+        messages,
+        options: { temperature: CONFIG.TEMPERATURE },
+        stream: false
+      };
+      
+      // Use our proxy function to make the request
+      const data = await proxyOllamaRequest(
+        apiUrl.replace(/\/+$/, ''), 
+        '/chat', 
+        'POST', 
+        body
+      );
       
       if (data.message?.content) {
         return data.message.content.trim();
@@ -441,8 +492,30 @@ const apiProviders = {
       }
       throw new Error('Unexpected response format from Ollama API');
     } catch (error) {
-      // Try fallback
-      return this.ollamaFallback(messages, apiUrl, model);
+      console.error("Ollama error:", error.message);
+      
+      // Forward the enhanced error message
+      if (error.message.includes('CORS Configuration Error')) {
+        throw error;
+      }
+      
+      // For other connection errors, provide clear guidance
+      if (error.message.includes('Network error') || 
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('connect')) {
+        throw new Error(
+          `Could not connect to Ollama server at ${apiUrl}. ` +
+          `Please check that Ollama is running and accessible.`
+        );
+      }
+      
+      // Try fallback for other types of errors
+      try {
+        return await this.ollamaFallback(messages, apiUrl, model);
+      } catch (fallbackError) {
+        // If fallback also fails, throw the original error
+        throw error;
+      }
     }
   },
   
@@ -974,30 +1047,57 @@ function extractPageContent() {
 // MESSAGE HANDLERS
 // ==========================================================================================
 
-// Handle side panel and chat requests
+// Handle all message requests in a single listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle side panel and chat requests
   if (request.action === 'open-chat-panel') {
+    console.log("Opening chat panel with settings:", request);
+    
+    let urlParams = '';
+    if (request.showSavedChats === true) {
+      urlParams = '?showSaved=true';
+      if (request.directAccess === true) {
+        urlParams += '&directAccess=true';
+      }
+      console.log("Opening saved chats view with params:", urlParams);
+    }
+    
+    // For an existing chat session
+    if (request.sessionId) {
+      urlParams += (urlParams ? '&' : '?') + 'session=' + request.sessionId;
+    }
+    
+    // Store any generated text to use in the chat
     if (request.generatedText) {
       chrome.storage.local.set({ latestSummary: request.generatedText });
-      
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const tabId = tabs[0].id;
-        chrome.sidePanel.open({ tabId: tabId }).then(() => {
-          chrome.sidePanel.setOptions({
-            path: 'src/panel/chat-panel.html',
-            enabled: true
-          });
-          
-          sendResponse({ success: true });
-        }).catch(error => {
-          console.error("Error opening side panel:", error);
-          sendResponse({ success: false, error: error.message });
-        });
-      });
     }
-    return true;
+    
+    // Open the side panel with appropriate URL parameters
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = request.tabId || (tabs[0] ? tabs[0].id : null);
+      if (!tabId) {
+        console.error("No tab ID available");
+        sendResponse({ success: false, error: "No tab ID available" });
+        return;
+      }
+      
+      chrome.sidePanel.open({ tabId: tabId }).then(() => {
+        chrome.sidePanel.setOptions({
+          path: 'src/panel/chat-panel.html' + urlParams,
+          enabled: true
+        });
+        
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error("Error opening side panel:", error);
+        sendResponse({ success: false, error: error.message });
+      });
+    });
+    
+    return true; // Keep the message channel open for async response
   }
   
+  // Handle chat message processing
   if (request.action === 'chat-message') {
     chrome.storage.local.get([
       'apiMode', 
@@ -1022,6 +1122,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   
+  // Handle API key management
   if (request.action === 'store-api-key') {
     secureKeyStore.storeKey(request.service, request.key);
     sendResponse({ success: true });
@@ -1068,17 +1169,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
   }
+  
+  // Handle update-saved-count message
+  if (request.action === 'update-saved-count') {
+    // This is handled by the popup, just send success response
+    sendResponse({ success: true });
+    return true;
+  }
 });
-
-// Default models to use when API call fails
-function getDefaultOpenAIModels() {
-  return [
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-    { id: 'gpt-4', name: 'GPT-4' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' }
-  ];
-}
 
 // Handle summarization requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

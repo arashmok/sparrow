@@ -505,6 +505,72 @@ select:focus {
   font-weight: normal;
 }
 
+/* Enhanced error container styling */
+.error-container {
+  display: flex;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 10px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Error icon styling */
+.error-icon {
+  display: flex;
+  align-items: flex-start;
+  margin-right: 12px;
+  color: #ef4444;
+  font-size: 20px;
+}
+
+/* Error content area */
+.error-content {
+  flex: 1;
+}
+
+/* Error heading */
+.error-content strong {
+  display: block;
+  color: #b91c1c;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+/* Error message styling */
+.error-message {
+  margin-bottom: 8px;
+}
+
+/* Error help text */
+.error-help {
+  margin-top: 8px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Code block for commands */
+.error-code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  margin: 8px 0;
+  display: block;
+  border-left: 3px solid #ef4444;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #1f2937;
+}
+
+/* Simplified wrapper without copy button positioning */
+.error-code-wrapper {
+  position: relative;
+}
+
 /* ========== FOOTER STYLES ========== */
 /* Footer positioning */
 footer {
@@ -561,9 +627,9 @@ footer {
 
 /* ========== CHAT BUTTON ========== */
 /* Chat initiation button */
+
+/* Chat/Saved button styling */
 .chat-button {
-  background-color: #2b7de9;
-  color: white;
   border-radius: 8px;
   padding: 6px 16px;
   font-size: 14px;
@@ -572,22 +638,61 @@ footer {
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-/* Hover state for chat button */
+/* When in chat mode */
+.chat-button {
+  background-color: #2b7de9;
+  color: white;
+}
+
 .chat-button:hover {
   background-color: #1c6fd4;
 }
 
-/* Disabled state for chat button */
+/* Badge styling for saved count */
+.saved-count {
+  font-size: 11px !important;
+  background-color: white !important;
+  color: #5f6368 !important;
+  padding: 2px 6px !important;
+  border-radius: 10px !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+}
+
+/* Disabled state */
 .chat-button.disabled {
-  background-color: #a0b4d3;
-  cursor: not-allowed;
-  opacity: 0.7;
+  background-color: #a0b4d3 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
 }
 
 .chat-button.disabled:hover {
-  background-color: #a0b4d3;
+  background-color: #a0b4d3 !important;
+}
+
+/* ========== SAVED CHAT BUTTON ========== */
+/* Button for saved chat functionality */
+.chat-button.saved-mode {
+  background-color: #5f6368 !important;
+  color: white !important;
+  font-weight: 500 !important;
+}
+
+.chat-button.saved-mode .saved-count {
+  background-color: white !important;
+  color: #5f6368 !important;
+  padding: 2px 6px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  font-weight: bold !important;
+}
+
+.chat-button.saved-mode:hover {
+  background-color: #4d5156 !important;
 }
 
 /* ========== BOTTOM ACTION BAR ========== */
@@ -596,9 +701,8 @@ footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: calc(100% - 8px);
-  padding: 0;
-  margin: 0 4px 4px 4px;
+  width: 100%;
+  padding: 8px 0;
 }
 
 /* ========== UTILITY CLASSES ========== */
