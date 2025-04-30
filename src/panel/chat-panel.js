@@ -592,10 +592,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Generate a new session ID for this import
       const importSessionId = 'imported-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       
+      // Generate a meaningful title for the imported chat
+      let chatTitle = generateMeaningfulTitle(importData);
+      
       // Prepare chat data for storage
       const chatData = {
         sessionId: importSessionId,
-        title: 'Imported Chat',
+        title: chatTitle, // Use the generated title instead of generic "Imported Chat"
         url: '',
         messages: importData.messages,
         firstSaved: importData.exportDate ? new Date(importData.exportDate).getTime() : Date.now(),
@@ -622,6 +625,105 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       console.error('Error importing chat:', error);
       showToast('Failed to import chat: ' + error.message);
+    }
+  }
+  
+  /**
+   * Generate a meaningful title for an imported chat based on its content
+   * @param {Object} importData - The imported chat data
+   * @returns {string} - A meaningful title
+   */
+  function generateMeaningfulTitle(importData) {
+    // Default title if we can't generate anything better
+    let defaultTitle = "Imported Chat";
+    
+    try {
+      // If there are no messages, return default title
+      if (!importData.messages || importData.messages.length === 0) {
+        return defaultTitle;
+      }
+      
+      // Try to find the first assistant message with meaningful content
+      const assistantMessages = importData.messages.filter(msg => msg.role === 'assistant');
+      
+      if (assistantMessages.length > 0) {
+        // Get the first assistant message's content
+        const firstMessageContent = assistantMessages[0].content;
+        
+        // Try to extract a title by looking for patterns
+        
+        // Look for title: or # patterns that might indicate a title
+        const titleMatch = firstMessageContent.match(/(?:^|\n)#\s+(.*?)(?:\n|$)/) || 
+                          firstMessageContent.match(/(?:^|\n)Title:\s*(.*?)(?:\n|$)/i);
+        
+        if (titleMatch && titleMatch[1]) {
+          // Clean up the matched title
+          let extractedTitle = titleMatch[1].trim();
+          
+          // Truncate if too long (maximum 50 characters)
+          if (extractedTitle.length > 50) {
+            extractedTitle = extractedTitle.substring(0, 47) + '...';
+          }
+          
+          return extractedTitle;
+        }
+        
+        // If no title pattern found, use the first few words
+        // Split the content into words and take the first 6-8 words
+        const words = firstMessageContent.split(/\s+/);
+        const titleWords = words.slice(0, words.length > 15 ? 6 : 8);
+        let generatedTitle = titleWords.join(' ');
+        
+        // Add ellipsis if we truncated
+        if (words.length > titleWords.length) {
+          generatedTitle += '...';
+        }
+        
+        // Truncate if still too long
+        if (generatedTitle.length > 50) {
+          generatedTitle = generatedTitle.substring(0, 47) + '...';
+        }
+        
+        return generatedTitle;
+      }
+      
+      // If no assistant messages, try using user messages
+      const userMessages = importData.messages.filter(msg => msg.role === 'user');
+      
+      if (userMessages.length > 0) {
+        // Get the first user message's content
+        const firstUserContent = userMessages[0].content;
+        
+        // Use the first few words of the user's first message
+        const words = firstUserContent.split(/\s+/);
+        const titleWords = words.slice(0, 6); // Take fewer words for user messages
+        let generatedTitle = titleWords.join(' ');
+        
+        // Add ellipsis if we truncated
+        if (words.length > titleWords.length) {
+          generatedTitle += '...';
+        }
+        
+        // Truncate if still too long
+        if (generatedTitle.length > 50) {
+          generatedTitle = generatedTitle.substring(0, 47) + '...';
+        }
+        
+        return 'Chat about: ' + generatedTitle;
+      }
+      
+      // If we couldn't generate a better title, use the export date if available
+      if (importData.exportDate) {
+        const exportDate = new Date(importData.exportDate);
+        return `Chat from ${exportDate.toLocaleDateString()}`;
+      }
+      
+      // Fallback to default
+      return defaultTitle;
+      
+    } catch (error) {
+      console.error('Error generating title:', error);
+      return defaultTitle;
     }
   }
 
