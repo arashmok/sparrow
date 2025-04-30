@@ -505,6 +505,72 @@ select:focus {
   font-weight: normal;
 }
 
+/* Enhanced error container styling */
+.error-container {
+  display: flex;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 10px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Error icon styling */
+.error-icon {
+  display: flex;
+  align-items: flex-start;
+  margin-right: 12px;
+  color: #ef4444;
+  font-size: 20px;
+}
+
+/* Error content area */
+.error-content {
+  flex: 1;
+}
+
+/* Error heading */
+.error-content strong {
+  display: block;
+  color: #b91c1c;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+/* Error message styling */
+.error-message {
+  margin-bottom: 8px;
+}
+
+/* Error help text */
+.error-help {
+  margin-top: 8px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Code block for commands */
+.error-code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  margin: 8px 0;
+  display: block;
+  border-left: 3px solid #ef4444;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #1f2937;
+}
+
+/* Simplified wrapper without copy button positioning */
+.error-code-wrapper {
+  position: relative;
+}
+
 /* ========== FOOTER STYLES ========== */
 /* Footer positioning */
 footer {

@@ -81,6 +81,37 @@ Sparrow supports four AI providers for generating summaries:
 - Provides an alternative local summarization solution
 - Works offline
 - Requires [Ollama](https://ollama.ai/) to be installed and configured
+### Troubleshooting: Ollama CORS Error
+
+If you encounter a 403 error when connecting to Ollama, it may be due to Cross-Origin Resource Sharing (CORS) restrictions. To resolve this issue, you can enable CORS using one of the following methods:
+
+#### Temporary Solution: Start Ollama with CORS Enabled
+Run the following command to temporarily enable CORS for Ollama:
+```bash
+OLLAMA_ORIGINS="*" ollama serve
+```
+
+#### Permanent Solution: Configure Ollama as a Systemd Service
+To enable CORS permanently, update the systemd service configuration for Ollama:
+1. Edit the Ollama service:
+   ```bash
+   sudo systemctl edit ollama
+   ```
+2. Add the following lines under the `[Service]` section:
+   ```ini
+   [Service]
+   Environment="OLLAMA_ORIGINS=*"
+   ```
+3. Save the changes and reload the systemd daemon:
+   ```bash
+   sudo systemctl daemon-reload
+   ```
+4. Restart the Ollama service:
+   ```bash
+   sudo systemctl restart ollama
+   ```
+
+This will ensure that CORS is enabled every time Ollama starts.
 
 ## Project Structure
 

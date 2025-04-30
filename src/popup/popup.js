@@ -752,7 +752,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Reset button state
     resetUIAfterGeneration("Generate");
-
+  
     // Show summary format dropdown after generation
     elements.summaryFormat.classList.remove('hidden-during-generation');
   
@@ -761,19 +761,102 @@ document.addEventListener('DOMContentLoaded', () => {
       elements.expandBtn.style.display = 'none';
     }
     
+    // Initialize variables for error display
+    let errorTitle = "Error";
+    let errorDetails = message;
+    let helpContent = 'Try refreshing the page or checking your settings.';
+    let showCommandSnippet = false;
+    let commandSnippet = '';
+    
+    // Detect and provide specialized messages for different error types
+    
+    // Case 1: Ollama CORS issues
+    if (message.includes('403') || 
+        message.includes('Forbidden') || 
+        message.includes('CORS') || 
+        message.includes('OLLAMA_ORIGINS')) {
+      
+      errorTitle = "CORS Configuration Error";
+      errorDetails = "Ollama needs special permissions to work with browser extensions.";
+      helpContent = "Run Ollama with the following command to fix this issue:";
+      showCommandSnippet = true;
+      commandSnippet = "OLLAMA_ORIGINS=\"*\" ollama serve";
+    }
+    
+    // Case 2: Connection issues
+    else if (message.includes('connect') || 
+             message.includes('Failed to fetch') || 
+             message.includes('NetworkError')) {
+      
+      errorTitle = "Connection Error";
+      errorDetails = "Unable to connect to the AI provider.";
+      
+      // Check if it's an Ollama-specific connection issue
+      if (message.includes('Ollama')) {
+        helpContent = "Make sure Ollama is running and accessible at the configured URL.";
+        showCommandSnippet = true;
+        commandSnippet = "ollama serve";
+      } else {
+        helpContent = "Check your internet connection and the API server status.";
+      }
+    }
+    
+    // Case 3: API Key issues
+    else if (message.includes('API key') || 
+             message.includes('authentication') || 
+             message.includes('401')) {
+      
+      errorTitle = "API Authentication Error";
+      errorDetails = "Your API key appears to be invalid or missing.";
+      helpContent = "Check your API key in the extension settings.";
+    }
+    
     // Format the error message with better styling
     elements.summaryText.innerHTML = `
       <div class="error-container">
         <div class="error-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
         <div class="error-content">
-          <strong>Error:</strong> ${message}
-          <div class="error-help">Try refreshing the page or checking your settings.</div>
+          <strong>${errorTitle}</strong>
+          <div class="error-message">${errorDetails}</div>
+          <div class="error-help">
+            <p>${helpContent}</p>
+            ${showCommandSnippet ? `
+              <div class="error-code-wrapper">
+                <pre class="error-code">${commandSnippet}</pre>
+              </div>
+            ` : ''}
+          </div>
         </div>
       </div>
     `;
     
+    // Adjust window height for the error display
+    adjustWindowHeight(true);
+    
     // Disable chat button
     updateChatButtonState(false);
+  }
+
+  /**
+   * Format Ollama error messages for better user experience
+   * 
+   */
+  function formatOllamaError(error, apiUrl) {
+    // Specific CORS error
+    if (error.message.includes('403') || 
+        error.message.includes('Forbidden') || 
+        error.message.includes('CORS')) {
+      return 'CORS Configuration Error: Ollama requires CORS configuration. Run with: OLLAMA_ORIGINS="*" ollama serve';
+    }
+    
+    // Connection errors
+    if (error.message.includes('Failed to fetch') || 
+        error.message.includes('NetworkError')) {
+      return `Connection Error: Unable to connect to Ollama server at ${apiUrl}. Make sure Ollama is running.`;
+    }
+    
+    // Default: return the original error
+    return error.message;
   }
 
   /**
