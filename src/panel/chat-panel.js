@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     viewToggleBtn: document.getElementById('view-toggle-btn'),
     savedChatsContainer: document.getElementById('saved-chats-container'),
     savedChatsList: document.getElementById('saved-chats-list'),
-    backToChatBtn: document.getElementById('back-to-chat-btn')
+    backToChatBtn: document.getElementById('back-to-chat-btn'),
+    exportJsonBtn: document.getElementById('export-json-btn')
   };
   
   // =========================================================================
@@ -80,6 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check if the panel should open directly to saved chats view
     checkForSavedChatsView();
+
+    // Setup background message listener for chat initiation
+    setupEventListeners();
 
     // Load and display the stored summary if we're not in saved chats view
     const urlParams = new URLSearchParams(window.location.search);
@@ -166,11 +170,71 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   /**
+   * Export the current chat conversation to a JSON file that can be downloaded
+   */
+  function exportChatToJson() {
+    // Don't export if there's no conversation
+    if (conversationHistory.length <= 0) {
+      showToast('No conversation to export');
+      return;
+    }
+    
+    try {
+      // Prepare chat data
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const chatData = {
+        exportDate: new Date().toISOString(),
+        messages: conversationHistory,
+        metadata: {
+          exportVersion: "1.0",
+          extensionVersion: chrome.runtime.getManifest().version
+        }
+      };
+      
+      // Convert to JSON string with nice formatting
+      const jsonString = JSON.stringify(chatData, null, 2);
+      
+      // Create a Blob with the JSON data
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      // Create a URL for the Blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link element to trigger the download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sparrow-chat-${timestamp}.json`;
+      
+      // Append to body, click to download, then remove
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      // Show success message
+      showToast('Chat exported successfully');
+      
+    } catch (error) {
+      console.error('Error exporting chat:', error);
+      showToast('Failed to export chat');
+    }
+ }
+
+  /**
    * Set up event listeners for user interactions
    */
   function setupEventListeners() {
     // Send button click event
     UI.sendButton.addEventListener('click', sendMessage);
+
+    // Save chat button click event
+    if (UI.exportJsonBtn) {
+      UI.exportJsonBtn.addEventListener('click', exportChatToJson);
+    }
     
     // Enter key press event (without shift for newline)
     UI.chatInput.addEventListener('keydown', (e) => {

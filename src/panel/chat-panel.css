@@ -273,43 +273,73 @@ blockquote {
 }
 
 /* =============================================================================
-   API INDICATOR
-   Visual indicators for different API providers
+   API INDICATOR & EXPORT BUTTON
+   Visual indicators for different API providers and export functionality
    ============================================================================= */
-.api-indicator-container {
-  padding: 12px 16px;
-  display: flex;
-  justify-content: flex-start;
-  background-color: #f8f9fb;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.api-method-indicator {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1.2;
-}
-
-/* API provider specific colors */
-.indicator-openai {
-  background-color: #10a37f; /* OpenAI green */
-}
-
-.indicator-lmstudio {
-  background-color: #0C5460; /* LM Studio blue */
-}
-
-.indicator-ollama {
-  background-color: #6e48aa; /* Ollama purple */
-}
-
-.indicator-openrouter {
-  background-color: #FF6B00; /* OpenRouter orange */
-}
+   .api-indicator-container {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;  /* Changed from flex-start to space-between */
+    align-items: center;             /* Added to vertically center the elements */
+    background-color: #f8f9fb;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .api-method-indicator {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+  }
+  
+  /* API provider specific colors */
+  .indicator-openai {
+    background-color: #10a37f; /* OpenAI green */
+  }
+  
+  .indicator-lmstudio {
+    background-color: #0C5460; /* LM Studio blue */
+  }
+  
+  .indicator-ollama {
+    background-color: #6e48aa; /* Ollama purple */
+  }
+  
+  .indicator-openrouter {
+    background-color: #FF6B00; /* OpenRouter orange */
+  }
+  
+  /* Export button styling */
+  .export-json-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .export-json-btn:hover {
+    background-color: #3367d6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .export-json-btn:active {
+    transform: translateY(1px);
+  }
+  
+  .export-json-btn i {
+    font-size: 14px;
+  }
 
 /* =============================================================================
    CHAT INPUT AREA
