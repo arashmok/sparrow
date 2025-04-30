@@ -67,8 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
    * - Generate or restore session ID
    */
   async function initializePanel() {
+    // Add import-related elements to the UI object
+    function updateUIReferences() {
+      // Add import-related elements to the UI object
+      UI.importChatBtn = document.getElementById('import-chat-btn');
+      UI.importFileInput = document.getElementById('import-file-input');
+    }
+
     // Load settings from local storage
     loadApiSettings();
+
+    // Update UI references to include import elements
+    updateUIReferences();
     
     // Configure event listeners for message sending
     setupEventListeners();
@@ -78,6 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Setup additional event listeners for saving
     setupSavingEventListeners();
+    
+    // Setup event listeners for importing chats
+    setupImportEventListeners();
     
     // Check if the panel should open directly to saved chats view
     checkForSavedChatsView();
@@ -246,6 +259,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   /**
+   * Set up event listeners for importing chats
+   */
+  function setupImportEventListeners() {
+    if (UI.importChatBtn) {
+      UI.importChatBtn.addEventListener('click', () => {
+        // Trigger the hidden file input when import button is clicked
+        UI.importFileInput.click();
+      });
+    }
+    
+    if (UI.importFileInput) {
+      UI.importFileInput.addEventListener('change', handleFileSelect);
+    }
+  }
+
+  /**
    * Configure listeners for messages from the background script
    */
   function setupBackgroundMessageListener() {
@@ -296,6 +325,307 @@ document.addEventListener('DOMContentLoaded', () => {
     sendResponse({ success: true });
   }
   
+  // =========================================================================
+  // IMPORT FUNCTIONALITY
+  // =========================================================================
+
+  /**
+   * Handle file selection from the import button
+   * @param {Event} event - The change event from the file input
+   */
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      return; // No file selected
+    }
+    
+    // Check if it's a JSON file
+    if (!file.type.match('application/json') && !file.name.endsWith('.json')) {
+      showToast('Please select a valid JSON file');
+      // Reset file input
+      event.target.value = '';
+      return;
+    }
+    
+    // Read the file
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const fileContent = e.target.result;
+        const importedData = JSON.parse(fileContent);
+        
+        // Validate the imported data
+        validateAndImportChat(importedData);
+        
+      } catch (error) {
+        console.error('Error reading JSON file:', error);
+        showToast('Invalid JSON format. Import failed.');
+      }
+      
+      // Reset file input
+      event.target.value = '';
+    };
+    
+    reader.onerror = function() {
+      showToast('Error reading file');
+      // Reset file input
+      event.target.value = '';
+    };
+    
+    reader.readAsText(file);
+  }
+
+  /**
+   * Validate imported data and import if valid
+   * @param {Object} importedData - The parsed JSON data from the imported file
+   */
+  function validateAndImportChat(importedData) {
+    // Basic validation
+    if (!importedData || !importedData.messages || !Array.isArray(importedData.messages)) {
+      showImportErrorDialog('Invalid data format. The file is not a valid Sparrow chat export.');
+      return;
+    }
+    
+    // Check if it has the expected metadata
+    if (!importedData.metadata || !importedData.metadata.exportVersion) {
+      // It might still be a valid chat, but show a warning
+      showImportValidationDialog(importedData, 'warning');
+    } else {
+      // Show validation dialog with success status
+      showImportValidationDialog(importedData, 'success');
+    }
+  }
+
+  /**
+   * Show a dialog with import validation information
+   * @param {Object} importData - The imported chat data
+   * @param {string} status - Status of validation ('success', 'warning', or 'error')
+   */
+  function showImportValidationDialog(importData, status) {
+    // Check if a previous dialog exists and remove it
+    const existingDialog = document.getElementById('import-validation-dialog');
+    if (existingDialog) {
+      existingDialog.remove();
+    }
+    
+    // Get message count and export date
+    const messageCount = importData.messages.length;
+    const exportDate = importData.exportDate 
+      ? new Date(importData.exportDate).toLocaleString() 
+      : 'Unknown';
+    
+    // Get version info
+    const exportVersion = importData.metadata?.exportVersion || 'Unknown';
+    const extensionVersion = importData.metadata?.extensionVersion || 'Unknown';
+    
+    // Create the dialog container
+    const dialogOverlay = document.createElement('div');
+    dialogOverlay.id = 'import-validation-dialog';
+    dialogOverlay.className = 'dialog-overlay';
+    
+    // Create status message based on validation result
+    let statusMessage = '';
+    if (status === 'success') {
+      statusMessage = `
+        <div class="import-success">
+          <i class="fa-solid fa-circle-check"></i>
+          Valid Sparrow chat export detected.
+        </div>
+      `;
+    } else if (status === 'warning') {
+      statusMessage = `
+        <div class="import-warning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          This file appears to be a chat export but may be from a different version or application.
+        </div>
+      `;
+    } else {
+      statusMessage = `
+        <div class="import-error">
+          <i class="fa-solid fa-circle-xmark"></i>
+          Invalid chat export format.
+        </div>
+      `;
+    }
+    
+    // Create the dialog content
+    dialogOverlay.innerHTML = `
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <img src="../../assets/icons/icon48.png" alt="Sparrow logo" class="dialog-logo">
+          <h3>Import Chat</h3>
+        </div>
+        <div class="dialog-body">
+          <p>Would you like to import this conversation?</p>
+          
+          <div class="import-summary">
+            <div class="import-metadata">
+              <div class="import-metadata-item">
+                <span class="import-metadata-label">Messages:</span>
+                <span>${messageCount}</span>
+              </div>
+              <div class="import-metadata-item">
+                <span class="import-metadata-label">Export Date:</span>
+                <span>${exportDate}</span>
+              </div>
+              <div class="import-metadata-item">
+                <span class="import-metadata-label">Export Version:</span>
+                <span>${exportVersion}</span>
+              </div>
+              <div class="import-metadata-item">
+                <span class="import-metadata-label">Extension Version:</span>
+                <span>${extensionVersion}</span>
+              </div>
+            </div>
+          </div>
+          
+          ${statusMessage}
+        </div>
+        <div class="dialog-buttons">
+          <button class="dialog-btn dialog-cancel">Cancel</button>
+          <button class="dialog-btn dialog-confirm" ${status === 'error' ? 'disabled' : ''}>Import</button>
+        </div>
+      </div>
+    `;
+    
+    // Add dialog to the DOM
+    document.body.appendChild(dialogOverlay);
+    
+    // Add event listeners
+    const cancelBtn = dialogOverlay.querySelector('.dialog-cancel');
+    const confirmBtn = dialogOverlay.querySelector('.dialog-confirm');
+    
+    // Close dialog when clicking cancel
+    cancelBtn.addEventListener('click', () => {
+      dialogOverlay.classList.add('dialog-closing');
+      setTimeout(() => dialogOverlay.remove(), 300);
+    });
+    
+    // Import chat when clicking confirm
+    confirmBtn.addEventListener('click', () => {
+      dialogOverlay.classList.add('dialog-closing');
+      setTimeout(() => {
+        dialogOverlay.remove();
+        // Process the import
+        performChatImport(importData);
+      }, 300);
+    });
+    
+    // Close dialog when clicking outside
+    dialogOverlay.addEventListener('click', (e) => {
+      if (e.target === dialogOverlay) {
+        dialogOverlay.classList.add('dialog-closing');
+        setTimeout(() => dialogOverlay.remove(), 300);
+      }
+    });
+    
+    // Show dialog with animation
+    setTimeout(() => dialogOverlay.classList.add('dialog-visible'), 10);
+  }
+
+  /**
+   * Show error dialog for import validation
+   * @param {string} errorMessage - The error message to display
+   */
+  function showImportErrorDialog(errorMessage) {
+    // Check if a previous dialog exists and remove it
+    const existingDialog = document.getElementById('import-error-dialog');
+    if (existingDialog) {
+      existingDialog.remove();
+    }
+    
+    // Create the dialog container
+    const dialogOverlay = document.createElement('div');
+    dialogOverlay.id = 'import-error-dialog';
+    dialogOverlay.className = 'dialog-overlay';
+    
+    // Create the dialog content
+    dialogOverlay.innerHTML = `
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <img src="../../assets/icons/icon48.png" alt="Sparrow logo" class="dialog-logo">
+          <h3>Import Error</h3>
+        </div>
+        <div class="dialog-body">
+          <div class="import-error">
+            <i class="fa-solid fa-circle-xmark"></i>
+            ${errorMessage}
+          </div>
+          <p class="dialog-warning">Please make sure you are importing a chat file that was exported from the Sparrow extension.</p>
+        </div>
+        <div class="dialog-buttons">
+          <button class="dialog-btn dialog-confirm">OK</button>
+        </div>
+      </div>
+    `;
+    
+    // Add dialog to the DOM
+    document.body.appendChild(dialogOverlay);
+    
+    // Add event listeners
+    const confirmBtn = dialogOverlay.querySelector('.dialog-confirm');
+    
+    // Close dialog when clicking OK
+    confirmBtn.addEventListener('click', () => {
+      dialogOverlay.classList.add('dialog-closing');
+      setTimeout(() => dialogOverlay.remove(), 300);
+    });
+    
+    // Close dialog when clicking outside
+    dialogOverlay.addEventListener('click', (e) => {
+      if (e.target === dialogOverlay) {
+        dialogOverlay.classList.add('dialog-closing');
+        setTimeout(() => dialogOverlay.remove(), 300);
+      }
+    });
+    
+    // Show dialog with animation
+    setTimeout(() => dialogOverlay.classList.add('dialog-visible'), 10);
+  }
+
+  /**
+   * Actually import the chat after validation
+   * @param {Object} importData - The imported chat data
+   */
+  async function performChatImport(importData) {
+    try {
+      // Generate a new session ID for this import
+      const importSessionId = 'imported-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      
+      // Prepare chat data for storage
+      const chatData = {
+        sessionId: importSessionId,
+        title: 'Imported Chat',
+        url: '',
+        messages: importData.messages,
+        firstSaved: importData.exportDate ? new Date(importData.exportDate).getTime() : Date.now(),
+        lastUpdated: Date.now(),
+        lastViewed: Date.now(),
+        importDate: Date.now()
+      };
+      
+      // Get existing saved chats
+      const existingSavedChats = await loadSavedChats();
+      
+      // Add the imported chat
+      existingSavedChats.push(chatData);
+      
+      // Save back to storage
+      await chrome.storage.local.set({ 'sparrowSavedChats': existingSavedChats });
+      
+      // Show success message
+      showToast('Chat imported successfully');
+      
+      // Refresh the saved chats list
+      await loadSavedChatsAndShow();
+      
+    } catch (error) {
+      console.error('Error importing chat:', error);
+      showToast('Failed to import chat: ' + error.message);
+    }
+  }
+
+
   // =========================================================================
   // MESSAGE HANDLING
   // =========================================================================

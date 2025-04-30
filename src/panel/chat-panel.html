@@ -42,7 +42,7 @@
     <!-- API indicator showing which AI service is being used -->
     <div class="api-indicator-container">
       <div id="api-indicator" class="api-method-indicator indicator-openai">OpenAI</div>
-      <!-- New export to JSON button -->
+      <!-- Export to JSON button -->
       <button id="export-json-btn" class="export-json-btn" title="Export chat to JSON file">
         <i class="fa-solid fa-file-export"></i> Export
       </button>
@@ -62,13 +62,22 @@
         <i class="fa-solid fa-paper-plane"></i>
       </button>
     </div>
+    
     <!-- Saved chats view (hidden by default) -->
     <div id="saved-chats-container" class="saved-chats-container hidden">
       <div class="saved-chats-header">
         <h2>Saved Conversations</h2>
-        <button id="back-to-chat-btn" class="back-button">
-          <i class="fa-solid fa-arrow-left"></i> Back to Chat
-        </button>
+        <div class="saved-chats-actions">
+          <!-- Add import button next to the back button -->
+          <button id="import-chat-btn" class="import-button" title="Import chat from JSON file">
+            <i class="fa-solid fa-file-import"></i> Import
+          </button>
+          <!-- Hidden file input for importing -->
+          <input type="file" id="import-file-input" accept=".json" class="hidden">
+          <button id="back-to-chat-btn" class="back-button">
+            <i class="fa-solid fa-arrow-left"></i> Back to Chat
+          </button>
+        </div>
       </div>
       <div id="saved-chats-list" class="saved-chats-list">
         <!-- Saved chats will be populated here -->

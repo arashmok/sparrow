@@ -520,6 +520,14 @@ blockquote {
   margin: 0;
 }
 
+/* Container for actions in the saved chats header */
+.saved-chats-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Back button styling */
 .back-button {
   background: none;
   border: none;
@@ -535,6 +543,29 @@ blockquote {
 
 .back-button:hover {
   background-color: rgba(66, 133, 244, 0.1);
+}
+
+/* Import button styling */
+.import-button {
+  background: none;
+  border: none;
+  color: #4285f4;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.import-button:hover {
+  background-color: rgba(66, 133, 244, 0.1);
+}
+
+/* Hidden file input for importing */
+input[type="file"].hidden {
+  display: none;
 }
 
 /* Saved chats list items */
@@ -649,6 +680,62 @@ blockquote {
   background-color: transparent !important;
   color: #999 !important;
 }
+
+/* =============================================================================
+   IMPORT VALIDATION DIALOG
+   Styling for the import validation dialog
+   ============================================================================= */
+   .import-summary {
+    background-color: #f8f9fb;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .import-metadata {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #666;
+  }
+  
+  .import-metadata-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  
+  .import-metadata-label {
+    font-weight: 500;
+  }
+  
+  .import-success {
+    color: #4caf50;
+    margin-top: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .import-warning {
+    color: #ff9800;
+    margin-top: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .import-error {
+    color: #f44336;
+    margin-top: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
 
 /* =============================================================================
    CUSTOM DIALOG
