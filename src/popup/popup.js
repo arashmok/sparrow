@@ -80,9 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const savedChats = await initializeSavedChatsStorage();
       console.log(`Initialization complete, found ${savedChats.length} saved chats`);
       
+      // Check for existing tasks
+      await checkForExistingTasks();
+
       // Check for existing summary
       checkForExistingSummary();
-      
+
       // Initialize popup settings
       initializePopup();
       
@@ -317,23 +320,42 @@ document.addEventListener('DOMContentLoaded', () => {
    * Summarize the content of the current page
    * Extracts text from the page and sends it to the background script for summarization
    */
+  // In popup.js - Modify summarizeCurrentPage
   async function summarizeCurrentPage() {
-    // Store original button text
     const originalButtonText = elements.summarizeBtn.querySelector('span').textContent;
     
-    // Update UI to show we're generating
     updateUIForGenerating();
     
     try {
-      // Get the active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
-      // Try to extract text from the page
-      await extractAndProcessText(tab);
+      // Extract text from the page
+      const response = await sendMessageToContentScript(tab.id, { action: "extract_text" });
+      
+      if (!response || !response.text) {
+        showError("No content found to summarize.");
+        resetUIAfterGeneration("Generate");
+        return;
+      }
+      
+      // Send to background for processing
+      chrome.runtime.sendMessage({
+        action: "summarize",
+        text: response.text,
+        format: elements.summaryFormat.value,
+        translateToEnglish: elements.translateEnglish.checked
+      }, (result) => {
+        if (result.taskId) {
+          // Task started successfully, set up completion listener
+          setupTaskCompletionListener(result.taskId);
+        } else if (result.error) {
+          showError(result.error);
+          resetUIAfterGeneration("Generate");
+        }
+      });
+      
     } catch (error) {
       showError("An error occurred: " + error.message);
-      console.error("General error:", error);
-      // Reset UI
       resetUIAfterGeneration(originalButtonText);
     }
   }
@@ -1893,3 +1915,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// =====================================================================
+// BACKGROUND TASK HANDLING
+// =====================================================================
+
+/**
+ * Check for existing tasks when popup opens
+ */
+async function checkForExistingTasks() {
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+  // Request task status from background
+  chrome.runtime.sendMessage(
+    { action: 'getTaskStatus', url: activeTab.url },
+    (response) => {
+      if (response && response.task) {
+        handleExistingTask(response.task);
+      }
+    }
+  );
+}
+
+/**
+ * Handle existing task based on its status
+ */
+function handleExistingTask(task) {
+  switch (task.status) {
+    case 'processing':
+      // Show loading UI
+      updateUIForGenerating();
+      // Set up listener for task completion
+      setupTaskCompletionListener(task.id);
+      break;
+      
+    case 'completed':
+      // Display the summary
+      displaySummary(task.summary, task.format);
+      // Update button text
+      elements.summarizeBtn.querySelector('span').textContent = "Regenerate";
+      break;
+      
+    case 'error':
+      // Show error message
+      showError(task.error);
+      break;
+      
+    case 'timeout':
+      // Show timeout message
+      showError('Summary generation timed out. Please try again.');
+      break;
+  }
+}
+
+/**
+ * Set up listener for task completion
+ */
+function setupTaskCompletionListener(taskId) {
+  // Listen for task updates
+  chrome.runtime.onMessage.addListener(function taskUpdateListener(message) {
+    if (message.action === 'taskUpdate' && message.taskId === taskId) {
+      if (message.status === 'completed') {
+        displaySummary(message.summary, message.format);
+        resetUIAfterGeneration("Regenerate");
+      } else if (message.status === 'error') {
+        showError(message.error);
+        resetUIAfterGeneration("Generate");
+      }
+      
+      // Remove listener after handling the update
+      chrome.runtime.onMessage.removeListener(taskUpdateListener);
+    }
+  });
+}

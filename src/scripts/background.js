@@ -81,42 +81,34 @@ const secureKeyStore = {
     return true;
   },
   
-  getKey(service) {
+  async getKey(service) {
     if (this.keys[service]) {
       return this.keys[service];
     }
-    return this.loadKeyFromStorage(service);
-  },
-  
-  loadKeyFromStorage(service) {
-    this.loadKeyFromStorageAsync(service);
-    return null;
-  },
-  
-  loadKeyFromStorageAsync(service) {
-    const storageKey = `encrypted_${service}_key`;
-    chrome.storage.local.get([storageKey], (result) => {
-      if (result[storageKey]) {
-        this.keys[service] = encryptionUtils.decrypt(result[storageKey]);
-      }
-    });
-  },
-  
-  hasKey(service, callback) {
-    if (this.keys[service]) {
-      callback(true);
-      return;
-    }
     
-    const storageKey = `encrypted_${service}_key`;
-    chrome.storage.local.get([storageKey], (result) => {
-      callback(!!result[storageKey]);
+    // Return a promise that resolves with the key
+    return new Promise((resolve) => {
+      const storageKey = `encrypted_${service}_key`;
+      chrome.storage.local.get([storageKey], (result) => {
+        if (result[storageKey]) {
+          const decryptedKey = encryptionUtils.decrypt(result[storageKey]);
+          this.keys[service] = decryptedKey;
+          resolve(decryptedKey);
+        } else {
+          resolve(null);
+        }
+      });
     });
+  },
+  
+  async hasKey(service) {
+    const key = await this.getKey(service);
+    return !!key;
   },
   
   initialize() {
     ['openai', 'openrouter', 'lmstudio', 'ollama'].forEach(service => {
-      this.loadKeyFromStorageAsync(service);
+      this.getKey(service); // Pre-load keys
     });
   }
 };
@@ -389,7 +381,7 @@ async function proxyOllamaRequest(apiUrl, endpoint, method, body) {
 
 const apiProviders = {
   async openai(messages, model, apiKey) {
-    const key = apiHandler.getApiKey('openai', apiKey);
+    const key = apiKey || await secureKeyStore.getKey('openai');
     if (!key) throw new Error('No OpenAI API key found');
     
     const headers = apiHandler.prepareHeaders('openai', key);
@@ -405,8 +397,9 @@ const apiProviders = {
   },
   
   async lmstudio(messages, apiUrl, apiKey, model) {
+    const key = apiKey || await secureKeyStore.getKey('lmstudio');
     const endpoint = `${apiUrl.replace(/\/+$/, '')}/chat/completions`;
-    const headers = apiHandler.prepareHeaders('lmstudio', apiKey);
+    const headers = apiHandler.prepareHeaders('lmstudio', key);
     
     const body = {
       messages,
@@ -424,13 +417,16 @@ const apiProviders = {
     } catch (error) {
       // Attempt fallback for older versions
       if (error.message.includes("Status: 400") || error.message.includes("Status: 404")) {
-        return this.lmstudioFallback(messages, apiUrl, apiKey, model);
+        return this.lmstudioFallback(messages, apiUrl, key, model);
       }
       throw error;
     }
   },
   
   async lmstudioFallback(messages, apiUrl, apiKey, model) {
+    // Use the same key passed from lmstudio method
+    const key = apiKey;
+    
     // Create a concatenated prompt from messages
     let conversationText = '';
     
@@ -451,7 +447,7 @@ const apiProviders = {
     conversationText += "Assistant:";
     
     const endpoint = `${apiUrl.replace(/\/+$/, '')}/completions`;
-    const headers = apiHandler.prepareHeaders('lmstudio', apiKey);
+    const headers = apiHandler.prepareHeaders('lmstudio', key);
     
     const body = {
       prompt: conversationText,
@@ -545,7 +541,7 @@ const apiProviders = {
   },
   
   async openrouter(messages, model, apiKey) {
-    const key = apiHandler.getApiKey('openrouter', apiKey);
+    const key = apiKey || await secureKeyStore.getKey('openrouter');
     if (!key) throw new Error('No OpenRouter API key found');
     
     const headers = apiHandler.prepareHeaders('openrouter', key);
@@ -568,6 +564,28 @@ const apiProviders = {
 const summarizationService = {
   async generateSummary(text, format, apiMode, settings, translateToEnglish) {
     try {
+      // Use async key retrieval for required API keys
+      if (apiMode === 'openai') {
+        const key = settings.apiKey || await secureKeyStore.getKey('openai');
+        if (!key) {
+          throw new Error('OpenAI API key is required. Please add your API key in the settings.');
+        }
+        settings.apiKey = key; // Ensure the key is available for the API call
+      }
+      
+      if (apiMode === 'openrouter') {
+        const key = settings.openrouterApiKey || await secureKeyStore.getKey('openrouter');
+        if (!key) {
+          throw new Error('OpenRouter API key is required. Please add your API key in the settings.');
+        }
+        settings.openrouterApiKey = key; // Ensure the key is available for the API call
+      }
+      
+      // LM Studio may use a key if provided
+      if (apiMode === 'lmstudio' && !settings.lmstudioApiKey) {
+        settings.lmstudioApiKey = await secureKeyStore.getKey('lmstudio') || '';
+      }
+      
       switch (apiMode) {
         case 'openai':
           return await this.generateOpenAISummary(
@@ -577,7 +595,7 @@ const summarizationService = {
         case 'lmstudio':
           return await this.generateLMStudioSummary(
             text, format, settings.lmstudioApiUrl || 'http://localhost:1234/v1', 
-            settings.lmstudioApiKey || '', translateToEnglish, settings.lmstudioModel || ''
+            settings.lmstudioApiKey, translateToEnglish, settings.lmstudioModel || ''
           );
           
         case 'ollama':
@@ -1047,98 +1065,154 @@ function extractPageContent() {
 // MESSAGE HANDLERS
 // ==========================================================================================
 
-// Handle all message requests in a single listener
+// Single consolidated message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Handle side panel and chat requests
-  if (request.action === 'open-chat-panel') {
-    console.log("Opening chat panel with settings:", request);
-    
-    let urlParams = '';
-    if (request.showSavedChats === true) {
-      urlParams = '?showSaved=true';
-      if (request.directAccess === true) {
-        urlParams += '&directAccess=true';
-      }
-      console.log("Opening saved chats view with params:", urlParams);
-    }
-    
-    // For an existing chat session
-    if (request.sessionId) {
-      urlParams += (urlParams ? '&' : '?') + 'session=' + request.sessionId;
-    }
-    
-    // Store any generated text to use in the chat
-    if (request.generatedText) {
-      chrome.storage.local.set({ latestSummary: request.generatedText });
-    }
-    
-    // Open the side panel with appropriate URL parameters
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = request.tabId || (tabs[0] ? tabs[0].id : null);
-      if (!tabId) {
-        console.error("No tab ID available");
-        sendResponse({ success: false, error: "No tab ID available" });
-        return;
+  // Log all incoming messages for debugging
+  console.log("Received message:", request.action);
+  
+  switch (request.action) {
+    case 'open-chat-panel':
+      console.log("Opening chat panel with settings:", request);
+      
+      let urlParams = '';
+      if (request.showSavedChats === true) {
+        urlParams = '?showSaved=true';
+        if (request.directAccess === true) {
+          urlParams += '&directAccess=true';
+        }
+        console.log("Opening saved chats view with params:", urlParams);
       }
       
-      chrome.sidePanel.open({ tabId: tabId }).then(() => {
-        chrome.sidePanel.setOptions({
-          path: 'src/panel/chat-panel.html' + urlParams,
-          enabled: true
-        });
-        
-        sendResponse({ success: true });
-      }).catch(error => {
-        console.error("Error opening side panel:", error);
-        sendResponse({ success: false, error: error.message });
-      });
-    });
-    
-    return true; // Keep the message channel open for async response
-  }
-  
-  // Handle chat message processing
-  if (request.action === 'chat-message') {
-    chrome.storage.local.get([
-      'apiMode', 
-      'apiKey', 
-      'openaiModel',
-      'lmstudioApiUrl',
-      'lmstudioApiKey',
-      'lmstudioModel',
-      'ollamaApiUrl',
-      'ollamaModel',
-      'openrouterApiKey',
-      'openrouterModel'
-    ], async (settings) => {
-      try {
-        const reply = await chatService.handleMessage(request.text, request.history || [], settings);
-        sendResponse({ reply });
-      } catch (error) {
-        sendResponse({ error: error.message });
+      if (request.sessionId) {
+        urlParams += (urlParams ? '&' : '?') + 'session=' + request.sessionId;
       }
-    });
-    
-    return true;
-  }
-  
-  // Handle API key management
-  if (request.action === 'store-api-key') {
-    secureKeyStore.storeKey(request.service, request.key);
-    sendResponse({ success: true });
-    return true;
-  }
-  
-  if (request.action === 'check-api-key') {
-    secureKeyStore.hasKey(request.service, (hasKey) => {
-      sendResponse({ hasKey: hasKey });
-    });
-    return true;
-  }
-  
-  // Handle OpenAI models fetching
-  if (request.action === 'fetch-openai-models') {
-    try {
+      
+      if (request.generatedText) {
+        chrome.storage.local.set({ latestSummary: request.generatedText });
+      }
+      
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabId = request.tabId || (tabs[0] ? tabs[0].id : null);
+        if (!tabId) {
+          console.error("No tab ID available");
+          sendResponse({ success: false, error: "No tab ID available" });
+          return;
+        }
+        
+        chrome.sidePanel.open({ tabId: tabId }).then(() => {
+          chrome.sidePanel.setOptions({
+            path: 'src/panel/chat-panel.html' + urlParams,
+            enabled: true
+          });
+          
+          sendResponse({ success: true });
+        }).catch(error => {
+          console.error("Error opening side panel:", error);
+          sendResponse({ success: false, error: error.message });
+        });
+      });
+      return true; // Keep message channel open
+      
+      case 'summarize':
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+          if (!tabs[0]) {
+            sendResponse({ error: "No active tab found" });
+            return;
+          }
+          
+          const activeTab = tabs[0];
+          
+          // Create a new task
+          const taskId = TaskManager.createTask({
+            url: activeTab.url,
+            format: request.format,
+            translateToEnglish: request.translateToEnglish,
+            tabId: activeTab.id
+          });
+          
+          // Send immediate response with taskId
+          sendResponse({ taskId, status: 'started' });
+          
+          // Start the summarization process
+          chrome.storage.local.get([
+            'apiMode', 'apiKey', 'openaiModel', 'lmstudioApiUrl',
+            'lmstudioApiKey', 'lmstudioModel', 'ollamaApiUrl',
+            'ollamaModel', 'openrouterApiKey', 'openrouterModel'
+          ], async (settings) => {
+            try {
+              const apiMode = settings.apiMode || 'openai';
+              console.log("Using API mode:", apiMode);
+              
+              // Check API keys using async retrieval
+              if (apiMode === 'openai') {
+                const key = settings.apiKey || await secureKeyStore.getKey('openai');
+                if (!key) throw new Error('No OpenAI API key found. Please check your settings.');
+              } else if (apiMode === 'openrouter') {
+                const key = settings.openrouterApiKey || await secureKeyStore.getKey('openrouter');
+                if (!key) throw new Error('No OpenRouter API key found. Please check your settings.');
+              }
+              
+              // Generate summary - use settings.apiMode instead of request.apiMode
+              const summary = await summarizationService.generateSummary(
+                request.text,
+                request.format,
+                apiMode,  // Use apiMode from settings, not request
+                settings,
+                request.translateToEnglish
+              );
+              
+              // Update task with completion
+              TaskManager.updateTask(taskId, {
+                status: 'completed',
+                summary: summary,
+                completedTime: Date.now()
+              });
+              
+              // Store the summary in local storage
+              chrome.storage.local.set({
+                latestSummary: summary,
+                latestUrl: activeTab.url
+              });
+              
+            } catch (error) {
+              console.error('Error generating summary:', error);
+              TaskManager.updateTask(taskId, {
+                status: 'error',
+                error: error.message
+              });
+            }
+          });
+        });
+        return true; // Keep message channel open
+      
+    case 'chat-message':
+      chrome.storage.local.get([
+        'apiMode', 'apiKey', 'openaiModel',
+        'lmstudioApiUrl', 'lmstudioApiKey', 'lmstudioModel',
+        'ollamaApiUrl', 'ollamaModel',
+        'openrouterApiKey', 'openrouterModel'
+      ], async (settings) => {
+        try {
+          const reply = await chatService.handleMessage(request.text, request.history || [], settings);
+          sendResponse({ reply });
+        } catch (error) {
+          sendResponse({ error: error.message });
+        }
+      });
+      return true;
+      
+    case 'store-api-key':
+      secureKeyStore.storeKey(request.service, request.key);
+      sendResponse({ success: true });
+      return true;
+      
+    case 'check-api-key':
+      secureKeyStore.hasKey(request.service, (hasKey) => {
+        sendResponse({ hasKey: hasKey });
+      });
+      return true;
+      
+    case 'fetch-openai-models':
       const apiKey = request.apiKey || secureKeyStore.getKey('openai');
       if (!apiKey) {
         sendResponse({ 
@@ -1159,59 +1233,216 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             models: getDefaultOpenAIModels() 
           });
         });
+      return true;
       
+    case 'getTaskStatus':
+      const task = TaskManager.getTaskByUrl(request.url);
+      sendResponse({ task });
       return true;
-    } catch (error) {
-      sendResponse({ 
-        error: error.message, 
-        models: getDefaultOpenAIModels() 
-      });
+      
+    case 'update-saved-count':
+      sendResponse({ success: true });
       return true;
-    }
-  }
-  
-  // Handle update-saved-count message
-  if (request.action === 'update-saved-count') {
-    // This is handled by the popup, just send success response
-    sendResponse({ success: true });
-    return true;
+      
+    default:
+      console.warn('Unknown action:', request.action);
+      sendResponse({ error: 'Unknown action' });
+      return false;
   }
 });
 
-// Handle summarization requests
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "summarize") {
-    chrome.storage.local.get([
-      'apiMode', 
-      'apiKey', 
-      'openaiModel',
-      'lmstudioApiUrl',
-      'lmstudioApiKey',
-      'lmstudioModel',
-      'ollamaApiUrl',
-      'ollamaModel',
-      'openrouterApiKey',
-      'openrouterModel'
-    ], async (settings) => {
-      try {
-        const apiMode = settings.apiMode || 'openai';
-        console.log("Using API mode:", apiMode);
-        
-        const summary = await summarizationService.generateSummary(
-          request.text, 
-          request.format, 
-          apiMode, 
-          settings, 
-          request.translateToEnglish
-        );
-        
-        sendResponse({ summary });
-      } catch (error) {
-        console.error('Error generating summary:', error);
-        sendResponse({ error: error.message });
-      }
-    });
+// Function to broadcast task updates to the popup
+function broadcastTaskUpdate(taskId, task) {
+  chrome.runtime.sendMessage({
+    action: 'taskUpdate',
+    taskId: taskId,
+    status: task.status,
+    summary: task.summary,
+    format: task.format,
+    error: task.error
+  }).catch(() => {
+    // Ignore errors when popup is not open
+  });
+}
+
+// Add missing getDefaultOpenAIModels function if it doesn't exist
+function getDefaultOpenAIModels() {
+  return [
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+    { id: 'gpt-4', name: 'GPT-4' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' }
+  ];
+}
+
+// ==========================================================================================
+// TASK MANAGER
+// ==========================================================================================
+
+// TaskManager handles the creation, updating, and management of tasks
+const TaskManager = {
+  // Store active tasks with their states
+  activeTasks: new Map(),
+  
+  // Initialize and restore tasks from storage
+  async initialize() {
+    const { activeTasks } = await chrome.storage.local.get(['activeTasks']);
+    if (activeTasks) {
+      this.activeTasks = new Map(Object.entries(activeTasks));
+    }
+  },
+  
+  // Create a new task
+  createTask(taskData) {
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const task = {
+      id: taskId,
+      status: 'processing', // processing, completed, error, timeout
+      url: taskData.url,
+      format: taskData.format,
+      translateToEnglish: taskData.translateToEnglish, // Fix: changed from request.translateToEnglish
+      startTime: Date.now(),
+      tabId: taskData.tabId,
+      summary: null,
+      error: null
+    };
     
-    return true;
+    this.activeTasks.set(taskId, task);
+    this.saveToStorage();
+    this.updateBadge('processing');
+    
+    return taskId;
+  },
+  
+  // Update task status and details
+  updateTask(taskId, updates) {
+    const task = this.activeTasks.get(taskId);
+    if (task) {
+      Object.assign(task, updates);
+      this.saveToStorage();
+      
+      // Broadcast update to popup if it's open
+      broadcastTaskUpdate(taskId, task);
+      
+      // Update badge based on status
+      if (updates.status === 'completed') {
+        this.updateBadge('completed');
+        this.notifyCompletion(task);
+      } else if (updates.status === 'error') {
+        this.updateBadge('error');
+      }
+    }
+  },
+  
+  // Get task by URL
+  getTaskByUrl(url) {
+    const normalizedUrl = this.normalizeUrl(url);
+    for (const [taskId, task] of this.activeTasks) {
+      if (this.normalizeUrl(task.url) === normalizedUrl) {
+        return task;
+      }
+    }
+    return null;
+  },
+  
+  // Save tasks to storage
+  saveToStorage() {
+    const tasksObject = Object.fromEntries(this.activeTasks);
+    chrome.storage.local.set({ activeTasks: tasksObject });
+  },
+  
+  // Update browser action badge
+  updateBadge(status) {
+    const config = {
+      processing: { text: '...', color: '#2196F3' },
+      completed: { text: '✓', color: '#4CAF50' },
+      error: { text: '!', color: '#F44336' },
+      clear: { text: '', color: '#000000' }
+    };
+    
+    const badgeConfig = config[status] || config.clear;
+    chrome.action.setBadgeText({ text: badgeConfig.text });
+    chrome.action.setBadgeBackgroundColor({ color: badgeConfig.color });
+  },
+  
+  // Show notification when task completes
+  notifyCompletion(task) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'assets/icons/icon48.png',
+      title: 'Summary Ready',
+      message: `Your summary for "${task.url.substring(0, 50)}..." is ready!`,
+      buttons: [{ title: 'View Summary' }]
+    });
+  },
+  
+  // Clean up old tasks
+  cleanupOldTasks() {
+    const ONE_HOUR = 60 * 60 * 1000;
+    const now = Date.now();
+    
+    for (const [taskId, task] of this.activeTasks) {
+      if (now - task.startTime > ONE_HOUR) {
+        this.activeTasks.delete(taskId);
+      }
+    }
+    
+    this.saveToStorage();
+  },
+  
+  // Normalize URL for comparison
+  normalizeUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.hash = '';
+      return urlObj.href;
+    } catch {
+      return url;
+    }
+  }
+};
+
+// Initialize TaskManager when background script loads
+TaskManager.initialize();
+
+// ==========================================================================================
+// NOTIFICATIONS
+// ==========================================================================================
+
+// Handle notification clicks
+chrome.notifications.onClicked.addListener((notificationId) => {
+  // Open the popup when notification is clicked
+  chrome.action.openPopup();
+});
+
+// Handle notification button clicks
+chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
+  if (buttonIndex === 0) { // "View Summary" button
+    chrome.action.openPopup();
   }
 });
+
+// ==========================================================================================
+// ERROR HANDLING
+// ==========================================================================================
+
+const TASK_TIMEOUT = 30000; // 30 seconds
+const CLEANUP_INTERVAL = 300000; // 5 minutes
+
+// Check for timed out tasks
+setInterval(() => {
+  const now = Date.now();
+  
+  for (const [taskId, task] of TaskManager.activeTasks) {
+    if (task.status === 'processing' && now - task.startTime > TASK_TIMEOUT) {
+      TaskManager.updateTask(taskId, {
+        status: 'timeout',
+        error: 'Summary generation timed out'
+      });
+    }
+  }
+}, 5000);
+
+// Clean up old tasks periodically
+setInterval(() => {
+  TaskManager.cleanupOldTasks();
+}, CLEANUP_INTERVAL);
